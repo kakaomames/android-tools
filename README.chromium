@@ -18,4 +18,5 @@ old linker has been copied as <old_linker_name>.orig:
          arm-linux-androideabi/bin/ld.orig
   2) ndk/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/
          arm-linux-androideabi-ld.orig
-No modifications has been made to the public Android SDK.
+  3) sdk/extras added gcm library (revision 3)
+No other modifications has been made to the public Android SDK.
