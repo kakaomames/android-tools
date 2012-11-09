@@ -6,7 +6,6 @@
   'targets': [
     {
       'target_name': 'cpu_features',
-      #'type': '<(library)',
       'type': 'static_library',
       'direct_dependent_settings': {
         'include_dirs': [
