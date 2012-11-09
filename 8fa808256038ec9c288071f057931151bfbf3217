@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "AAAAQ3//1kw\u003d",
+        "filename": "ndk/sources/android/cpufeatures/cpu_features.gyp",
+        "patchSetId": 1
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1001644
+      },
+      "writtenOn": "2012-11-09T19:52:17Z",
+      "side": 1,
+      "message": "Where is this file? Do you need to provide a path to it? Changes to this file will require the same workflow (i.e. pushing to refs/for/\u003cbranch\u003e), so it\u0027s best if we can get all the changes in here.",
+      "revId": "8fa808256038ec9c288071f057931151bfbf3217",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
+    }
+  ]
+}
