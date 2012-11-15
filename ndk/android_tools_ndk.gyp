@@ -9,11 +9,11 @@
       'type': 'static_library',
       'direct_dependent_settings': {
         'include_dirs': [
-          '.',
+          'sources/android/cpufeatures',
         ],
       },
       'sources': [
-        'cpu-features.c',
+        'sources/android/cpufeatures/cpu-features.c',
       ],
     },
   ],
