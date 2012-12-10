@@ -16,6 +16,24 @@
       "revId": "7780f1647422010c18d566cefa028505b3329ba2",
       "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "AAAARn//7h0\u003d",
+        "filename": "ndk/sources/android/cpufeatures/cpu-features.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 118,
+      "author": {
+        "id": 1001352
+      },
+      "writtenOn": "2012-12-10T20:28:17Z",
+      "side": 1,
+      "message": "hu? no, it should be the exact content from the link sha1, i\u0027ll check it again (for all I know this code has been tested correctly).",
+      "parentUuid": "AAAARn//7kI\u003d",
+      "revId": "7780f1647422010c18d566cefa028505b3329ba2",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
     }
   ]
 }
