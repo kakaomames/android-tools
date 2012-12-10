@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "AAAARn//7kI\u003d",
+        "filename": "ndk/sources/android/cpufeatures/cpu-features.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 118,
+      "author": {
+        "id": 1001618
+      },
+      "writtenOn": "2012-12-10T20:11:20Z",
+      "side": 1,
+      "message": "This is not part of the linked sha-1 but I take it you\u0027re syncing up with more recent changes?",
+      "revId": "7780f1647422010c18d566cefa028505b3329ba2",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
+    }
+  ]
+}
