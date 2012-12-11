@@ -1,0 +1,9 @@
+Change-Id: I676dbfd9931b623a5976a9a9933a5d83e6142bb4
+Commit-Ready+1: Yaron Friedman <yfriedman@google.com>
+Code-Review+2: Yaron Friedman <yfriedman@google.com>
+Verified+1: Yaron Friedman <yfriedman@google.com>
+Submitted-by: Yaron Friedman <yfriedman@google.com>
+Submitted-at: Tue, 11 Dec 2012 11:03:11 -0800
+Reviewed-on: https://gerrit.chromium.org/gerrit/39553
+Project: android_tools
+Branch: refs/heads/master
