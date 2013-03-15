@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "AAAAWX//9Ps\u003d",
+        "filename": "README.chromium",
+        "patchSetId": 1
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1001192
+      },
+      "writtenOn": "2013-03-15T17:23:08Z",
+      "side": 1,
+      "message": "nit: include link where that comes from.\nhttps://code.google.com/p/trace-viewer/source/checkout ?",
+      "revId": "a62d44c08662c566f018c23f76c8e5ed06960b03",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
+    }
+  ]
+}
