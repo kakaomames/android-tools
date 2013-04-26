@@ -34,18 +34,22 @@ TARGET_CFLAGS := \
         -fgcse-after-reload \
         -frerun-cse-after-loop \
         -frename-registers \
+        -no-canonical-prefixes
 
-TARGET_LDFLAGS :=
+TARGET_LDFLAGS := -no-canonical-prefixes
 
 TARGET_C_INCLUDES := \
-    $(SYSROOT)/usr/include
+    $(SYSROOT_INC)/usr/include
 
-TARGET_mips_release_CFLAGS :=  -O2 \
-                               -fomit-frame-pointer \
-                               -funswitch-loops     \
-                               -finline-limit=300
+TARGET_mips_release_CFLAGS := -O2 \
+                              -g \
+                              -DNDEBUG \
+                              -fomit-frame-pointer \
+                              -funswitch-loops     \
+                              -finline-limit=300
 
-TARGET_mips_debug_CFLAGS := -O0 -g \
+TARGET_mips_debug_CFLAGS := -O0 \
+                            -g \
                             -fno-omit-frame-pointer
 
 
@@ -62,32 +66,3 @@ $(call set-src-files-target-cflags,\
     $(TARGET_mips_release_CFLAGS)) \
 $(call set-src-files-text,$(__debug_sources),mips$(space)) \
 $(call set-src-files-text,$(__release_sources),mips$(space)) \
-
-#
-# We need to add -lsupc++ to the final link command to make exceptions
-# and RTTI work properly (when -fexceptions and -frtti are used).
-#
-# Normally, the toolchain should be configured to do that automatically,
-# this will be debugged later.
-#
-define cmd-build-shared-library
-$(PRIVATE_CXX) \
-    -Wl,-soname,$(notdir $@) \
-    -shared \
-    --sysroot=$(call host-path,$(PRIVATE_SYSROOT)) \
-    $(PRIVATE_LINKER_OBJECTS_AND_LIBRARIES) \
-    $(PRIVATE_LDFLAGS) \
-    $(PRIVATE_LDLIBS) \
-    -o $(call host-path,$@)
-endef
-
-define cmd-build-executable
-$(PRIVATE_CXX) \
-    -Wl,--gc-sections \
-    -Wl,-z,nocopyreloc \
-    --sysroot=$(call host-path,$(PRIVATE_SYSROOT)) \
-    $(PRIVATE_LINKER_OBJECTS_AND_LIBRARIES) \
-    $(PRIVATE_LDFLAGS) \
-    $(PRIVATE_LDLIBS) \
-    -o $(call host-path,$@)
-endef

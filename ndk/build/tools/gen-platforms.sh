@@ -67,6 +67,8 @@ OPTION_FAST_COPY=
 OPTION_MINIMAL=
 OPTION_ARCH=
 OPTION_ABI=
+OPTION_DEBUG_LIBS=
+OPTION_OVERLAY=
 PACKAGE_DIR=
 
 VERBOSE=no
@@ -114,6 +116,12 @@ for opt do
   --package-dir=*)
     PACKAGE_DIR=$optarg
     ;;
+  --debug-libs)
+    OPTION_DEBUG_LIBS=true
+    ;;
+  --overlay)
+    OPTION_OVERLAY=true
+    ;;
   *)
     echo "unknown option '$opt', use --help"
     exit 1
@@ -137,6 +145,7 @@ if [ $OPTION_HELP = "yes" ] ; then
     echo "  --fast-copy           Don't create symlinks, copy files instead"
     echo "  --samples             Also generate samples directories."
     echo "  --package-dir=<path>  Package platforms archive in specific path."
+    echo "  --debug-libs          Also generate C source file for generated libraries."
     echo ""
     echo "Use the --minimal flag if you want to generate minimal sysroot directories"
     echo "that will be used to generate prebuilt toolchains. Otherwise, the script"
@@ -281,7 +290,7 @@ symlink_src_directory_inner ()
     files=$(cd $DSTDIR/$1 && ls -1p)
     for file in $files; do
         if [ "$file" = "${file%%/}" ]; then
-            log "Link \$DST/$2/$file --> $rev/$1/$file"
+            log2 "Link \$DST/$2/$file --> $rev/$1/$file"
             ln -s $rev/$1/$file $DSTDIR/$2/$file
         else
             file=${file%%/}
@@ -299,52 +308,95 @@ symlink_src_directory ()
     symlink_src_directory_inner "$1" "$2" "$(reverse_path $1)"
 }
 
-# $1: Architecture name
-# $2+: List of symbols
-# out: Input list, without any libgcc symbol
-remove_libgcc_symbols ()
+# Remove unwanted symbols
+# $1: symbol file (one symbol per line)
+# $2+: Input symbol list
+# Out: Input symbol file, without any unwanted symbol listed by $1
+remove_unwanted_symbols_from ()
 {
-    local ARCH=$1
-    shift
-    echo "$@" | tr ' ' '\n' | grep -v -F -f $PROGDIR/toolchain-symbols/$ARCH/libgcc.a.functions.txt
+  local SYMBOL_FILE="$1"
+  shift
+  if [ -f "$SYMBOL_FILE" ]; then
+    echo "$@" | tr ' ' '\n' | grep -v -F -x -f $SYMBOL_FILE | tr '\n' ' '
+  else
+    echo "$@"
+  fi
+}
+
+# Remove unwanted symbols from a library's functions list.
+# $1: Architecture name
+# $2: Library name (e.g. libc.so)
+# $3+: Input symbol list
+# Out: Input symbol list without any unwanted symbols.
+remove_unwanted_function_symbols ()
+{
+  local ARCH LIBRARY SYMBOL_FILE
+  ARCH=$1
+  LIBRARY=$2
+  shift; shift
+  SYMBOL_FILE=$PROGDIR/unwanted-symbols/$ARCH/$LIBRARY.functions.txt
+  remove_unwanted_symbols_from $SYMBOL_FILE "$@"
+}
+
+# Same as remove_unwanted_functions_symbols, but for variable names.
+#
+remove_unwanted_variable_symbols ()
+{
+  local ARCH LIBRARY SYMBOL_FILE
+  ARCH=$1
+  LIBRARY=$2
+  shift; shift
+  SYMBOL_FILE=$PROGDIR/unwanted-symbols/$ARCH/$LIBRARY.variables.txt
+  remove_unwanted_symbols_from $SYMBOL_FILE "$@"
 }
 
 # $1: library name
 # $2: functions list
 # $3: variables list
-# $4: sysroot to use
-# $5: destination file
-# $6: toolchain binprefix
+# $4: destination file
+# $5: toolchain binprefix
 gen_shared_lib ()
 {
+    local LIBRARY=$1
+    local FUNCS="$2"
+    local VARS="$3"
+    local DSTFILE="$4"
+    local BINPREFIX="$5"
     # Now generate a small C source file that contains similarly-named stubs
     echo "/* Auto-generated file, do not edit */" > $TMPC
     local func var
-    for func in $2; do
+    for func in $FUNCS; do
         echo "void $func(void) {}" >> $TMPC
     done
-    for var in $3; do
+    for var in $VARS; do
         echo "int $var = 0;" >> $TMPC
     done
 
     # Build it with our cross-compiler. It will complain about conflicting
     # types for built-in functions, so just shut it up.
-    echo "## COMMAND: $6-gcc --sysroot=\"$4\" -Wl,-shared,-Bsymbolic -nostdlib -o $TMPO $TMPC" > $TMPL
-    $6-gcc --sysroot="$4" -Wl,-shared,-Bsymbolic -nostdlib -o $TMPO $TMPC 1>>$TMPL 2>&1
+    COMMAND="$BINPREFIX-gcc -Wl,-shared,-Bsymbolic -nostdlib -o $TMPO $TMPC"
+    echo "## COMMAND: $COMMAND" > $TMPL
+    $COMMAND 1>>$TMPL 2>&1
     if [ $? != 0 ] ; then
-        dump "ERROR: Can't generate shared library for: $1"
+        dump "ERROR: Can't generate shared library for: $LIBNAME"
         dump "See the content of $TMPC and $TMPL for details."
         cat $TMPL | tail -10
         exit 1
     fi
 
     # Copy to our destination now
-    local libdir=$(dirname "$5")
-    mkdir -p "$libdir" && cp -f $TMPO "$5"
+    local libdir=$(dirname "$DSTFILE")
+    mkdir -p "$libdir" && cp -f $TMPO "$DSTFILE"
     if [ $? != 0 ] ; then
-        dump "ERROR: Can't copy shared library for: $1"
-        dump "target location is: $5"
+        dump "ERROR: Can't copy shared library for: $LIBNAME"
+        dump "target location is: $DSTFILE"
         exit 1
+    fi
+
+    if [ "$OPTION_DEBUG_LIBS" ]; then
+      cp $TMPC $DSTFILE.c
+      echo "$FUNCS" > $DSTFILE.functions.txt
+      echo "$VARS" > $DSTFILE.variables.txt
     fi
 }
 
@@ -362,7 +414,7 @@ gen_shared_libraries ()
     # Let's locate the toolchain we're going to use
     local TOOLCHAIN_PREFIX="$NDK_DIR/$(get_default_toolchain_binprefix_for_arch $1)"
     TOOLCHAIN_PREFIX=${TOOLCHAIN_PREFIX%-}
-    if [ ! -f "$TOOLCHAIN_PREFIX-readelf" ]; then
+    if [ ! -f "$TOOLCHAIN_PREFIX-gcc" ]; then
         dump "ERROR: $ARCH toolchain not installed: $TOOLCHAIN_PREFIX-gcc"
         dump "Important: Use the --minimal flag to use this script without generated system shared libraries."
         dump "This is generally useful when you want to generate the host cross-toolchain programs."
@@ -379,17 +431,16 @@ gen_shared_libraries ()
     LIBS=$( (cd $SYMDIR && 2>/dev/null ls *.functions.txt) | sort -u | sed -e 's!\.functions\.txt$!!g')
 
     for LIB in $LIBS; do
-        funcs=$(cat "$SYMDIR/$LIB.functions.txt")
-        vars=
-        if [ -f "$SYMDIR/$LIB.variables.txt" ]; then
-            vars=$(cat "$SYMDIR/$LIB.variables.txt")
-        fi
-        funcs=$(remove_libgcc_symbols $ARCH $funcs)
+        funcs=$(cat "$SYMDIR/$LIB.functions.txt" 2>/dev/null)
+        vars=$(cat "$SYMDIR/$LIB.variables.txt" 2>/dev/null)
+        funcs=$(remove_unwanted_function_symbols $ARCH libgcc.a $funcs)
+        funcs=$(remove_unwanted_function_symbols $ARCH $LIB $funcs)
+        vars=$(remove_unwanted_variable_symbols $ARCH $LIB $vars)
         numfuncs=$(echo $funcs | wc -w)
         numvars=$(echo $vars | wc -w)
-        log "Generating shared library for $LIB ($numfuncs functions + $numvars variables)"
+        log "Generating $ARCH shared library for $LIB ($numfuncs functions + $numvars variables)"
 
-        gen_shared_lib $LIB "$funcs" "$vars" "$SYSROOT" "$DSTDIR/$LIB" "$TOOLCHAIN_PREFIX"
+        gen_shared_lib $LIB "$funcs" "$vars" "$DSTDIR/$LIB" "$TOOLCHAIN_PREFIX"
     done
 }
 
@@ -433,8 +484,9 @@ gen_crt_objects ()
         exit 1
     fi
 
-    for SRC_FILE in $(cd "$SRC_DIR" && ls crt*.S); do
-        DST_FILE=${SRC_FILE%%.S}.o
+    for SRC_FILE in $(cd "$SRC_DIR" && ls crt*.[cS]); do
+        DST_FILE=${SRC_FILE%%.c}
+        DST_FILE=${DST_FILE%%.S}.o
 
         case "$DST_FILE" in
             "crtend.o")
@@ -451,7 +503,7 @@ gen_crt_objects ()
         esac
 
         log "Generating $ARCH C runtime object: $DST_FILE"
-        (cd "$SRC_DIR" && $TOOLCHAIN_PREFIX-gcc -fpic -Wl,-r -nostdlib -o "$DST_DIR/$DST_FILE" $SRC_FILE) 1>>$TMPL 2>&1
+        (cd "$SRC_DIR" && $TOOLCHAIN_PREFIX-gcc -O2 -fpic -Wl,-r -nostdlib -o "$DST_DIR/$DST_FILE" $SRC_FILE) 1>>$TMPL 2>&1
         if [ $? != 0 ]; then
             dump "ERROR: Could not generate $DST_FILE from $SRC_DIR/$SRC_FILE"
             dump "Please see the content of $TMPL for details!"
@@ -512,67 +564,92 @@ EOF
 # Copy platform sysroot and samples into your destination
 #
 
-# $SRC/android-$PLATFORM/include --> $DST/platforms/android-$PLATFORM/arch-$ARCH/usr/include
-# $SRC/android-$PLATFORM/arch-$ARCH/include --> $DST/platforms/android-$PLATFORM/arch-$ARCH/usr/include
-# for compatibility:
-# $SRC/android-$PLATFORM/arch-$ARCH/usr/include --> $DST/platforms/android-$PLATFORM/arch-$ARCH/usr/include
-
-
-
-# $SRC/android-$PLATFORM/arch-$ARCH/usr --> $DST/platforms/android-$PLATFORM/arch-$ARCH/usr
-# $SRC/android-$PLATFORM/samples       --> $DST/samples
+# if $SRC/android-$PLATFORM/arch-$ARCH exists
+#   $SRC/android-$PLATFORM/include --> $DST/android-$PLATFORM/arch-$ARCH/usr/include
+#   $SRC/android-$PLATFORM/arch-$ARCH/include --> $DST/android-$PLATFORM/arch-$ARCH/usr/include
+#   $SRC/android-$PLATFORM/arch-$ARCH/lib --> $DST/android-$PLATFORM/arch-$ARCH/usr/lib
 #
-rm -rf $DSTDIR/platforms && mkdir -p $DSTDIR/platforms
-PREV_PLATFORM_DST=
-for PLATFORM in $PLATFORMS; do
-    NEW_PLATFORM=platforms/android-$PLATFORM
-    PLATFORM_COMMON_SRC=platforms/common/src
-    PLATFORM_SRC=$NEW_PLATFORM
-    PLATFORM_DST=$NEW_PLATFORM
-    dump "Copying android-$PLATFORM platform files"
-    if [ -n "$PREV_PLATFORM_DST" ] ; then
-        if [ "$OPTION_FAST_COPY" ] ; then
-            log "Copying \$DST/$PREV_PLATFORM_DST to \$DST/$PLATFORM_DST"
-            #cp -r $DSTDIR/$PREV_PLATFORM_DST $DSTDIR/$PLATFORM_DST
-            copy_directory "$DSTDIR/$PREV_PLATFORM_DST" "$DSTDIR/$PLATFORM_DST"
-        else
-            log "Symlink-copying \$DST/$PREV_PLATFORM_DST to \$DST/$PLATFORM_DST"
-            symlink_src_directory $PREV_PLATFORM_DST $PLATFORM_DST
+if [ -z "$OPTION_OVERLAY" ]; then
+    rm -rf $DSTDIR/platforms && mkdir -p $DSTDIR/platforms
+fi
+for ARCH in $ARCHS; do
+    # Find first platform for this arch
+    PREV_SYSROOT_DST=
+    for PLATFORM in $PLATFORMS; do
+        PLATFORM_DST=platforms/android-$PLATFORM   # Relative to $DSTDIR
+        PLATFORM_SRC=$PLATFORM_DST                 # Relative to $SRCDIR
+        SYSROOT_DST=$PLATFORM_DST/arch-$ARCH/usr
+        # Skip over if there is no arch-specific file for this platform
+        # and no destination platform directory was created. This is needed
+        # because x86 and MIPS don't have files for API levels 3-8.
+        if [ -z "$PREV_SYSROOT_DST" -a \
+           ! -d "$SRCDIR/$PLATFORM_SRC/arch-$ARCH" ]; then
+            log "Skipping: \$SRC/$PLATFORM_SRC/arch-$ARCH"
+            continue
         fi
-        if [ $? != 0 ] ; then
-            echo "ERROR: Could not copy previous sysroot to $DSTDIR/$NEW_PLATFORM"
-            exit 4
+
+        log "Populating \$DST/platforms/android-$PLATFORM/arch-$ARCH"
+
+        # If this is not the first destination directory, copy over, or
+        # symlink the files from the previous one now.
+        if [ "$PREV_SYSROOT_DST" ]; then
+            if [ "$OPTION_FAST_COPY" ]; then
+                log "Copying \$DST/$PREV_SYSROOT_DST to \$DST/$SYSROOT_DST"
+                copy_directory "$DSTDIR/$PREV_SYSROOT_DST" "$DSTDIR/$SYSROOT_DST"
+            else
+                log "Symlink-copying \$DST/$PREV_SYSROOT_DST to \$DST/$SYSROOT_DST"
+                symlink_src_directory $PREV_SYSROOT_DST $SYSROOT_DST
+            fi
         fi
-    fi
-    for ARCH in $ARCHS; do
-        SYSROOT=arch-$ARCH/usr
-        log "Copy $ARCH sysroot files from \$SRC/android-$PLATFORM over \$DST/android-$PLATFORM/arch-$ARCH"
-        copy_src_directory $PLATFORM_SRC/include           $PLATFORM_DST/$SYSROOT/include "sysroot headers"
-        copy_src_directory $PLATFORM_SRC/arch-$ARCH/include $PLATFORM_DST/$SYSROOT/include "sysroot headers"
-        copy_src_directory $PLATFORM_SRC/$SYSROOT          $PLATFORM_DST/$SYSROOT "sysroot"
+
+        # If this is the first destination directory, copy the common
+        # files from previous platform directories into this one.
+        # This helps copy the common headers from android-3 to android-8
+        # into the x86 and mips android-9 directories.
+        if [ -z "$PREV_SYSROOT_DST" ]; then
+            for OLD_PLATFORM in $PLATFORMS; do
+                if [ "$OLD_PLATFORM" -eq "$PLATFORM" ]; then
+                    break
+                fi
+                copy_src_directory platforms/android-$OLD_PLATFORM/include \
+                                   $SYSROOT_DST/include \
+                                   "common android-$OLD_PLATFORM headers"
+            done
+        fi
+
+        # Now copy over all non-arch specific include files
+        copy_src_directory $PLATFORM_SRC/include $SYSROOT_DST/include "common system headers"
+        copy_src_directory $PLATFORM_SRC/arch-$ARCH/include $SYSROOT_DST/include "$ARCH system headers"
 
         generate_api_level "$PLATFORM" "$ARCH" "$DSTDIR"
 
+        # If --minimal is not used, copy or generate binary files.
         if [ -z "$OPTION_MINIMAL" ]; then
             # Copy the prebuilt static libraries.
-            copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib $PLATFORM_DST/$SYSROOT/lib "sysroot libs"
+            copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib $SYSROOT_DST/lib "$ARCH sysroot libs"
 
             # Generate C runtime object files when available
             PLATFORM_SRC_ARCH=$PLATFORM_SRC/arch-$ARCH/src
             if [ ! -d "$SRCDIR/$PLATFORM_SRC_ARCH" ]; then
-                PLATFORM_SRC_ARCH=`var_value PREV_PLATFORM_SRC_$ARCH`
+                PLATFORM_SRC_ARCH=$PREV_PLATFORM_SRC_ARCH
             else
-                eval PREV_PLATFORM_SRC_$ARCH=$PLATFORM_SRC_ARCH
+                PREV_PLATFORM_SRC_ARCH=$PLATFORM_SRC_ARCH
             fi
-            gen_crt_objects $PLATFORM $ARCH $PLATFORM_COMMON_SRC $PLATFORM_SRC_ARCH $PLATFORM_DST/$SYSROOT/lib
+            gen_crt_objects $PLATFORM $ARCH platforms/common/src $PLATFORM_SRC_ARCH $SYSROOT_DST/lib
 
             # Generate shared libraries from symbol files
             gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $PLATFORM_DST/arch-$ARCH
+        else
+            # Copy the prebuilt binaries to bootstrap GCC
+            copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib-bootstrap $SYSROOT_DST/lib "$ARCH sysroot libs (boostrap)"
         fi
+        PREV_SYSROOT_DST=$SYSROOT_DST
     done
-    PREV_PLATFORM_DST=$PLATFORM_DST
 done
 
+#
+# $SRC/android-$PLATFORM/samples --> $DST/samples
+#
 if [ "$OPTION_SAMPLES" ] ; then
     # Copy platform samples and generic samples into your destination
     #
@@ -580,7 +657,9 @@ if [ "$OPTION_SAMPLES" ] ; then
     # $SRC/android-$PLATFORM/samples/ --> $DST/samples
     #
     dump "Copying generic samples"
-    rm -rf $DSTDIR/samples && mkdir -p $DSTDIR/samples
+    if [ -z "$OPTION_OVERLAY" ]; then
+        rm -rf $DSTDIR/samples && mkdir -p $DSTDIR/samples
+    fi
     copy_src_directory  samples samples samples
 
     for PLATFORM in $PLATFORMS; do

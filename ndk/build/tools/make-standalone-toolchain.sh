@@ -24,11 +24,12 @@ a working sysroot. The result is something that can more easily be
 used as a standalone cross-compiler, e.g. to run configure and
 make scripts."
 
-force_32bit_binaries
-
 # For now, this is the only toolchain that works reliably.
 TOOLCHAIN_NAME=
 register_var_option "--toolchain=<name>" TOOLCHAIN_NAME "Specify toolchain name"
+
+LLVM_VERSION=
+register_var_option "--llvm-version=<ver>" LLVM_VERSION "Specify LLVM version"
 
 ARCH=
 register_option "--arch=<name>" do_arch "Specify target architecture" "arm"
@@ -39,7 +40,8 @@ NDK_DIR=`dirname $NDK_DIR`
 NDK_DIR=`dirname $NDK_DIR`
 register_var_option "--ndk-dir=<path>" NDK_DIR "Take source files from NDK at <path>"
 
-SYSTEM=$HOST_TAG
+# Create 32-bit host toolchain by default
+SYSTEM=$HOST_TAG32
 register_var_option "--system=<name>" SYSTEM "Specify host system"
 
 PACKAGE_DIR=/tmp/ndk-$USER
@@ -84,6 +86,16 @@ fi
 if [ -z "$TOOLCHAIN_NAME" ]; then
     TOOLCHAIN_NAME=$(get_default_toolchain_name_for_arch $ARCH)
     echo "Auto-config: --toolchain=$TOOLCHAIN_NAME"
+fi
+
+# Detect LLVM version from toolchain name
+if [ -z "$LLVM_VERSION" ]; then
+    LLVM_VERSION_EXTRACT=$(echo "$TOOLCHAIN_NAME" | grep 'clang[0-9]\.[0-9]$' | sed -e 's/.*-clang//')
+    if [ -n "$LLVM_VERSION_EXTRACT" ]; then
+        TOOLCHAIN_NAME=$(get_default_toolchain_name_for_arch $ARCH)
+        LLVM_VERSION=$LLVM_VERSION_EXTRACT
+        echo "Auto-config: --toolchain=$TOOLCHAIN_NAME, --llvm-version=$LLVM_VERSION"
+    fi
 fi
 
 # Check PLATFORM
@@ -136,7 +148,7 @@ if [ ! -d "$SRC_SYSROOT" ] ; then
     exit 1
 fi
 
-# Check that we have any prebuilts here
+# Check that we have any prebuilts GCC toolchain here
 if [ ! -d "$TOOLCHAIN_PATH/prebuilt" ] ; then
     echo "Toolchain is missing prebuilt files: $TOOLCHAIN_NAME"
     echo "You must point to a valid NDK release package!"
@@ -150,13 +162,125 @@ if [ ! -d "$TOOLCHAIN_PATH/prebuilt/$SYSTEM" ] ; then
 fi
 
 TOOLCHAIN_PATH="$TOOLCHAIN_PATH/prebuilt/$SYSTEM"
+TOOLCHAIN_GCC=$TOOLCHAIN_PATH/bin/$ABI_CONFIGURE_TARGET-gcc
+
+if [ ! -f "$TOOLCHAIN_GCC" ] ; then
+    echo "Toolchain $TOOLCHAIN_GCC is missing!"
+    exit 1
+fi
+
+if [ -n "$LLVM_VERSION" ]; then
+    LLVM_TOOLCHAIN_PATH="$NDK_DIR/toolchains/llvm-$LLVM_VERSION"
+    # Check that we have any prebuilts LLVM toolchain here
+    if [ ! -d "$LLVM_TOOLCHAIN_PATH/prebuilt" ] ; then
+        echo "LLVM Toolchain is missing prebuilt files"
+        echo "You must point to a valid NDK release package!"
+        exit 1
+    fi
+
+    if [ ! -d "$LLVM_TOOLCHAIN_PATH/prebuilt/$SYSTEM" ] ; then
+        echo "Host system '$SYSTEM' is not supported by the source NDK!"
+        echo "Try --system=<name> with one of: " `(cd $LLVM_TOOLCHAIN_PATH/prebuilt && ls)`
+        exit 1
+    fi
+    LLVM_TOOLCHAIN_PATH="$LLVM_TOOLCHAIN_PATH/prebuilt/$SYSTEM"
+fi
+
+# Get GCC_BASE_VERSION.  Note that GCC_BASE_VERSION may be slightly different from GCC_VERSION.
+# eg. In gcc4.6 GCC_BASE_VERSION is "4.6.x-google"
+LIBGCC_PATH=`$TOOLCHAIN_GCC -print-libgcc-file-name`
+LIBGCC_BASE_PATH=${LIBGCC_PATH%/*}         # base path of libgcc.a
+GCC_BASE_VERSION=${LIBGCC_BASE_PATH##*/}   # stuff after the last /
 
 # Create temporary directory
 TMPDIR=$NDK_TMPDIR/standalone/$TOOLCHAIN_NAME
 
 dump "Copying prebuilt binaries..."
-# Now copy the toolchain prebuilt binaries
+# Now copy the GCC toolchain prebuilt binaries
 run copy_directory "$TOOLCHAIN_PATH" "$TMPDIR"
+
+if [ -n "$LLVM_VERSION" ]; then
+  # Copy the clang/llvm toolchain prebuilt binaries
+  run copy_directory "$LLVM_TOOLCHAIN_PATH" "$TMPDIR"
+
+  # Move clang and clang++ to clang${LLVM_VERSION} and clang${LLVM_VERSION}++,
+  # then create scripts linking them with predefined -target flag.  This is to
+  # make clang/++ easier drop-in replacement for gcc/++ in NDK standalone mode.
+  # Note that the file name of "clang" isn't important, and the trailing
+  # "++" tells clang to compile in C++ mode
+  LLVM_TARGET=
+  case "$ARCH" in
+      arm) # NOte: -target may change by clang based on the
+           #        presence of subsequent -march=armv7-a and/or -mthumb
+          LLVM_TARGET=armv5te-none-linux-androideabi
+          ;;
+      x86)
+          LLVM_TARGET=i686-none-linux-android
+          ;;
+      mips)
+          LLVM_TARGET=mipsel-none-linux-android
+          ;;
+      *)
+        dump "ERROR: Unsupported NDK architecture!"
+  esac
+  # Need to remove '.' from LLVM_VERSION when constructing new clang name,
+  # otherwise clang3.1++ may still compile *.c code as C, not C++, which
+  # is not consistent with g++
+  LLVM_VERSION_WITHOUT_DOT=$(echo "$LLVM_VERSION" | sed -e "s!\.!!")
+  mv "$TMPDIR/bin/clang${HOST_EXE}" "$TMPDIR/bin/clang${LLVM_VERSION_WITHOUT_DOT}${HOST_EXE}"
+  if [ -h "$TMPDIR/bin/clang++${HOST_EXE}" ] ; then
+    ## clang++ is a link to clang.  Remove it and reconstruct
+    rm "$TMPDIR/bin/clang++${HOST_EXE}"
+    ln -s "clang${LLVM_VERSION_WITHOUT_DOT}${HOST_EXE}" "$TMPDIR/bin/clang${LLVM_VERSION_WITHOUT_DOT}++${HOST_EXE}"
+  else
+    mv "$TMPDIR/bin/clang++${HOST_EXE}" "$TMPDIR/bin/clang$LLVM_VERSION_WITHOUT_DOT++${HOST_EXE}"
+  fi
+
+  cat > "$TMPDIR/bin/clang" <<EOF
+if [ "\$1" != "-cc1" ]; then
+    \`dirname \$0\`/clang$LLVM_VERSION_WITHOUT_DOT -target $LLVM_TARGET "\$@"
+else
+    # target/triple already spelled out.
+    \`dirname \$0\`/clang$LLVM_VERSION_WITHOUT_DOT "\$@"
+fi
+EOF
+  cat > "$TMPDIR/bin/clang++" <<EOF
+if [ "\$1" != "-cc1" ]; then
+    \`dirname \$0\`/clang$LLVM_VERSION_WITHOUT_DOT++ -target $LLVM_TARGET "\$@"
+else
+    # target/triple already spelled out.
+    \`dirname \$0\`/clang$LLVM_VERSION_WITHOUT_DOT++ "\$@"
+fi
+EOF
+  chmod 0755 "$TMPDIR/bin/clang" "$TMPDIR/bin/clang++"
+
+  if [ -n "$HOST_EXE" ] ; then
+    cat > "$TMPDIR/bin/clang.cmd" <<EOF
+@echo off
+if "%1" == "-cc1" goto :L
+%~dp0\\clang${LLVM_VERSION_WITHOUT_DOT}${HOST_EXE} -target $LLVM_TARGET %*
+if ERRORLEVEL 1 exit /b 1
+goto :done
+:L
+rem target/triple already spelled out.
+%~dp0\\clang${LLVM_VERSION_WITHOUT_DOT}${HOST_EXE} %*
+if ERRORLEVEL 1 exit /b 1
+:done
+EOF
+    cat > "$TMPDIR/bin/clang++.cmd" <<EOF
+@echo off
+if "%1" == "-cc1" goto :L
+%~dp0\\clang${LLVM_VERSION_WITHOUT_DOT}++${HOST_EXE} -target $LLVM_TARGET %*
+if ERRORLEVEL 1 exit /b 1
+goto :done
+:L
+rem target/triple already spelled out.
+%~dp0\\clang${LLVM_VERSION_WITHOUT_DOT}++${HOST_EXE} %*
+if ERRORLEVEL 1 exit /b 1
+:done
+EOF
+  fi
+fi
 
 dump "Copying sysroot headers and libraries..."
 # Copy the sysroot under $TMPDIR/sysroot. The toolchain was built to
@@ -169,7 +293,7 @@ GNUSTL_DIR=$NDK_DIR/$GNUSTL_SUBDIR/$GCC_VERSION
 GNUSTL_LIBS=$GNUSTL_DIR/libs
 
 ABI_STL="$TMPDIR/$ABI_CONFIGURE_TARGET"
-ABI_STL_INCLUDE="$ABI_STL/include/c++/$GCC_VERSION"
+ABI_STL_INCLUDE="$TMPDIR/include/c++/$GCC_BASE_VERSION"
 
 copy_directory "$GNUSTL_DIR/include" "$ABI_STL_INCLUDE"
 ABI_STL_INCLUDE_TARGET="$ABI_STL_INCLUDE/$ABI_CONFIGURE_TARGET"
@@ -180,29 +304,34 @@ case "$ARCH" in
         copy_directory "$GNUSTL_LIBS/armeabi/include/bits" "$ABI_STL_INCLUDE_TARGET/bits"
         copy_file_list "$GNUSTL_LIBS/armeabi" "$ABI_STL/lib" "libgnustl_shared.so"
         copy_file_list "$GNUSTL_LIBS/armeabi" "$ABI_STL/lib" "libsupc++.a"
-        cp "$GNUSTL_LIBS/armeabi/libgnustl_static.a" "$ABI_STL/lib/libstdc++.a"
+        cp -p "$GNUSTL_LIBS/armeabi/libgnustl_static.a" "$ABI_STL/lib/libstdc++.a"
 
         copy_directory "$GNUSTL_LIBS/armeabi/include/bits" "$ABI_STL_INCLUDE_TARGET/thumb/bits"
-        copy_file_list "$GNUSTL_LIBS/armeabi" "$ABI_STL/lib/thumb" "libgnustl_shared.so"
-        copy_file_list "$GNUSTL_LIBS/armeabi" "$ABI_STL/lib/thumb" "libsupc++.a"
-        cp "$GNUSTL_LIBS/armeabi/libgnustl_static.a" "$ABI_STL/lib/thumb/libstdc++.a"
+        copy_file_list "$GNUSTL_LIBS/armeabi/thumb" "$ABI_STL/lib/thumb" "libgnustl_shared.so"
+        copy_file_list "$GNUSTL_LIBS/armeabi/thumb" "$ABI_STL/lib/thumb" "libsupc++.a"
+        cp -p "$GNUSTL_LIBS/armeabi/thumb/libgnustl_static.a" "$ABI_STL/lib/thumb/libstdc++.a"
 
         copy_directory "$GNUSTL_LIBS/armeabi-v7a/include/bits" "$ABI_STL_INCLUDE_TARGET/armv7-a/bits"
         copy_file_list "$GNUSTL_LIBS/armeabi-v7a" "$ABI_STL/lib/armv7-a" "libgnustl_shared.so"
         copy_file_list "$GNUSTL_LIBS/armeabi-v7a" "$ABI_STL/lib/armv7-a" "libsupc++.a"
-        cp "$GNUSTL_LIBS/armeabi-v7a/libgnustl_static.a" "$ABI_STL/lib/armv7-a/libstdc++.a"
+        cp -p "$GNUSTL_LIBS/armeabi-v7a/libgnustl_static.a" "$ABI_STL/lib/armv7-a/libstdc++.a"
+
+        copy_directory "$GNUSTL_LIBS/armeabi-v7a/include/bits" "$ABI_STL_INCLUDE_TARGET/armv7-a/thumb/bits"
+        copy_file_list "$GNUSTL_LIBS/armeabi-v7a/thumb" "$ABI_STL/lib/armv7-a/thumb/" "libgnustl_shared.so"
+        copy_file_list "$GNUSTL_LIBS/armeabi-v7a/thumb" "$ABI_STL/lib/armv7-a/thumb/" "libsupc++.a"
+        cp -p "$GNUSTL_LIBS/armeabi-v7a/thumb/libgnustl_static.a" "$ABI_STL/lib/armv7-a//thumb/libstdc++.a"
         ;;
     x86)
         copy_directory "$GNUSTL_LIBS/x86/include/bits" "$ABI_STL_INCLUDE_TARGET/bits"
         copy_file_list "$GNUSTL_LIBS/x86" "$ABI_STL/lib" "libgnustl_shared.so"
         copy_file_list "$GNUSTL_LIBS/x86" "$ABI_STL/lib" "libsupc++.a"
-        cp "$GNUSTL_LIBS/x86/libgnustl_static.a" "$ABI_STL/lib/libstdc++.a"
+        cp -p "$GNUSTL_LIBS/x86/libgnustl_static.a" "$ABI_STL/lib/libstdc++.a"
         ;;
     mips)
         copy_directory "$GNUSTL_LIBS/mips/include/bits" "$ABI_STL_INCLUDE_TARGET/bits"
         copy_file_list "$GNUSTL_LIBS/mips" "$ABI_STL/lib" "libgnustl_shared.so"
         copy_file_list "$GNUSTL_LIBS/mips" "$ABI_STL/lib" "libsupc++.a"
-        cp "$GNUSTL_LIBS/mips/libgnustl_static.a" "$ABI_STL/lib/libstdc++.a"
+        cp -p "$GNUSTL_LIBS/mips/libgnustl_static.a" "$ABI_STL/lib/libstdc++.a"
         ;;
     *)
         dump "ERROR: Unsupported NDK architecture!"

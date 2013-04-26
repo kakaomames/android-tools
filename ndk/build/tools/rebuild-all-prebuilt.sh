@@ -33,10 +33,18 @@ register_var_option "--arch=<arch>" ARCHS "Specify target architectures"
 SYSTEMS=$HOST_TAG32
 if [ "$HOST_TAG32" = "linux-x86" ]; then
     SYSTEMS=$SYSTEMS",windows"
+    # If darwin toolchain exist, build darwin too
+    if [ -f "${DARWIN_TOOLCHAIN}-gcc" ]; then
+        SYSTEMS=$SYSTEMS",darwin-x86"
+    fi
 fi
 CUSTOM_SYSTEMS=
 register_option "--systems=<list>" do_SYSTEMS "Specify host systems"
 do_SYSTEMS () { CUSTOM_SYSTEMS=true; SYSTEMS=$1; }
+
+ALSO_64=
+register_option "--also-64" do_ALSO_64 "Also build 64-bit host toolchain"
+do_ALSO_64 () { ALSO_64=yes; }
 
 RELEASE=`date +%Y%m%d`
 PACKAGE_DIR=/tmp/ndk-$USER/prebuilt-$RELEASE
@@ -94,6 +102,10 @@ if [ "$DARWIN_SSH" ]; then
     HOST_FLAGS=$HOST_FLAGS" --darwin-ssh=$DARWIN_SSH"
 fi
 
+if [ "$ALSO_64" = "yes" -a "$TRY64" != "yes" ] ; then
+    $PROGDIR/build-host-prebuilts.sh $HOST_FLAGS "$SRC_DIR" --try-64
+    fail_panic "Could not build host prebuilts in 64-bit!"
+fi
 $PROGDIR/build-host-prebuilts.sh $HOST_FLAGS "$SRC_DIR"
 fail_panic "Could not build host prebuilts!"
 

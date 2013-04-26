@@ -42,9 +42,12 @@ clean: $(cleantarget)
 
 $(cleantarget): PRIVATE_MODULE      := $(LOCAL_MODULE)
 $(cleantarget): PRIVATE_TEXT        := [$(TARGET_ARCH_ABI)]
+ifneq ($(LOCAL_BUILT_MODULE_NOT_COPIED),true)
 $(cleantarget): PRIVATE_CLEAN_FILES := $(LOCAL_BUILT_MODULE) \
                                        $($(my)OBJS)
-
+else
+$(cleantarget): PRIVATE_CLEAN_FILES := ($(my)OBJS)
+endif
 $(cleantarget)::
 	@$(HOST_ECHO) "Clean: $(PRIVATE_MODULE) $(PRIVATE_TEXT)"
 	$(hide) $(call host-rmdir,$(PRIVATE_CLEAN_FILES))
@@ -60,6 +63,14 @@ LOCAL_OBJECTS :=
 #
 LOCAL_CFLAGS := -DANDROID $(LOCAL_CFLAGS)
 
+# enable PIE for executable beyond certain API level
+ifeq ($(NDK_APP_PIE),true)
+  ifeq ($(call module-get-class,$(LOCAL_MODULE)),EXECUTABLE)
+    LOCAL_CFLAGS += -fPIE
+    LOCAL_LDFLAGS += -fPIE -pie
+  endif
+endif
+
 #
 # Add the default system shared libraries to the build
 #
@@ -68,7 +79,6 @@ ifeq ($(LOCAL_SYSTEM_SHARED_LIBRARIES),none)
 else
   LOCAL_SHARED_LIBRARIES += $(LOCAL_SYSTEM_SHARED_LIBRARIES)
 endif
-
 
 #
 # Check LOCAL_CPP_EXTENSION, use '.cpp' by default
@@ -80,7 +90,8 @@ ifdef bad_cpp_extensions
 endif
 LOCAL_CPP_EXTENSION := $(strip $(LOCAL_CPP_EXTENSION))
 ifeq ($(LOCAL_CPP_EXTENSION),)
-  LOCAL_CPP_EXTENSION := .cpp
+  # Match the default GCC C++ extensions.
+  LOCAL_CPP_EXTENSION := $(default-c++-extensions)
 else
 endif
 
@@ -195,6 +206,12 @@ ifeq ($(LOCAL_ARM_MODE),thumb)
 endif
 $(call tag-src-files,$(arm_sources),arm)
 
+# tag debug if APP_OPTIM is 'debug'
+#
+ifeq ($(APP_OPTIM),debug)
+    $(call tag-src-files,$(LOCAL_SRC_FILES),debug)
+endif
+
 # Process all source file tags to determine toolchain-specific
 # target compiler flags, and text.
 #
@@ -222,9 +239,9 @@ endif
 #
 LOCAL_OBJECTS := $(LOCAL_SRC_FILES)
 $(foreach _ext,$(all_source_extensions),\
-    $(eval LOCAL_OBJECTS := $$(LOCAL_OBJECTS:%$(_ext)=%.o))\
+    $(eval LOCAL_OBJECTS := $$(LOCAL_OBJECTS:%$(_ext)=%$$(TARGET_OBJ_EXTENSION)))\
 )
-LOCAL_OBJECTS := $(filter %.o,$(LOCAL_OBJECTS))
+LOCAL_OBJECTS := $(filter %$(TARGET_OBJ_EXTENSION),$(LOCAL_OBJECTS))
 LOCAL_OBJECTS := $(subst ../,__/,$(LOCAL_OBJECTS))
 LOCAL_OBJECTS := $(foreach _obj,$(LOCAL_OBJECTS),$(LOCAL_OBJS_DIR)/$(_obj))
 
@@ -242,7 +259,7 @@ endif
 #
 ifneq (,$(call module-has-c++-features,$(LOCAL_MODULE),rtti exceptions))
     ifeq (system,$(NDK_APP_STL))
-      LOCAL_LDLIBS := $(LOCAL_LDLIBS) $(call host-path,$(NDK_ROOT)/sources/cxx-stl/gnu-libstdc++/$(TOOLCHAIN_VERSION)/libs/$(TARGET_ARCH_ABI)/libsupc++.a)
+      LOCAL_LDLIBS := $(LOCAL_LDLIBS) $(call host-path,$(NDK_ROOT)/sources/cxx-stl/gnu-libstdc++/$(TOOLCHAIN_VERSION)/libs/$(TARGET_ARCH_ABI)/libsupc++$(TARGET_LIB_EXTENSION))
     endif
 endif
 
@@ -265,42 +282,14 @@ CLEAN_OBJS_DIRS     += $(LOCAL_OBJS_DIR)
 #
 # Handle the static and shared libraries this module depends on
 #
-LOCAL_STATIC_LIBRARIES       := $(call strip-lib-prefix,$(LOCAL_STATIC_LIBRARIES))
-LOCAL_WHOLE_STATIC_LIBRARIES := $(call strip-lib-prefix,$(LOCAL_WHOLE_STATIC_LIBRARIES))
-LOCAL_SHARED_LIBRARIES       := $(call strip-lib-prefix,$(LOCAL_SHARED_LIBRARIES))
-
-# Transitive closure of static libraries
-LOCAL_STATIC_LIBRARIES       := $(call module-get-depends,$(LOCAL_STATIC_LIBRARIES),STATIC_LIBRARIES)
-LOCAL_WHOLE_STATIC_LIBRARIES := $(call module-get-depends,$(LOCAL_WHOLE_STATIC_LIBRARIES),WHOLE_STATIC_LIBRARIES)
-
-static_libraries       := $(call map,module-get-built,$(LOCAL_STATIC_LIBRARIES))
-whole_static_libraries := $(call map,module-get-built,$(LOCAL_WHOLE_STATIC_LIBRARIES))
-
-shared_libraries := $(call map,module-get-built,$(LOCAL_SHARED_LIBRARIES))\
-                    $(TARGET_PREBUILT_SHARED_LIBRARIES)
-
-$(LOCAL_BUILT_MODULE): $(static_libraries) $(whole_static_libraries) $(shared_libraries)
 
 # If LOCAL_LDLIBS contains anything like -l<library> then
-# prepend a -L$(SYSROOT)/usr/lib to it to ensure that the linker
+# prepend a -L$(SYSROOT_LINK)/usr/lib to it to ensure that the linker
 # looks in the right location
 #
 ifneq ($(filter -l%,$(LOCAL_LDLIBS)),)
-    LOCAL_LDLIBS := -L$(call host-path,$(SYSROOT)/usr/lib) $(LOCAL_LDLIBS)
+    LOCAL_LDLIBS := -L$(call host-path,$(SYSROOT_LINK)/usr/lib) $(LOCAL_LDLIBS)
 endif
-
-# The list of object/static/shared libraries passed to the linker when
-# building shared libraries and executables. order is important.
-#
-linker_objects_and_libraries := $(strip $(call TARGET-get-linker-objects-and-libraries,\
-    $(LOCAL_OBJECTS), \
-    $(static_libraries), \
-    $(whole_static_libraries), \
-    $(shared_libraries)))
-
-# The list of object files sent to 'ar' when building static libraries
-#
-ar_objects := $(call host-path,$(LOCAL_OBJECTS))
 
 # When LOCAL_SHORT_COMMANDS is defined to 'true' we are going to write the
 # list of all object files and/or static/shared libraries that appear on the
@@ -313,71 +302,153 @@ LOCAL_SHORT_COMMANDS := $(strip $(LOCAL_SHORT_COMMANDS))
 ifndef LOCAL_SHORT_COMMANDS
     LOCAL_SHORT_COMMANDS := $(strip $(NDK_APP_SHORT_COMMANDS))
 endif
-ifeq ($(LOCAL_SHORT_COMMANDS),true)
-    # For static and whole static libraries
-    ifneq (,$(filter STATIC_LIBRARY WHOLE_STATIC_LIBRARY,$(call module-get-class,$(LOCAL_MODULE))))
-        $(call ndk_log,Building static library module '$(LOCAL_MODULE)' with linker list file)
-        ar_options   := $(ar_objects)
-        ar_list_file := $(LOCAL_OBJS_DIR)/archiver.list
-        ar_objects   := @$(call host-path,$(ar_list_file))
-        $(call generate-list-file,$(ar_options),$(ar_list_file))
 
-        $(LOCAL_BUILT_MODULE): $(ar_list_file)
-    endif
+$(call generate-file-dir,$(LOCAL_BUILT_MODULE))
 
-    # For shared libraries and executables
-    ifneq (,$(filter SHARED_LIBRARY EXECUTABLE,$(call module-get-class,$(LOCAL_MODULE))))
-        $(call ndk_log,Building ELF binary module '$(LOCAL_MODULE)' with linker list file)
-        linker_options   := $(linker_objects_and_libraries)
-        linker_list_file := $(LOCAL_OBJS_DIR)/linker.list
-        linker_objects_and_libraries := @$(call host-path,$(linker_list_file))
-
-        $(call generate-list-file,$(linker_options),$(linker_list_file))
-
-        $(LOCAL_BUILT_MODULE): $(linker_list_file)
-    endif
-
-endif
-
-$(LOCAL_BUILT_MODULE): PRIVATE_STATIC_LIBRARIES := $(static_libraries)
-$(LOCAL_BUILT_MODULE): PRIVATE_WHOLE_STATIC_LIBRARIES := $(whole_static_libraries)
-$(LOCAL_BUILT_MODULE): PRIVATE_SHARED_LIBRARIES := $(shared_libraries)
-$(LOCAL_BUILT_MODULE): PRIVATE_OBJECTS          := $(LOCAL_OBJECTS)
-$(LOCAL_BUILT_MODULE): PRIVATE_LINKER_OBJECTS_AND_LIBRARIES := $(linker_objects_and_libraries)
+$(LOCAL_BUILT_MODULE): PRIVATE_OBJECTS := $(LOCAL_OBJECTS)
 $(LOCAL_BUILT_MODULE): PRIVATE_LIBGCC := $(TARGET_LIBGCC)
 
 $(LOCAL_BUILT_MODULE): PRIVATE_LD := $(TARGET_LD)
-$(LOCAL_BUILT_MODULE): PRIVATE_LDFLAGS := $(TARGET_LDFLAGS) $(LOCAL_LDFLAGS)
+$(LOCAL_BUILT_MODULE): PRIVATE_LDFLAGS := $(TARGET_LDFLAGS) $(LOCAL_LDFLAGS) $(NDK_APP_LDFLAGS)
 $(LOCAL_BUILT_MODULE): PRIVATE_LDLIBS  := $(LOCAL_LDLIBS) $(TARGET_LDLIBS)
 
 $(LOCAL_BUILT_MODULE): PRIVATE_NAME := $(notdir $(LOCAL_BUILT_MODULE))
 $(LOCAL_BUILT_MODULE): PRIVATE_CXX := $(TARGET_CXX)
 $(LOCAL_BUILT_MODULE): PRIVATE_CC := $(TARGET_CC)
+$(LOCAL_BUILT_MODULE): PRIVATE_SYSROOT_LINK := $(SYSROOT_LINK)
+
+ifeq ($(call module-get-class,$(LOCAL_MODULE)),STATIC_LIBRARY)
+
+#
+# This is a static library module, things are very easy. We only need
+# to build the object files and archive them with 'ar'. Note that module
+# dependencies can be ignored here, i.e. if the module depends on other
+# static or shared libraries, there is no need to actually build them
+# before, so don't add Make dependencies to them.
+#
+# In other words, consider the following graph:
+#
+#     libfoo.so -> libA.a ->libB.a
+#
+# then libA.a and libB.a can be built in parallel, only linking libfoo.so
+# depends on their completion.
+#
+
+ar_objects := $(call host-path,$(LOCAL_OBJECTS))
+
+ifeq ($(LOCAL_SHORT_COMMANDS),true)
+    $(call ndk_log,Building static library module '$(LOCAL_MODULE)' with linker list file)
+    ar_list_file := $(LOCAL_OBJS_DIR)/archiver.list
+    $(call generate-list-file,$(ar_objects),$(ar_list_file))
+    ar_objects   := @$(call host-path,$(ar_list_file))
+    $(LOCAL_BUILT_MODULE): $(ar_list_file)
+endif
+
 $(LOCAL_BUILT_MODULE): PRIVATE_AR := $(TARGET_AR) $(TARGET_ARFLAGS)
 $(LOCAL_BUILT_MODULE): PRIVATE_AR_OBJECTS := $(ar_objects)
-$(LOCAL_BUILT_MODULE): PRIVATE_SYSROOT := $(SYSROOT)
+$(LOCAL_BUILT_MODULE): PRIVATE_BUILD_STATIC_LIB := $(cmd-build-static-library)
 
-#
-# If this is a static library module
-#
-ifeq ($(call module-get-class,$(LOCAL_MODULE)),STATIC_LIBRARY)
 $(LOCAL_BUILT_MODULE): $(LOCAL_OBJECTS)
-	@ $(call host-mkdir,$(dir $@))
 	@ $(HOST_ECHO) "StaticLibrary  : $(PRIVATE_NAME)"
 	$(hide) $(call host-rm,$@)
-	$(hide) $(cmd-build-static-library)
+	$(hide) $(PRIVATE_BUILD_STATIC_LIB)
 
 ALL_STATIC_LIBRARIES += $(LOCAL_BUILT_MODULE)
+
+endif
+
+ifneq (,$(filter SHARED_LIBRARY EXECUTABLE,$(call module-get-class,$(LOCAL_MODULE))))
+
+#
+# This is a shared library or an executable, so computing dependencies properly is
+# crucial. The general rule to apply is the following:
+#
+#   - collect the list of all static libraries that need to be part
+#     of the link, and in the right order. To do so, get the transitive
+#     closure of LOCAL_STATIC_LIBRARIES and LOCAL_WHOLE_STATIC_LIBRARIES
+#     and ensure they are ordered topologically.
+#
+#  - collect the list of all shared libraries that need to be part of
+#    the link. This is the transitive closure of the list of
+#    LOCAL_SHARED_LIBRARIES for the module and all its dependent static
+#    libraries identified in the step above. Of course, need to be
+#    ordered topologically too.
+#
+#  - add Make dependencies to ensure that all these libs are built
+#    before the module itself too.
+#
+# A few quick examples:
+#
+#    main.exe -> libA.a -> libB.a -> libfoo.so -> libC.a
+#
+#      static_libs(main.exe) = libA.a libB.a  (i.e. no libC.a)
+#      shared_libs(main.exe) = libfoo.so
+#      static_libs(libfoo.so) = libC.a
+#
+#    main.exe -> libA.a ---> libB.a
+#                  |           ^
+#                  v           |
+#                libC.a  ------
+#
+#      static_libs(main.exe) = libA.a libC.a libB.a
+#             (i.e. libB.a must appear after all libraries that depend on it).
+#
+all_libs := $(call module-get-link-libs,$(LOCAL_MODULE))
+shared_libs := $(call module-filter-shared-libraries,$(all_libs))
+static_libs := $(call module-filter-static-libraries,$(all_libs))
+whole_static_libs := $(call module-extract-whole-static-libs,$(LOCAL_MODULE),$(static_libs))
+static_libs := $(filter-out $(whole_static_libs),$(static_libs))
+
+$(call -ndk-mod-debug,module $(LOCAL_MODULE) [$(LOCAL_BUILT_MODULE)])
+$(call -ndk-mod-debug,.  all_libs='$(all_libs)')
+$(call -ndk-mod-debug,.  shared_libs='$(shared_libs)')
+$(call -ndk-mod-debug,.  static_libs='$(static_libs)')
+$(call -ndk-mod-debug,.  whole_static_libs='$(whole_static_libs)')
+
+shared_libs       := $(call map,module-get-built,$(shared_libs))\
+                     $(TARGET_PREBUILT_SHARED_LIBRARIES)
+static_libs       := $(call map,module-get-built,$(static_libs))
+whole_static_libs := $(call map,module-get-built,$(whole_static_libs))
+
+$(call -ndk-mod-debug,.  built_shared_libs='$(shared_libs)')
+$(call -ndk-mod-debug,.  built_static_libs='$(static_libs)')
+$(call -ndk-mod-debug,.  built_whole_static_libs='$(whole_static_libs)')
+
+ifeq ($(LOCAL_SHORT_COMMANDS),true)
+    $(call ndk_log,Building ELF binary module '$(LOCAL_MODULE)' with linker list file)
+    linker_options   := $(linker_objects_and_libraries)
+    linker_list_file := $(LOCAL_OBJS_DIR)/linker.list
+    linker_objects_and_libraries := @$(call host-path,$(linker_list_file))
+    $(call generate-list-file,$(linker_options),$(linker_list_file))
+    $(LOCAL_BUILT_MODULE): $(linker_list_file)
+endif
+
+# The list of object/static/shared libraries passed to the linker when
+# building shared libraries and executables. order is important.
+#
+# Cannot use immediate evaluation because PRIVATE_LIBGCC may not be defined at this point.
+linker_objects_and_libraries = $(strip $(call TARGET-get-linker-objects-and-libraries,\
+    $(LOCAL_OBJECTS), \
+    $(static_libs), \
+    $(whole_static_libs), \
+    $(shared_libs)))
+
+$(LOCAL_BUILT_MODULE): $(shared_libs) $(static_libs) $(whole_static_libs)
+$(LOCAL_BUILT_MODULE): PRIVATE_LINKER_OBJECTS_AND_LIBRARIES := $(linker_objects_and_libraries)
+$(LOCAL_BUILT_MODULE): PRIVATE_STATIC_LIBRARIES := $(static_libs)
+$(LOCAL_BUILT_MODULE): PRIVATE_WHOLE_STATIC_LIBRARIES := $(whole_static_libs))
+$(LOCAL_BUILT_MODULE): PRIVATE_SHARED_LIBRARIES := $(shared_libs))
+
 endif
 
 #
 # If this is a shared library module
 #
 ifeq ($(call module-get-class,$(LOCAL_MODULE)),SHARED_LIBRARY)
+$(LOCAL_BUILT_MODULE): PRIVATE_BUILD_SHARED_LIB := $(cmd-build-shared-library)
 $(LOCAL_BUILT_MODULE): $(LOCAL_OBJECTS)
-	@ $(call host-mkdir,$(dir $@))
 	@ $(HOST_ECHO) "SharedLibrary  : $(PRIVATE_NAME)"
-	$(hide) $(cmd-build-shared-library)
+	$(hide) $(PRIVATE_BUILD_SHARED_LIB)
 
 ALL_SHARED_LIBRARIES += $(LOCAL_BUILT_MODULE)
 endif
@@ -386,20 +457,19 @@ endif
 # If this is an executable module
 #
 ifeq ($(call module-get-class,$(LOCAL_MODULE)),EXECUTABLE)
+$(LOCAL_BUILT_MODULE): PRIVATE_BUILD_EXECUTABLE := $(cmd-build-executable)
 $(LOCAL_BUILT_MODULE): $(LOCAL_OBJECTS)
-	@ $(call host-mkdir,$(dir $@))
 	@ $(HOST_ECHO) "Executable     : $(PRIVATE_NAME)"
-	$(hide) $(cmd-build-executable)
+	$(hide) $(PRIVATE_BUILD_EXECUTABLE)
 
 ALL_EXECUTABLES += $(LOCAL_BUILT_MODULE)
 endif
 
 #
-# If this is a prebuilt module
+# If this is a copyable prebuilt module
 #
-ifeq ($(call module-is-prebuilt,$(LOCAL_MODULE)),$(true))
+ifeq ($(call module-is-copyable,$(LOCAL_MODULE)),$(true))
 $(LOCAL_BUILT_MODULE): $(LOCAL_OBJECTS)
-	@ $(call host-mkdir,$(dir $@))
 	@ $(HOST_ECHO) "Prebuilt       : $(PRIVATE_NAME) <= $(call pretty-dir,$(dir $<))"
 	$(hide) $(call host-cp,$<,$@)
 endif
@@ -408,15 +478,18 @@ endif
 # If this is an installable module
 #
 ifeq ($(call module-is-installable,$(LOCAL_MODULE)),$(true))
-$(LOCAL_INSTALLED): PRIVATE_NAME    := $(notdir $(LOCAL_BUILT_MODULE))
-$(LOCAL_INSTALLED): PRIVATE_SRC     := $(LOCAL_BUILT_MODULE)
-$(LOCAL_INSTALLED): PRIVATE_DST_DIR := $(NDK_APP_DST_DIR)
-$(LOCAL_INSTALLED): PRIVATE_DST     := $(LOCAL_INSTALLED)
-$(LOCAL_INSTALLED): PRIVATE_STRIP   := $(TARGET_STRIP)
+$(LOCAL_INSTALLED): PRIVATE_NAME      := $(notdir $(LOCAL_BUILT_MODULE))
+$(LOCAL_INSTALLED): PRIVATE_SRC       := $(LOCAL_BUILT_MODULE)
+$(LOCAL_INSTALLED): PRIVATE_DST_DIR   := $(NDK_APP_DST_DIR)
+$(LOCAL_INSTALLED): PRIVATE_DST       := $(LOCAL_INSTALLED)
+$(LOCAL_INSTALLED): PRIVATE_STRIP     := $(TARGET_STRIP)
+$(LOCAL_INSTALLED): PRIVATE_STRIP_CMD := $(call cmd-strip, $(PRIVATE_DST))
 
 $(LOCAL_INSTALLED): $(LOCAL_BUILT_MODULE) clean-installed-binaries
 	@$(HOST_ECHO) "Install        : $(PRIVATE_NAME) => $(call pretty-dir,$(PRIVATE_DST))"
-	$(hide) $(call host-mkdir,$(PRIVATE_DST_DIR))
 	$(hide) $(call host-install,$(PRIVATE_SRC),$(PRIVATE_DST))
-	$(hide) $(call cmd-strip, $(PRIVATE_DST))
+	$(hide) $(PRIVATE_STRIP_CMD)
+
+$(call generate-file-dir,$(LOCAL_INSTALLED))
+
 endif

@@ -16,8 +16,19 @@
 #
 # Rebuild the mingw64 cross-toolchain from scratch
 #
+# Sample (recommended for compatibility reasons) command line:
+#
+# GOOGLE_PREBUILT=<some folder>
+# git clone https://android.googlesource.com/platform/prebuilt $GOOGLE_PREBUILT
+# export PATH=$GOOGLE_PREBUILT/linux-x86/toolchain/i686-linux-glibc2.7-4.4.3/bin:$PATH
+# build-mingw64-toolchain.sh --target-arch=i686                       \
+#                            --package-dir=i686-w64-mingw32-toolchain \
+#                            --binprefix=i686-linux
+#
 
 PROGNAME=$(basename $0)
+PROGDIR=$(dirname $0)
+PROGDIR=$(cd $PROGDIR && pwd)
 
 HELP=
 VERBOSE=1
@@ -58,7 +69,7 @@ var_append ()
 run ()
 {
     if [ "$VERBOSE" -gt 0 ]; then
-        echo "COMMAND: >>>> $@" > $LOG_FILE
+        echo "COMMAND: >>>> $@" >> $LOG_FILE
     fi
     if [ "$VERBOSE" -gt 1 ]; then
         echo "COMMAND: >>>> $@"
@@ -66,14 +77,14 @@ run ()
     if [ "$VERBOSE" -gt 1 ]; then
         "$@"
     else
-        &>$LOG_FILE "$@"
+       "$@" > /dev/null 2>&1
     fi
 }
 
 log ()
 {
     if [ "$LOG_FILE" ]; then
-        echo "$@" > $LOG_FILE
+        echo "$@" >> $LOG_FILE
     fi
     if [ "$VERBOSE" -gt 0 ]; then
         echo "$@"
@@ -121,12 +132,22 @@ if [ "$OS" != "linux" ]; then
     echo "WARNING: WARNING: WARNING: THIS SCRIPT PROBABLY ONLY WORKS ON LINUX!!"
 fi
 
-GMP_VERSION=5.0.4
-MPFR_VERSION=3.1.0
-MPC_VERSION=0.8.2
+# GMP moving home?
+# GMP_VERSION=5.1.0
+# GMP_URL=ftp://ftp.gmplib.org/pub/gmp-$GMP_VERSION/
+# ..but the old one is still there:
+GMP_VERSION=5.0.5
+GMP_URL=http://ftp.gnu.org/gnu/gmp/
+
+MPFR_VERSION=3.1.1
+MPC_VERSION=1.0.1
 BINUTILS_VERSION=2.22
-GCC_VERSION=4.6.3
-MINGW_W64_VERSION=v2.0.2
+GCC_VERSION=4.7.2
+
+# Need at least revision 5166
+# For reference, I've built a working NDK with 5445
+# (latest as of Sun Feb 3 2013 is 5578)
+MINGW_W64_VERSION=svn@5166
 
 JOBS=$(( $NUM_CORES * 2 ))
 
@@ -148,7 +169,7 @@ for opt; do
         --verbose) VERBOSE=$(( $VERBOSE + 1 ));;
         --quiet) VERBOSE=$(( $VERBOSE - 1 ));;
         --binprefix=*) HOST_BINPREFIX=$optarg;;
-        -j*|--jobjs=*) JOBS=$optarg;;
+        -j*|--jobs=*) JOBS=$optarg;;
         --target-arch=*) TARGET_ARCH=$optarg;;
         --no-multilib) TARGET_MULTILIBS="";;
         --force-build) FORCE_BUILD=true;;
@@ -187,7 +208,7 @@ if [ "$HELP" ]; then
     echo "  -j<num>                      Same as --jobs=<num>."
     echo "  --binprefix=<prefix>         Specify bin prefix for host toolchain."
     echo "  --no-multilib                Disable multilib toolchain build."
-    echo "  --arch=<arch>                Select default target architecture [$TARGET_ARCH]."
+    echo "  --target-arch=<arch>         Select default target architecture [$TARGET_ARCH]."
     echo "  --force-all                  Redo everything from scratch."
     echo "  --force-build                Force a rebuild (keep sources)."
     echo "  --cleanup                    Remove all temp files after build."
@@ -264,9 +285,19 @@ log "Target bits: $TARGET_BITS"
 
 # Determine bitness of host architecture
 PROBE_CC=${CC:-gcc}
-if [ "$HOST_BINPREFIX" ]; then
-    PROBE_CC=$HOST_BINPREFIX-gcc
+if [ -n "$HOST_BINPREFIX" ]; then
+    # If $HOST_BINPREFIX is a directory but not ends with '/', append '/'.
+    # Otherwise, append '-'.
+    if [ -d "$HOST_BINPREFIX" ] ; then
+        if [ -n "${HOST_BINPREFIX##*/}" ] ; then
+	    HOST_BINPREFIX="${HOST_BINPREFIX}/"
+	fi
+    else
+        HOST_BINPREFIX="${HOST_BINPREFIX}-"
+    fi
+    PROBE_CC=${HOST_BINPREFIX}gcc
 fi
+echo "Using GCC: $PROBE_CC"
 echo "int main() { return 0; }" > $TEMP_DIR/test-host-cc.c
 $PROBE_CC -c $TEMP_DIR/test-host-cc.c -o $TEMP_DIR/test-host-cc.o > /dev/null
 fail_panic "Host compiler doesn't work: $PROBE_CC"
@@ -342,6 +373,9 @@ mkdir -p $ARCHIVE_DIR
 mkdir -p $SRC_DIR
 mkdir -p $STAMP_DIR
 
+INSTALL_DIR=$TEMP_DIR/install-$HOST_TAG/$TARGET_TAG
+BUILD_DIR=$TEMP_DIR/build-$HOST_TAG
+
 if [ "$FORCE_BUILD" ]; then
     rm -f $STAMP_DIR/*
     rm -rf $INSTALL_DIR
@@ -349,9 +383,6 @@ if [ "$FORCE_BUILD" ]; then
 fi
 
 # Make temp install directory
-INSTALL_DIR=$TEMP_DIR/install-$HOST_TAG/x86_64-w64-mingw32
-BUILD_DIR=$TEMP_DIR/build-$HOST_TAG
-
 mkdir -p $INSTALL_DIR
 mkdir -p $BUILD_DIR
 
@@ -363,12 +394,53 @@ echo "" >> $INSTALL_DIR/README &&
 echo "The MD5 hashes for the original sources packages are:" >> $INSTALL_DIR/README
 fail_panic "Could not copy script to installation directory."
 
-download_package http://ftp.gnu.org/gnu/gmp/gmp-$GMP_VERSION.tar.bz2
+download_package ${GMP_URL}gmp-${GMP_VERSION}.tar.bz2
 download_package http://ftp.gnu.org/gnu/mpfr/mpfr-$MPFR_VERSION.tar.bz2
 download_package http://www.multiprecision.org/mpc/download/mpc-$MPC_VERSION.tar.gz
 download_package http://ftp.gnu.org/gnu/binutils/binutils-$BINUTILS_VERSION.tar.bz2
 download_package http://ftp.gnu.org/gnu/gcc/gcc-$GCC_VERSION/gcc-$GCC_VERSION.tar.bz2
-download_package http://downloads.sourceforge.net/project/mingw-w64/mingw-w64/mingw-w64-release/mingw-w64-$MINGW_W64_VERSION.tar.gz
+
+PREFIX_FOR_TARGET=$INSTALL_DIR/$TARGET_TAG
+WITH_WIDL=$INSTALL_DIR/bin
+MINGW_W64_REVISION=
+MINGW_W64_VERSION_NO_REV=$(echo $MINGW_W64_VERSION | awk 'BEGIN { FS="@" }; { print $1 }')
+if [ "$MINGW_W64_VERSION_NO_REV" = "svn" ];  then
+    MINGW_W64_REVISION=$(echo $MINGW_W64_VERSION | awk 'BEGIN { FS="@" }; { print $2 }')
+    if [ ! -z "$MINGW_W64_REVISION" ] ; then
+        if [ $MINGW_W64_REVISION -lt 5186 ] ; then
+            PREFIX_FOR_TARGET=$INSTALL_DIR
+        fi
+        if [ $MINGW_W64_REVISION -lt 5252 ] ; then
+            WITH_WIDL=mingw-w64-widl
+        elif [ $MINGW_W64_REVISION -lt 5258 ] ; then
+            WITH_WIDL=$TARGET_TAG-widl
+        fi
+        MINGW_W64_REVISION2=-r$MINGW_W64_REVISION
+        MINGW_W64_REVISION=@${MINGW_W64_REVISION}
+    fi
+    MINGW_W64_SRC=$SRC_DIR/mingw-w64-svn$MINGW_W64_REVISION2
+    MINGW_W64_VERSION=svn
+fi
+
+if [ -z "$MINGW_W64_REVISION" ] ; then
+    # Released versions of MinGW-w64 don't provide easily accessible information
+    # about the svn revision which this script needs to know.
+    fail_panic "Building MinGW-w64 toolchain requires specifying an svn version"
+fi
+
+if [ ! -d $MINGW_W64_SRC ]; then
+    echo "Checking out https://mingw-w64.svn.sourceforge.net/svnroot/mingw-w64/trunk$MINGW_W64_REVISION $MINGW_W64_SRC"
+    run svn co https://mingw-w64.svn.sourceforge.net/svnroot/mingw-w64/trunk$MINGW_W64_REVISION $MINGW_W64_SRC
+fi
+
+PATCHES_DIR="$PROGDIR/toolchain-patches-host/mingw-w64"
+if [ -d "$PATCHES_DIR" ] ; then
+    PATCHES=$(find "$PATCHES_DIR" -name "*.patch" | sort)
+    for PATCH in $PATCHES; do
+        echo "Patching mingw-w64-$MINGW_W64_REVISION with $PATCH"
+        (cd $MINGW_W64_SRC && run patch -p0 < $PATCH)
+    done
+fi
 
 # Let's generate the licenses/ directory
 LICENSES_DIR=$INSTALL_DIR/licenses/
@@ -385,13 +457,13 @@ setup_build_env ()
     local BINPREFIX=$1
 
     if [ "$BINPREFIX" ]; then
-        CC=$BINPREFIX-gcc
-        CXX=$BINPREFIX-g++
-        LD=$BINPREFIX-ld
-        AS=$BINPREFIX-as
-        AR=$BINPREFIX-ar
-        RANLIB=$BINPREFIX-ranlib
-        STRIP=$BINPREFIX-strip
+        CC=${BINPREFIX}gcc
+        CXX=${BINPREFIX}g++
+        LD=${BINPREFIX}ld
+        AS=${BINPREFIX}as
+        AR=${BINPREFIX}ar
+        RANLIB=${BINPREFIX}ranlib
+        STRIP=${BINPREFIX}strip
         export CC CXX LD AS AR RANLIB STRIP
     elif [ "$OS" = darwin ]; then
         # Needed on OS X otherwise libtool will try to use gcc and $BUILD_CFLAGS
@@ -455,18 +527,44 @@ var_append BINUTILS_CONFIGURE_OPTIONS "--with-sysroot=$INSTALL_DIR"
 
 build_host_package binutils-$BINUTILS_VERSION $BINUTILS_CONFIGURE_OPTIONS
 
+build_mingw_tools ()
+{
+    local PKGNAME=$1
+    echo "$STAMP_DIR/$PKGNAME"
+    if [ ! -f "$STAMP_DIR/$PKGNAME" ]; then
+        (
+            mkdir -p $BUILD_DIR/$PKGNAME &&
+            cd $BUILD_DIR/$PKGNAME &&
+            log "$PKGNAME: Configuring" &&
+            run $MINGW_W64_SRC/mingw-w64-tools/widl/configure --prefix=$INSTALL_DIR --target=$TARGET_TAG
+            fail_panic "Can't configure mingw-64-tools"
+            log "$PKGNAME: Installing" &&
+            run make install -j$JOBS
+        ) || exit 1
+        touch $STAMP_DIR/$PKGNAME
+    fi
+}
+
 # Install the right mingw64 headers into the sysroot
 build_mingw_headers ()
 {
     local PKGNAME=$1
     if [ ! -f "$STAMP_DIR/$PKGNAME" ]; then
         (
+            # If --with-widl only identifies the program name (svn version dependent)...
+            if [ $(basename "$WITH_WIDL") = "$WITH_WIDL" ] ; then
+                # ...then need to add the right path too.
+                export PATH=$PATH:$INSTALL_DIR/bin
+            fi
+            fail_panic "Can't find widl"
             mkdir -p $BUILD_DIR/$PKGNAME &&
             cd $BUILD_DIR/$PKGNAME &&
             log "$PKGNAME: Configuring" &&
-            run $SRC_DIR/mingw-w64-$MINGW_W64_VERSION/mingw-w64-headers/configure --prefix=$INSTALL_DIR --host=$TARGET_TAG --build=$HOST_TAG
+            run $MINGW_W64_SRC/mingw-w64-headers/configure --prefix=$PREFIX_FOR_TARGET --host=$TARGET_TAG \
+                --build=$HOST_TAG --with-widl=$WITH_WIDL --enable-sdk=all
             fail_panic "Can't configure mingw-64-headers"
 
+            run make
             log "$PKGNAME: Installing" &&
             run make install -j$JOBS &&
             run cd $INSTALL_DIR && 
@@ -521,7 +619,7 @@ build_mingw_crt ()
             cd $BUILD_DIR/$PKGNAME &&
             export PATH=$INSTALL_DIR/bin:$PATH
             log "$PKGNAME: Configuring" &&
-            run $SRC_DIR/mingw-w64-$MINGW_W64_VERSION/mingw-w64-crt/configure "$@"
+            run $MINGW_W64_SRC/mingw-w64-crt/configure "$@"
             fail_panic "Can't configure $PKGNAME !!"
 
             log "$PKGNAME: Building" &&
@@ -569,11 +667,13 @@ fi
 var_append GCC_CONFIGURE_OPTIONS "--enable-languages=c,c++"
 var_append GCC_CONFIGURE_OPTIONS "--with-sysroot=$INSTALL_DIR"
 
+# A bug in MinGW-w64 forces us to build and use widl.
+build_mingw_tools mingw-w64-tools
 build_mingw_headers mingw-w64-headers
 
 build_core_gcc gcc-$GCC_VERSION $GCC_CONFIGURE_OPTIONS
 
-CRT_CONFIGURE_OPTIONS="--host=$TARGET_TAG --with-sysroot=$INSTALL_DIR --prefix=$INSTALL_DIR"
+CRT_CONFIGURE_OPTIONS="--host=$TARGET_TAG --with-sysroot=$INSTALL_DIR --prefix=$PREFIX_FOR_TARGET"
 if [ "$TARGET_MULTILIBS" ]; then
     var_append CRT_CONFIGURE_OPTIONS "--enable-lib32"
 fi

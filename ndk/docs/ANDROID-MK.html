@@ -54,7 +54,7 @@ Simple example:
 Before describing the syntax in details, let's consider the simple
 "hello JNI" example, i.e. the files under:
 
-    apps/hello-jni/project
+    samples/hello-jni
 
 Here, we can see:
 
@@ -548,6 +548,13 @@ LOCAL_LDLIBS
     See docs/STABLE-APIS.html for the list of exposed system libraries you
     can linked against with this NDK release.
 
+LOCAL_LDFLAGS
+    The list of other linker flags to be used when building your module.
+    For example, the following will use linker ld.bfd on ARM/X86 GCC 4.6/4.7
+    where ld.gold is the default
+
+      LOCAL_LDFLAGS += -fuse-ld=bfd
+
 LOCAL_ALLOW_UNDEFINED_SYMBOLS
     By default, any undefined reference encountered when trying to build
     a shared library will result in an "undefined symbol" error. This is a
@@ -755,9 +762,5 @@ LOCAL_FILTER_ASM
 
         myasmfilter $OBJS_DIR/foo.S.original $OBJS_DIR/foo.S
         myasmfilter bar.S $OBJS_DIR/bar.S
-
-NDK_TOOLCHAIN_VERSION
-    Define this variable to either 4.4.3 or 4.6 to select version of GCC compiler.
-    4.6 is the default
 
 </pre></body></html>

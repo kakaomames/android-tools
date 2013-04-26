@@ -121,6 +121,9 @@ APP_CPPFLAGS
           You can now use APP_CFLAGS for flags that shall apply to C and
           C++ sources.
 
+APP_LDFLAGS
+    A set of linker flags passed when linking application.
+
 APP_BUILD_SCRIPT
     By default, the NDK build system will look for a file named Android.mk
     under $(APP_PROJECT_PATH)/jni, i.e. for the file:
@@ -162,6 +165,11 @@ APP_ABI
     For the list of all supported ABIs and details about their usage and
     limitations, please read docs/CPU-ARCH-ABIS.html
 
+APP_PLATFORM
+    Name the target Android platform.  For example, 'android-3' correspond
+    to Android 1.5 system images. For a complete list of platform names and
+    corresponding Android system images, read docs/STABLE-APIS.html.
+
 APP_STL
     By default, the NDK build system provides C++ headers for the minimal
     C++ runtime library (/system/lib/libstdc++.so) provided by the Android
@@ -186,7 +194,7 @@ APP_GNUSTL_FORCE_CPP_FEATURES
     don't require these features.
 
     This bug was fixed in NDK r7b, but this means that if your code requires
-    exceptions or RTTI, it should now explicitely say so, either in your
+    exceptions or RTTI, it should now explicitly say so, either in your
     APP_CPPFLAGS, or your LOCAL_CPPFLAGS / LOCAL_CPP_FEATURES definitions.
 
     To make it easier to port projects to NDK r7b and later, one can
@@ -209,6 +217,25 @@ APP_GNUSTL_FORCE_CPP_FEATURES
 APP_SHORT_COMMANDS
     The equivalent of LOCAL_SHORT_COMMANDS for your whole project. See the
     documentation for this variable in docs/ANDROID-MK.html.
+
+NDK_TOOLCHAIN_VERSION
+    Define this variable to either 4.4.3 or 4.6 to select version of GCC compiler.
+    4.6 is the default
+
+APP_PIE
+    Starting from Jelly Bean (4.1), Android's dynamic linker supports
+    position-independent executables (PIE), which are built with -fPIE.
+    This flag makes it harder to exploit memory corruption bugs by
+    randomization the location of the code.
+    By default, ndk-build will automatically set this value to 'true' if
+    your project targets android-16 or higher. You may set it manually
+    to either 'true' or 'false'.
+
+    IMPORTANT: PIE executables *cannot* run on Android releases prior to 4.1.
+
+    Note that this only applies to executables. It has no effect when
+    building shared or static libraries.
+
 
 A trivial Application.mk file would be:
 

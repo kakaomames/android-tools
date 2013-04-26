@@ -52,8 +52,17 @@ for four different systems:
 TOOLCHAIN_SRC_DIR=
 register_var_option "--toolchain-src-dir=<path>" TOOLCHAIN_SRC_DIR "Select toolchain source directory"
 
-GDB_VERSION="6.6 7.1.x 7.3.x"
+GDB_VERSION="6.6 7.3.x"
 register_var_option "--gdb-version=<version>" GDB_VERSION "Select GDB version(s)."
+
+BUILD_DIR=
+register_var_option "--build-dir=<path>" BUILD_DIR "Build GDB into directory"
+
+PYTHON_VERSION=
+register_var_option "--python-version=<version>" PYTHON_VERSION "Python version."
+
+PYTHON_BUILD_DIR=
+register_var_option "--python-build-dir=<path>" PYTHON_BUILD_DIR "Python build directory."
 
 NDK_DIR=$ANDROID_NDK_ROOT
 register_var_option "--ndk-dir=<path>" NDK_DIR "Select NDK install directory."
@@ -88,7 +97,11 @@ for VERSION in $(commas_to_spaces $GDB_VERSION); do
     fi
 done
 
-bh_setup_build_dir
+if [ -z "$BUILD_DIR" ] ; then
+    BUILD_DIR=/tmp/ndk-$USER/buildgdb
+fi
+
+bh_setup_build_dir $BUILD_DIR
 
 # Sanity check that we have the right compilers for all hosts
 for SYSTEM in $BH_HOST_SYSTEMS; do
@@ -101,7 +114,7 @@ done
 # $3: gdb version
 gdb_build_install_dir ()
 {
-    echo "$BH_BUILD_DIR/install/$1/gdb-$(bh_tag_to_arch $2)-$3"
+    echo "$BH_BUILD_DIR/install/$1/gdb-$(get_toolchain_name_for_arch $(bh_tag_to_arch $2))-$3"
 }
 
 # $1: host system tag
@@ -109,7 +122,7 @@ gdb_build_install_dir ()
 # $3: gdb version
 gdb_ndk_package_name ()
 {
-    echo "gdb-$(bh_tag_to_arch $2)-$3"
+    echo "gdb-$(get_toolchain_name_for_arch $(bh_tag_to_arch $2))-$3-$1"
 }
 
 
@@ -117,7 +130,40 @@ gdb_ndk_package_name ()
 # directory. Relative to $NDK_DIR.
 gdb_ndk_install_dir ()
 {
-    echo "prebuilt/$1/gdb-$(bh_tag_to_arch $2)-$3"
+    echo "gdb-$(get_toolchain_name_for_arch $(bh_tag_to_arch $2))-$3/prebuilt/$1"
+}
+
+python_build_install_dir ()
+{
+    echo "$PYTHON_BUILD_DIR/install/prebuilt/$1"
+}
+
+# $1: host system tag
+build_expat ()
+{
+    local ARGS
+    local SRCDIR=$TOOLCHAIN_SRC_DIR/expat/expat-2.0.1
+    local BUILDDIR=$BH_BUILD_DIR/build-expat-2.0.1-$1
+    local INSTALLDIR=$BH_BUILD_DIR/install-host-$1
+
+    ARGS=" --prefix=$INSTALLDIR"
+    ARGS=$ARGS" --disable-shared --enable-static"
+    ARGS=$ARGS" --build=$BH_BUILD_CONFIG"
+    ARGS=$ARGS" --host=$BH_HOST_CONFIG"
+
+    TEXT="$(bh_host_text) expat:"
+
+    mkdir -p "$BUILDDIR" && rm -rf "$BUILDDIR"/* &&
+    cd "$BUILDDIR" &&
+    dump "$TEXT Building"
+    run2 "$SRCDIR"/configure $ARGS &&
+    run2 make -j$NUM_JOBS &&
+    run2 make -j$NUM_JOBS install
+}
+
+need_build_expat ()
+{
+    bh_stamps_do host-expat-$1 build_expat $1
 }
 
 # $1: host system tag
@@ -135,6 +181,10 @@ build_host_gdb ()
     fi
 
     bh_set_target_tag $2
+    bh_setup_host_env
+
+    need_build_expat $1
+    local EXPATPREFIX=$BH_BUILD_DIR/install-host-$1
 
     ARGS=" --prefix=$INSTALLDIR"
     ARGS=$ARGS" --disable-shared"
@@ -144,12 +194,20 @@ build_host_gdb ()
     ARGS=$ARGS" --disable-werror"
     ARGS=$ARGS" --disable-nls"
     ARGS=$ARGS" --disable-docs"
-
+    ARGS=$ARGS" --with-expat"
+    ARGS=$ARGS" --with-libexpat-prefix=$EXPATPREFIX"
+    if [ "$PYTHON_VERSION" ]; then
+        ARGS=$ARGS" --with-python=$(python_build_install_dir $BH_HOST_TAG)/bin/python-config.sh"
+        if [ $1 = windows-x86 -o $1 = windows-x86_64 ]; then
+            # This is necessary for the Python integration to build.
+            CFLAGS=$CFLAGS" -D__USE_MINGW_ANSI_STDIO=1"
+            CXXFLAGS=$CXXFLAGS" -D__USE_MINGW_ANSI_STDIO=1"
+        fi
+    fi
     TEXT="$(bh_host_text) gdb-$BH_TARGET_ARCH-$3:"
 
     mkdir -p "$BUILDDIR" && rm -rf "$BUILDDIR"/* &&
     cd "$BUILDDIR" &&
-    bh_setup_host_env &&
     dump "$TEXT Building"
     run2 "$SRCDIR"/configure $ARGS &&
     run2 make -j$NUM_JOBS &&
@@ -193,7 +251,7 @@ need_install_host_gdb ()
 package_host_gdb ()
 {
     local SRCDIR="$(gdb_ndk_install_dir $1 $2 $3)"
-    local PACKAGENAME=$(gdb_ndk_package_name $1 $2 $3)-$1.tar.bz2
+    local PACKAGENAME=$(gdb_ndk_package_name $1 $2 $3).tar.bz2
     local PACKAGE="$PACKAGE_DIR/$PACKAGENAME"
 
     need_install_host_gdb $1 $2 $3
@@ -222,7 +280,7 @@ if [ "$PACKAGE_DIR" ]; then
         bh_setup_build_for_host $SYSTEM
         for ARCH in $ARCHS; do
             for VERSION in $GDB_VERSION; do
-                package_host_gdb $SYSTEM android-$ARCH $VERSION
+                bh_stamps_do package_host_gdb-$SYSTEM-$ARCH-$VERSION package_host_gdb $SYSTEM android-$ARCH $VERSION
             done
         done
     done

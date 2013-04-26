@@ -21,12 +21,15 @@ GABIXX_SUBDIR=sources/cxx-stl/gabi++
 # root directory.
 GNUSTL_SUBDIR=sources/cxx-stl/gnu-libstdc++
 
+# Location of the libportable sources, relative to the NDK root directory
+LIBPORTABLE_SUBDIR=sources/android/libportable
+
 # The date to use when downloading toolchain sources from AOSP servers
 # Leave it empty for tip of tree.
-TOOLCHAIN_GIT_DATE=2012-06-30
+TOOLCHAIN_GIT_DATE=2013-03-19
 
 # The space-separated list of all GCC versions we support in this NDK
-DEFAULT_GCC_VERSION_LIST="4.6 4.4.3"
+DEFAULT_GCC_VERSION_LIST="4.6 4.7 4.4.3"
 
 # The default GCC version for this NDK, i.e. the first item in
 # $DEFAULT_GCC_VERSION_LIST
@@ -35,9 +38,13 @@ DEFAULT_GCC_VERSION=$(echo "$DEFAULT_GCC_VERSION_LIST" | tr ' ' '\n' | head -n 1
 
 DEFAULT_BINUTILS_VERSION=2.21
 DEFAULT_GDB_VERSION=7.3.x
-DEFAULT_MPFR_VERSION=2.4.1
+DEFAULT_MPFR_VERSION=3.1.1
 DEFAULT_GMP_VERSION=5.0.5
-DEFAULT_MPC_VERSION=0.8.1
+DEFAULT_MPC_VERSION=1.0.1
+DEFAULT_CLOOG_VERSION=0.17.0
+DEFAULT_PPL_VERSION=1.0
+DEFAULT_PYTHON_VERSION=2.7.3
+DEFAULT_PERL_VERSION=5.16.2
 
 # Default platform to build target binaries against.
 DEFAULT_PLATFORM=android-9
@@ -58,8 +65,20 @@ DEFAULT_ARCH_TOOLCHAIN_PREFIX_x86=i686-linux-android
 DEFAULT_ARCH_TOOLCHAIN_NAME_mips=mipsel-linux-android
 DEFAULT_ARCH_TOOLCHAIN_PREFIX_mips=mipsel-linux-android
 
+# The space-separated list of all LLVM versions we support in NDK
+DEFAULT_LLVM_VERSION_LIST="3.2 3.1"
+
+# The default LLVM version (first item in the list)
+DEFAULT_LLVM_VERSION=$(echo "$DEFAULT_LLVM_VERSION_LIST" | tr ' ' '\n' | head -n 1)
+
+# The default URL to download the LLVM tar archive
+DEFAULT_LLVM_URL="http://llvm.org/releases"
+
 # The list of default host NDK systems we support
 DEFAULT_SYSTEMS="linux-x86 windows darwin-x86"
+
+# The default issue tracker URL
+DEFAULT_ISSUE_TRACKER_URL="http://source.android.com/source/report-bugs.html"
 
 # Return default NDK ABI for a given architecture name
 # $1: Architecture name
@@ -112,12 +131,16 @@ get_default_abis_for_arch ()
 
 # Return toolchain name for given architecture and GCC version
 # $1: Architecture name (e.g. 'arm')
-# $2: GCC version (e.g. '4.6ʼ)
+# $2: optional, GCC version (e.g. '4.6')
 # Out: default arch-specific toolchain name (e.g. 'arm-linux-androideabi-$GCC_VERSION')
 # Return empty for unknown arch
 get_toolchain_name_for_arch ()
 {
-    eval echo \"\${DEFAULT_ARCH_TOOLCHAIN_NAME_$1}-$2\"
+    if [ ! -z "$2" ] ; then
+        eval echo \"\${DEFAULT_ARCH_TOOLCHAIN_NAME_$1}-$2\"
+    else
+        eval echo \"\${DEFAULT_ARCH_TOOLCHAIN_NAME_$1}\"
+    fi
 }
 
 # Return the default toolchain name for a given architecture
@@ -174,6 +197,7 @@ get_default_binutils_version_for_gcc ()
 {
     case $1 in
         arm-*-4.4.3|x86-4.4.3|x86-*-4.4.3) echo "2.19";;
+        arm-*-4.7|x86-4.7|x86-*-4.7|mipsel-*-4.7) echo "2.22";;
         *) echo "$DEFAULT_BINUTILS_VERSION";;
     esac
 }

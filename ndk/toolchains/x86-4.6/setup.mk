@@ -28,25 +28,29 @@ TOOLCHAIN_PREFIX := $(TOOLCHAIN_PREBUILT_ROOT)/bin/i686-linux-android-
 
 TARGET_CFLAGS := \
     -ffunction-sections \
-    -funwind-tables
+    -funwind-tables \
+    -no-canonical-prefixes
 
 TARGET_C_INCLUDES := \
-    $(SYSROOT)/usr/include
+    $(SYSROOT_INC)/usr/include
 
 # Add and LDFLAGS for the target here
-# TARGET_LDFLAGS :=
+TARGET_LDFLAGS := -no-canonical-prefixes
 
-# Fix this after ssp.c is fixed for x86
-# TARGET_CFLAGS += -fstack-protector
+TARGET_CFLAGS += -fstack-protector
 
-TARGET_x86_release_CFLAGS :=  -O2 \
-                              -fomit-frame-pointer \
-                              -fstrict-aliasing    \
-                              -funswitch-loops     \
-                              -finline-limit=300
+TARGET_x86_release_CFLAGS := -O2 \
+                             -g \
+                             -DNDEBUG \
+                             -fomit-frame-pointer \
+                             -fstrict-aliasing    \
+                             -funswitch-loops     \
+                             -finline-limit=300
 
 # When building for debug, compile everything as x86.
 TARGET_x86_debug_CFLAGS := $(TARGET_x86_release_CFLAGS) \
+                           -O0 \
+                           -UNDEBUG \
                            -fno-omit-frame-pointer \
                            -fno-strict-aliasing
 
@@ -63,34 +67,3 @@ $(call set-src-files-text,$(LOCAL_SRC_FILES),x86$(space)$(space)) \
 # The ABI-specific sub-directory that the SDK tools recognize for
 # this toolchain's generated binaries
 TARGET_ABI_SUBDIR := x86
-
-
-#
-# We need to add -lsupc++ to the final link command to make exceptions
-# and RTTI work properly (when -fexceptions and -frtti are used).
-#
-# Normally, the toolchain should be configured to do that automatically,
-# this will be debugged later.
-#
-
-define cmd-build-shared-library
-$(PRIVATE_CXX) \
-    -Wl,-soname,$(notdir $@) \
-    -shared \
-    --sysroot=$(call host-path,$(PRIVATE_SYSROOT)) \
-    $(PRIVATE_LINKER_OBJECTS_AND_LIBRARIES) \
-    $(PRIVATE_LDFLAGS) \
-    $(PRIVATE_LDLIBS) \
-    -o $(call host-path,$@)
-endef
-
-define cmd-build-executable
-$(PRIVATE_CXX) \
-    -Wl,--gc-sections \
-    -Wl,-z,nocopyreloc \
-    --sysroot=$(call host-path,$(PRIVATE_SYSROOT)) \
-    $(PRIVATE_LINKER_OBJECTS_AND_LIBRARIES) \
-    $(PRIVATE_LDFLAGS) \
-    $(PRIVATE_LDLIBS) \
-    -o $(call host-path,$@)
-endef

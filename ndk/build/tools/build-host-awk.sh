@@ -25,7 +25,7 @@ PROGRAM_DESCRIPTION=\
 "Rebuild the host awk tool used by the NDK."
 
 register_try64_option
-register_mingw_option
+register_canadian_option
 register_jobs_option
 
 NDK_DIR=$ANDROID_NDK_ROOT
@@ -45,7 +45,7 @@ OUT=$NDK_DIR/$SUBDIR
 AWK_VERSION=20071023
 AWK_SRCDIR=$ANDROID_NDK_ROOT/sources/host-tools/nawk-$AWK_VERSION
 if [ ! -d "$AWK_SRCDIR" ]; then
-    echo "ERROR: Can't find sed-$AWK_VERSION source tree: $AWK_SRCDIR"
+    echo "ERROR: Can't find nawk-$AWK_VERSION source tree: $AWK_SRCDIR"
     exit 1
 fi
 
@@ -58,18 +58,32 @@ BUILD_MINGW=
 if [ "$MINGW" = "yes" ]; then
   BUILD_MINGW=yes
 fi
+if [ "$TRY64" = "yes" ]; then
+  BUILD_TRY64=yes
+fi
+V=0
+if [ "$VERBOSE2" = "yes" ]; then
+  V=1
+fi
 
 log "Configuring the build"
 mkdir -p $BUILD_DIR && rm -rf $BUILD_DIR/*
-prepare_mingw_toolchain $BUILD_DIR
+prepare_canadian_toolchain $BUILD_DIR
 log "Building $HOST_TAG awk"
 export HOST_CC="$CC" &&
+export CFLAGS=$HOST_CFLAGS" -O2 -s" &&
+export LDFLAGS=$HOST_LDFLAGS &&
+export NATIVE_CC="gcc" &&
+export NATIVE_CFLAGS=" -O2 -s -I$BUILD_DIR -I." &&
+export NATIVE_LDFLAGS= &&
 run $GNUMAKE \
     -C "$AWK_SRCDIR" \
     -j $NUM_JOBS \
     BUILD_DIR="$BUILD_DIR" \
-    MINGW="$BUILD_MINGW"
-fail_panic "Failed to build the sed-$AWK_VERSION executable!"
+    MINGW="$BUILD_MINGW" \
+    TRY64="$BUILD_TRY64" \
+    V="$V"
+fail_panic "Failed to build the awk-$AWK_VERSION executable!"
 
 log "Copying executable to prebuilt location"
 run mkdir -p $(dirname "$OUT") && cp "$BUILD_DIR/$(get_host_exec_name ndk-awk)" "$OUT"

@@ -36,6 +36,9 @@ toolchain binaries for all target architectures.
 By default, this will try with the current NDK directory, unless
 you use the --ndk-dir=<path> option.
 
+If you want use clang to rebuild the binaries, please
+use --llvm-version=<ver> option.
+
 The output will be placed in appropriate sub-directories of
 <ndk>/$STLPORT_SUBDIR, but you can override this with the --out-dir=<path>
 option.
@@ -59,6 +62,12 @@ register_var_option "--abis=<list>" ABIS "Specify list of target ABIs."
 
 NO_MAKEFILE=
 register_var_option "--no-makefile" NO_MAKEFILE "Do not use makefile to speed-up build"
+
+VISIBLE_LIBSTLPORT_STATIC=
+register_var_option "--visible-libstlport-static" VISIBLE_LIBSTLPORT_STATIC "Do not use hidden visibility for libstlport_static.a"
+
+LLVM_VERSION=
+register_var_option "--llvm-version=<ver>" LLVM_VERSION "Specify LLVM version"
 
 register_jobs_option
 
@@ -87,15 +96,15 @@ fail_panic "Could not create build directory: $BUILD_DIR"
 
 GABIXX_SRCDIR=$ANDROID_NDK_ROOT/$GABIXX_SUBDIR
 GABIXX_CFLAGS="-fPIC -O2 -DANDROID -D__ANDROID__ -I$GABIXX_SRCDIR/include"
-GABIXX_CXXFLAGS="-fno-exceptions -frtti"
+GABIXX_CXXFLAGS="-fexceptions -frtti"
 GABIXX_SOURCES=$(cd $ANDROID_NDK_ROOT/$GABIXX_SUBDIR && ls src/*.cc)
-GABIXX_LDFLAGS=
+GABIXX_LDFLAGS="-ldl"
 
 # Location of the STLPort source tree
 STLPORT_SRCDIR=$ANDROID_NDK_ROOT/$STLPORT_SUBDIR
 STLPORT_CFLAGS="-DGNU_SOURCE -fPIC -O2 -I$STLPORT_SRCDIR/stlport -DANDROID -D__ANDROID__"
 STLPORT_CFLAGS=$STLPORT_CFLAGS" -I$ANDROID_NDK_ROOT/$GABIXX_SUBDIR/include"
-STLPORT_CXXFLAGS="-fuse-cxa-atexit -fno-exceptions -frtti"
+STLPORT_CXXFLAGS="-fuse-cxa-atexit -fexceptions -frtti"
 STLPORT_SOURCES=\
 "src/dll_main.cpp \
 src/fstream.cpp \
@@ -140,13 +149,26 @@ else
     MAKEFILE=
 fi
 
+# build_stlport_libs_for_abi
+# $1: ABI
+# $2: build directory
+# $3: build type: "static" or "shared"
+# $4: (optional) installation directory
 build_stlport_libs_for_abi ()
 {
     local ARCH BINPREFIX SYSROOT
     local ABI=$1
     local BUILDDIR="$2"
-    local DSTDIR="$3"
+    local TYPE="$3"
+    local DSTDIR="$4"
+    local DEFAULT_CFLAGS DEFAULT_CXXLAGS
     local SRC OBJ OBJECTS CFLAGS CXXFLAGS
+    local UNKNOWN_ARCH=$(find_ndk_unknown_archs | grep $ABI)
+
+    # Don't build gabi++ for unknown archs
+    if [ ! -z "$UNKNOWN_ARCH" ]; then
+        GABIXX_SOURCES=
+    fi
 
     mkdir -p "$BUILDDIR"
 
@@ -157,33 +179,47 @@ build_stlport_libs_for_abi ()
 
     mkdir -p "$DSTDIR"
 
-    builder_begin_android $ABI "$BUILDDIR" "$MAKEFILE"
+    builder_begin_android $ABI "$BUILDDIR" "$LLVM_VERSION" "$MAKEFILE"
 
     builder_set_dstdir "$DSTDIR"
 
     builder_set_srcdir "$GABIXX_SRCDIR"
-    builder_cflags "$GABIXX_CFLAGS"
-    builder_cxxflags "$GABIXX_CXXFLAGS"
+    builder_reset_cflags DEFAULT_CFLAGS
+
+    builder_cflags "$DEFAULT_CFLAGS $GABIXX_CFLAGS"
+    builder_reset_cxxflags DEFAULT_CXXLAGS
+    if [ "$TYPE" = "static" -a -z "$VISIBLE_LIBSTLPORT_STATIC" ]; then
+        builder_cxxflags "$DEFAULT_CXXLAGS $GABIXX_CXXFLAGS -fvisibility=hidden -fvisibility-inlines-hidden"
+    else
+        builder_cxxflags "$DEFAULT_CXXLAGS $GABIXX_CXXFLAGS"
+    fi
     builder_ldflags "$GABIXX_LDFLAGS"
     builder_sources $GABIXX_SOURCES
 
     builder_set_srcdir "$STLPORT_SRCDIR"
     builder_reset_cflags
-    builder_cflags "$STLPORT_CFLAGS"
+    builder_cflags "$DEFAULT_CFLAGS $STLPORT_CFLAGS"
     builder_reset_cxxflags
-    builder_cxxflags "$STLPORT_CXXFLAGS"
+    if [ "$TYPE" = "static" -a -z "$VISIBLE_LIBSTLPORT_STATIC" ]; then
+        builder_cxxflags "$DEFAULT_CXXLAGS $STLPORT_CXXFLAGS -fvisibility=hidden -fvisibility-inlines-hidden"
+    else
+        builder_cxxflags "$DEFAULT_CXXLAGS $STLPORT_CXXFLAGS"
+    fi
     builder_sources $STLPORT_SOURCES
 
-    log "Building $DSTDIR/libstlport_static.a"
-    builder_static_library libstlport_static
-
-    log "Building $DSTDIR/libstlport_shared.so"
-    builder_shared_library libstlport_shared
+    if [ "$TYPE" = "static" ]; then
+        log "Building $DSTDIR/libstlport_static.a"
+        builder_static_library libstlport_static
+    else
+        log "Building $DSTDIR/libstlport_shared.so"
+        builder_shared_library libstlport_shared
+    fi
     builder_end
 }
 
 for ABI in $ABIS; do
-    build_stlport_libs_for_abi $ABI "$BUILD_DIR/$ABI"
+    build_stlport_libs_for_abi $ABI "$BUILD_DIR/$ABI/shared" "shared"
+    build_stlport_libs_for_abi $ABI "$BUILD_DIR/$ABI/static" "static"
 done
 
 # If needed, package files into tarballs

@@ -54,6 +54,12 @@ register_var_option "--package" OPTION_PACKAGE "Create source package in /tmp/nd
 OPTION_NO_PATCHES=no
 register_var_option "--no-patches" OPTION_NO_PATCHES "Do not patch sources"
 
+LLVM_VERSION_LIST=$DEFAULT_LLVM_VERSION_LIST
+register_var_option "--llvm-version-list=<vers>" LLVM_VERSION_LIST "List of LLVM release versions"
+
+LLVM_URL=$DEFAULT_LLVM_URL
+register_var_option "--llvm-url=<url>" LLVM_URL "URL to download LLVM tar archive"
+
 PROGRAM_PARAMETERS="<src-dir>"
 PROGRAM_DESCRIPTION=\
 "Download the NDK toolchain sources from android.googlesource.com into <src-dir>.
@@ -101,6 +107,9 @@ if [ -n "$SRC_DIR" ] ; then
     log "Using target source directory: $SRC_DIR"
 fi
 
+# Normalize the parameters
+LLVM_VERSION_LIST=$(commas_to_spaces $LLVM_VERSION_LIST)
+
 # Create temp directory where everything will be copied first
 #
 PKGNAME=android-ndk-toolchain-$RELEASE
@@ -144,22 +153,31 @@ toolchain_clone ()
 }
 
 # Checkout sources from a git clone created with toolchain_clone
-# $1: repository/clone name (e.g. 'gcc')
-# $2: sub-path to extract, relative to clone top-level (e.g. 'gcc-4.4.3')
+# $1: sub-directory
+# $2: branch (e.g. 'master')
+# $3: repository/clone name (e.g. 'gcc')
+# $4+: sub-path to extract, relative to clone top-level (e.g. 'gcc-4.4.3')
 #
 toolchain_checkout ()
 {
-    local NAME=$1
-    shift
+    local SUBDIR=$1
+    local BRANCH=$2
+    local NAME=$3
+    shift ; shift ; shift
     local GITOPTS="--git-dir=$CLONE_DIR/$NAME/.git"
     log "Checking out $BRANCH branch of $NAME.git: $@"
     local REVISION=origin/$BRANCH
     if [ -n "$GIT_DATE" ] ; then
         REVISION=`git $GITOPTS rev-list -n 1 --until="$GIT_DATE" $REVISION`
     fi
-    (mkdir -p $TMPDIR/$NAME && cd $TMPDIR/$NAME && run git $GITOPTS checkout $REVISION "$@")
+    (mkdir -p $TMPDIR/$SUBDIR/$NAME && cd $TMPDIR/$SUBDIR/$NAME && run git $GITOPTS checkout $REVISION "$@")
     fail_panic "Could not checkout $NAME / $@ ?"
-    (printf "%-32s " "toolchain/$NAME.git"; git $GITOPTS log -1 --format=oneline $REVISION) >> $SOURCES_LIST
+    if [ "$BRANCH" = "master" ]; then
+        BRANCH=
+    else
+        BRANCH="($BRANCH)"
+    fi
+    (printf "%-32s " "toolchain/$NAME.git $BRANCH"; git $GITOPTS log -1 --format=oneline $REVISION) >> $SOURCES_LIST
 }
 
 cd $TMPDIR
@@ -171,24 +189,55 @@ SOURCES_LIST=$(pwd)/SOURCES
 rm -f $SOURCES_LIST && touch $SOURCES_LIST
 
 toolchain_clone build
-
 toolchain_clone gmp
 toolchain_clone mpfr
 toolchain_clone mpc
+toolchain_clone cloog
+toolchain_clone ppl
+toolchain_clone expat
 toolchain_clone binutils
 toolchain_clone gcc
 toolchain_clone gdb
-toolchain_clone expat
+toolchain_clone python
+toolchain_clone perl
+toolchain_clone clang
+toolchain_clone llvm
+toolchain_clone mclinker
 
+toolchain_checkout "" $BRANCH build .
+toolchain_checkout "" $BRANCH gmp .
+toolchain_checkout "" $BRANCH mpfr .
+toolchain_checkout "" $BRANCH mpc .
+toolchain_checkout "" $BRANCH cloog .
+toolchain_checkout "" $BRANCH ppl .
+toolchain_checkout "" $BRANCH expat .
+toolchain_checkout "" $BRANCH binutils binutils-2.19 binutils-2.21 binutils-2.22
+toolchain_checkout "" $BRANCH gcc gcc-4.4.3 gcc-4.6 gcc-4.7
+toolchain_checkout "" $BRANCH gdb gdb-6.6 gdb-7.3.x
+toolchain_checkout "" $BRANCH python Python-2.7.3
+toolchain_checkout "" $BRANCH perl perl-5.16.2
+toolchain_checkout "" $BRANCH mclinker .
 
-toolchain_checkout build .
-toolchain_checkout gmp  .
-toolchain_checkout mpfr .
-toolchain_checkout mpc  .
-toolchain_checkout expat .
-toolchain_checkout binutils binutils-2.19 binutils-2.21
-toolchain_checkout gcc gcc-4.4.3 gcc-4.6
-toolchain_checkout gdb gdb-6.6 gdb-7.1.x gdb-7.3.x
+for LLVM_VERSION in $LLVM_VERSION_LIST; do
+    LLVM_VERSION_NO_DOT=$(echo $LLVM_VERSION | sed -e 's!\.!!g')
+    LLVM_BRANCH="release_$LLVM_VERSION_NO_DOT"
+    toolchain_checkout "llvm-$LLVM_VERSION" $LLVM_BRANCH clang .
+    toolchain_checkout "llvm-$LLVM_VERSION" $LLVM_BRANCH llvm .
+    # Adjust directory structure a bit
+    # 1. Create symbolic link for clang which is always built
+    # 2. Move tools/polly up to be a sibling of llvm and clang.  Script build-llvm.sh
+    #    will only create symbolic link when --with-polly is specified.
+    (cd "$TMPDIR/llvm-$LLVM_VERSION/llvm" && \
+        ln -s ../../clang tools && \
+        test -d tools/polly && mv tools/polly ..)
+    # In polly/utils/cloog_src, touch Makefile.in, aclocal.m4, and configure to
+    # make sure they are not regenerated.
+    (test -d "$TMPDIR/llvm-$LLVM_VERSION/polly" && \
+     cd "$TMPDIR/llvm-$LLVM_VERSION/polly" && \
+        find . -name "Makefile.in" -exec touch {} \; && \
+        find . -name "aclocal.m4" -exec touch {} \; && \
+        find . -name "configure" -exec touch {} \; )
+done
 
 # Patch the toolchain sources
 if [ "$OPTION_NO_PATCHES" != "yes" ]; then
@@ -222,9 +271,10 @@ else
     SRC_DIR=`cd $SRC_DIR && pwd`
     rm -rf $SRC_DIR && mkdir -p $SRC_DIR
     fail_panic "Could not create target source directory: $SRC_DIR"
-    copy_directory "$TMPDIR" "$SRC_DIR"
     cp $SOURCES_LIST $SRC_DIR/SOURCES
-    fail_panic "Could not copy downloaded sources to: $SRC_DIR"
+    fail_panic "Could not copy $SOURCES_LIST to $SRC_DIR"
+    mv "$TMPDIR"/* "$SRC_DIR"  #copy_directory "$TMPDIR" "$SRC_DIR"
+    fail_panic "Could not move to target source directory: $TMPDIR -> $SRC_DIR"
     dump "Toolchain sources downloaded and copied to $SRC_DIR"
 fi
 

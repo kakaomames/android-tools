@@ -28,20 +28,20 @@ TARGET_CFLAGS := \
     -ffunction-sections \
     -funwind-tables \
     -fstack-protector \
-    -D__ARM_ARCH_5__ -D__ARM_ARCH_5T__ \
-    -D__ARM_ARCH_5E__ -D__ARM_ARCH_5TE__ \
+    -no-canonical-prefixes
 
-TARGET_LDFLAGS :=
+TARGET_LDFLAGS := -no-canonical-prefixes
 
 TARGET_C_INCLUDES := \
-    $(SYSROOT)/usr/include
+    $(SYSROOT_INC)/usr/include
 
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
     TARGET_CFLAGS += -march=armv7-a \
                      -mfloat-abi=softfp \
-                     -mfpu=vfp
+                     -mfpu=vfpv3-d16
 
-    TARGET_LDFLAGS += -Wl,--fix-cortex-a8
+    TARGET_LDFLAGS += -march=armv7-a \
+                     -Wl,--fix-cortex-a8
 else
     TARGET_CFLAGS += -march=armv5te \
                             -mtune=xscale \
@@ -51,6 +51,8 @@ endif
 TARGET_CFLAGS.neon := -mfpu=neon
 
 TARGET_arm_release_CFLAGS :=  -O2 \
+                              -g \
+                              -DNDEBUG \
                               -fomit-frame-pointer \
                               -fstrict-aliasing    \
                               -funswitch-loops     \
@@ -58,16 +60,22 @@ TARGET_arm_release_CFLAGS :=  -O2 \
 
 TARGET_thumb_release_CFLAGS := -mthumb \
                                -Os \
+                               -g \
+                               -DNDEBUG \
                                -fomit-frame-pointer \
                                -fno-strict-aliasing \
                                -finline-limit=64
 
 # When building for debug, compile everything as arm.
 TARGET_arm_debug_CFLAGS := $(TARGET_arm_release_CFLAGS) \
+                           -O0 \
+                           -UNDEBUG \
                            -fno-omit-frame-pointer \
                            -fno-strict-aliasing
 
 TARGET_thumb_debug_CFLAGS := $(TARGET_thumb_release_CFLAGS) \
+                             -O0 \
+                             -UNDEBUG \
                              -marm \
                              -fno-omit-frame-pointer
 
@@ -99,32 +107,3 @@ $(call add-src-files-target-cflags,\
     $(TARGET_CFLAGS.neon)) \
 $(call set-src-files-text,$(__arm_sources),arm$(space)$(space)) \
 $(call set-src-files-text,$(__thumb_sources),thumb)
-
-#
-# We need to add -lsupc++ to the final link command to make exceptions
-# and RTTI work properly (when -fexceptions and -frtti are used).
-#
-# Normally, the toolchain should be configured to do that automatically,
-# this will be debugged later.
-#
-define cmd-build-shared-library
-$(PRIVATE_CXX) \
-    -Wl,-soname,$(notdir $@) \
-    -shared \
-    --sysroot=$(call host-path,$(PRIVATE_SYSROOT)) \
-    $(PRIVATE_LINKER_OBJECTS_AND_LIBRARIES) \
-    $(PRIVATE_LDFLAGS) \
-    $(PRIVATE_LDLIBS) \
-    -o $(call host-path,$@)
-endef
-
-define cmd-build-executable
-$(PRIVATE_CXX) \
-    -Wl,--gc-sections \
-    -Wl,-z,nocopyreloc \
-    --sysroot=$(call host-path,$(PRIVATE_SYSROOT)) \
-    $(PRIVATE_LINKER_OBJECTS_AND_LIBRARIES) \
-    $(PRIVATE_LDFLAGS) \
-    $(PRIVATE_LDLIBS) \
-    -o $(call host-path,$@)
-endef

@@ -25,7 +25,7 @@ PROGRAM_DESCRIPTION=\
 "Rebuild the host sed tool used by the NDK."
 
 register_try64_option
-register_mingw_option
+register_canadian_option
 register_jobs_option
 
 NDK_DIR=$ANDROID_NDK_ROOT
@@ -57,15 +57,22 @@ BUILD_DIR=$NDK_TMPDIR
 
 log "Configuring the build"
 mkdir -p $BUILD_DIR && rm -rf $BUILD_DIR/*
-prepare_mingw_toolchain $BUILD_DIR
+prepare_canadian_toolchain $BUILD_DIR
 cd $BUILD_DIR &&
 CFLAGS=$HOST_CFLAGS" -O2 -s" &&
 export CC CFLAGS &&
-run $SED_SRCDIR/configure --disable-nls --disable-rpath --disable-i18n --disable-acl
+run $SED_SRCDIR/configure \
+    --disable-nls \
+    --disable-rpath \
+    --disable-i18n \
+    --disable-acl \
+    --host=$ABI_CONFIGURE_HOST \
+    --build=$ABI_CONFIGURE_BUILD
 fail_panic "Failed to configure the sed-$SED_VERSION build!"
 
-log "Building sed"
-run $GNUMAKE -j $NUM_JOBS
+log "Building sed (lib/ and sed/ only)"
+run $GNUMAKE -j $NUM_JOBS -C lib
+run $GNUMAKE -j $NUM_JOBS -C sed
 fail_panic "Failed to build the sed-$SED_VERSION executable!"
 
 log "Copying executable to prebuilt location"
