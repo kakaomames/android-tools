@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "AAAAc3//9xw\u003d",
+        "filename": "android_tools.gyp",
+        "patchSetId": 1
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1001644
+      },
+      "writtenOn": "2013-08-16T20:41:35Z",
+      "side": 1,
+      "message": "where is this target defined? i only see: android_support_v7_mediarouter_jar_no_res",
+      "revId": "5f566c122d827ae9f3003fb49ba68fa1a8cc0ded",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
+    }
+  ]
+}
