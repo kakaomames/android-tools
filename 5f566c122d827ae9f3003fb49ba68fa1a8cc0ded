@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "AAAAc3//9n0\u003d",
+        "filename": "android_tools.gyp",
+        "patchSetId": 1
+      },
+      "lineNbr": 41,
+      "author": {
+        "id": 1000014
+      },
+      "writtenOn": "2013-08-16T22:16:08Z",
+      "side": 1,
+      "message": "Done\nFiled crbug.com/274697",
+      "parentUuid": "AAAAc3//9ww\u003d",
+      "revId": "5f566c122d827ae9f3003fb49ba68fa1a8cc0ded",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "AAAAc3//9xw\u003d",
         "filename": "android_tools.gyp",
         "patchSetId": 1
@@ -48,6 +66,42 @@
       "side": 1,
       "message": "Let\u0027s change *_jar_no_res to *_javalib_no_res. I think we use the _javalib suffix more than the _jar one (and it would be nice to remove the uses of _jar).",
       "parentUuid": "AAAAc3//9xw\u003d",
+      "revId": "5f566c122d827ae9f3003fb49ba68fa1a8cc0ded",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "AAAAc3//9nw\u003d",
+        "filename": "android_tools.gyp",
+        "patchSetId": 1
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1000014
+      },
+      "writtenOn": "2013-08-16T22:16:08Z",
+      "side": 1,
+      "message": "That\u0027s right, should have been javalib.",
+      "parentUuid": "AAAAc3//9xw\u003d",
+      "revId": "5f566c122d827ae9f3003fb49ba68fa1a8cc0ded",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "AAAAc3//9ns\u003d",
+        "filename": "android_tools.gyp",
+        "patchSetId": 1
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1000014
+      },
+      "writtenOn": "2013-08-16T22:16:08Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "AAAAc3//9xM\u003d",
       "revId": "5f566c122d827ae9f3003fb49ba68fa1a8cc0ded",
       "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
       "unresolved": false
