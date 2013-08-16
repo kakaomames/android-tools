@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "AAAAc3//9ww\u003d",
+        "filename": "android_tools.gyp",
+        "patchSetId": 1
+      },
+      "lineNbr": 41,
+      "author": {
+        "id": 1002144
+      },
+      "writtenOn": "2013-08-16T20:49:11Z",
+      "side": 1,
+      "message": "I don\u0027t like this dance that we have to do use resources in a prebuilt library.\n\nCould you file a bug about making java_prebuilt.gypi support resources directly? Then add a comment here referring to it?",
+      "revId": "5f566c122d827ae9f3003fb49ba68fa1a8cc0ded",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "AAAAc3//9xw\u003d",
         "filename": "android_tools.gyp",
         "patchSetId": 1
@@ -13,6 +30,24 @@
       "writtenOn": "2013-08-16T20:41:35Z",
       "side": 1,
       "message": "where is this target defined? i only see: android_support_v7_mediarouter_jar_no_res",
+      "revId": "5f566c122d827ae9f3003fb49ba68fa1a8cc0ded",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "AAAAc3//9xM\u003d",
+        "filename": "android_tools.gyp",
+        "patchSetId": 1
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1002144
+      },
+      "writtenOn": "2013-08-16T20:49:11Z",
+      "side": 1,
+      "message": "Let\u0027s change *_jar_no_res to *_javalib_no_res. I think we use the _javalib suffix more than the _jar one (and it would be nice to remove the uses of _jar).",
+      "parentUuid": "AAAAc3//9xw\u003d",
       "revId": "5f566c122d827ae9f3003fb49ba68fa1a8cc0ded",
       "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
       "unresolved": false
