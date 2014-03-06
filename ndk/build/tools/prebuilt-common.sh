@@ -17,9 +17,14 @@ if [ -z "$NDK_BUILDTOOLS_PATH" ]; then
     fi
 fi
 
+# Warn about /bin/sh ins't bash.
+if [ -z "$BASH_VERSION" ] ; then
+    echo "WARNING: The shell running this script isn't bash.  Although we try to avoid bashism in scripts, things can happen."
+fi
+
 NDK_BUILDTOOLS_ABSPATH=$(cd $NDK_BUILDTOOLS_PATH && pwd)
 
-. $NDK_BUILDTOOLS_PATH/../core/ndk-common.sh
+. $NDK_BUILDTOOLS_PATH/ndk-common.sh
 . $NDK_BUILDTOOLS_PATH/dev-defaults.sh
 
 #====================================================
@@ -135,6 +140,7 @@ filter_out ()
     local PATTERN="$1"
     local TEXT="$2"
     for pat in $PATTERN; do
+        pat=$"${pat/\//\\/}"
         TEXT=$(echo $TEXT | sed -e 's/'$pat' //g' -e 's/'$pat'$//g')
     done
     echo $TEXT
@@ -760,7 +766,7 @@ EOF
         DST_PREFIX="$NDK_CCACHE $DST_PREFIX"
     fi
     $NDK_BUILDTOOLS_PATH/gen-toolchain-wrapper.sh --src-prefix=$BINPREFIX --dst-prefix="$DST_PREFIX" "$CROSS_WRAP_DIR" \
-        --cflags="$HOST_CFLAGS" --cxxflags="$HOST_CFLAGS" --ldflags="HOST_LDFLAGS"
+        --cflags="$HOST_CFLAGS" --cxxflags="$HOST_CFLAGS" --ldflags="$HOST_LDFLAGS"
     # generate wrappers for BUILD toolchain
     # this is required for mingw/darwin build to avoid tools canadian cross configuration issues
     # 32-bit BUILD toolchain
@@ -929,8 +935,7 @@ prepare_host_build ()
     setup_ccache
 }
 
-
-prepare_target_build ()
+prepare_abi_configure_build ()
 {
     # detect build tag
     case $HOST_TAG in
@@ -954,6 +959,11 @@ prepare_target_build ()
             echo "Please update 'prepare_host_flags' in build/tools/prebuilt-common.sh"
             ;;
     esac
+}
+
+prepare_target_build ()
+{
+    prepare_abi_configure_build
 
     # By default, assume host == build
     ABI_CONFIGURE_HOST="$ABI_CONFIGURE_BUILD"
@@ -1002,7 +1012,17 @@ parse_toolchain_name ()
         ARCH="arm"
         ABI="armeabi"
         ABI_CONFIGURE_TARGET="arm-eabi"
-        ABI_CONFIGURE_EXTRA_FLAGS="--with-arch=armv5te --disable-gold"
+        ABI_CONFIGURE_EXTRA_FLAGS="--with-arch=armv5te --disable-gold --disable-libgomp"
+        ;;
+    aarch64-linux-android-*)
+        ARCH="arm64"
+        ABI="aarch64-v8a"
+        ABI_CONFIGURE_TARGET="aarch64-linux-android"
+        # Note:
+        # --disable-libgomp because libgomp/configure tries to link when we don't have crt*.o for aarch64 yet.
+        # --disable-gold because gold doesn't support aarch64 yet
+        #
+        ABI_CONFIGURE_EXTRA_FLAGS="--disable-gold --disable-libgomp"
         ;;
     x86-*)
         ARCH="x86"
@@ -1013,7 +1033,16 @@ parse_toolchain_name ()
         # You can't really build these separately at the moment.
         ABI_CFLAGS_FOR_TARGET="-fPIC"
         ;;
-    mips*)
+    x86_64-*)
+        ARCH="x86_64"
+        ABI=$ARCH
+        ABI_INSTALL_NAME="x86_64"
+        ABI_CONFIGURE_TARGET="x86_64-linux-android"
+        # Enable C++ exceptions, RTTI and GNU libstdc++ at the same time
+        # You can't really build these separately at the moment.
+        ABI_CFLAGS_FOR_TARGET="-fPIC"
+        ;;
+    mipsel*)
         ARCH="mips"
         ABI=$ARCH
         ABI_INSTALL_NAME="mips"
@@ -1026,11 +1055,25 @@ parse_toolchain_name ()
         ABI_CFLAGS_FOR_TARGET="-fexceptions -fpic"
         ABI_CXXFLAGS_FOR_TARGET="-frtti -fpic"
         # Add --disable-fixed-point to disable fixed-point support
-        # Add --disable-threads for eh_frame handling in a single thread
         ABI_CONFIGURE_EXTRA_FLAGS="$ABI_CONFIGURE_EXTRA_FLAGS --disable-fixed-point"
         ;;
+    mips64el*)
+        ARCH="mips64"
+        ABI=$ARCH
+        ABI_INSTALL_NAME="mips64"
+        ABI_CONFIGURE_TARGET="mips64el-linux-android"
+        # Set default to mips64r2
+        ABI_CONFIGURE_EXTRA_FLAGS="--with-arch=mips64r2"
+        # Enable C++ exceptions, RTTI and GNU libstdc++ at the same time
+        # You can't really build these separately at the moment.
+        # Add -fpic, because MIPS NDK will need to link .a into .so.
+        ABI_CFLAGS_FOR_TARGET="-fexceptions -fpic"
+        ABI_CXXFLAGS_FOR_TARGET="-frtti -fpic"
+        # Add --disable-fixed-point to disable fixed-point support
+        ABI_CONFIGURE_EXTRA_FLAGS="$ABI_CONFIGURE_EXTRA_FLAGS --disable-fixed-point --disable-libgomp --disable-libatomic"
+        ;;
     * )
-        echo "Invalid toolchain specified. Expected (arm-linux-androideabi-*|arm-eabi-*|x86-*|mips*)"
+        echo "Invalid toolchain specified. Expected (arm-linux-androideabi-*|arm-eabi-*|x86-*|mipsel*|mips64el*)"
         echo ""
         print_help
         exit 1
@@ -1051,6 +1094,11 @@ parse_toolchain_name ()
         ;;
     x86-*)
         GDBSERVER_HOST=i686-linux-android
+        GDBSERVER_CFLAGS=
+        GDBSERVER_LDFLAGS=
+        ;;
+    x86_64-*)
+        GDBSERVER_HOST=x86_64-linux-android
         GDBSERVER_CFLAGS=
         GDBSERVER_LDFLAGS=
         ;;
@@ -1104,20 +1152,44 @@ get_prebuilt_host_exe_ext ()
     fi
 }
 
-# Find all archs from $NDK_DIR/platforms/android-*
-# Return: the list of found arch names
+# Find all archs from $DEV_DIR/platforms or $NDK_DIR/platforms
+# Return: the list of found arch name
 find_ndk_archs ()
 {
+    local NDK_ROOT_DIR DEVDIR
     local RESULT FOUND_ARCHS
-    if [ ! -d $NDK_DIR/platforms ]; then
-        echo "ERROR: Cannot find directory '$NDK_DIR/platforms'!"
-        exit 1
+
+    if [ ! -z "$NDK_DIR" ]; then
+        NDK_ROOT_DIR=$NDK_DIR
+    else
+        NDK_ROOT_DIR=$ANDROID_NDK_ROOT
     fi
-    RESULT=$(ls $NDK_DIR/platforms/android-* | grep "arch-")
-    for arch in $RESULT; do
-        arch=$(basename $arch | sed -e 's/^arch-//')
-        FOUND_ARCHS="$FOUND_ARCHS $arch"
-    done
+
+    DEVDIR="$ANDROID_NDK_ROOT/../development/ndk"
+
+    # Check development directory first
+    if [ -d $DEVDIR/platforms ]; then
+        RESULT=$(ls $DEVDIR/platforms/android-* | grep "arch-")
+        for arch in $RESULT; do
+            arch=$(basename $arch | sed -e 's/^arch-//')
+            FOUND_ARCHS="$FOUND_ARCHS $arch"
+        done
+    fi
+
+    # Check ndk directory
+    if [ -z "$FOUND_ARCHS" ] && [ -d $NDK_ROOT_DIR/platforms ]; then
+        RESULT=$(ls $NDK_ROOT_DIR/platforms/android-* | grep "arch-")
+        for arch in $RESULT; do
+            arch=$(basename $arch | sed -e 's/^arch-//')
+            FOUND_ARCHS="$FOUND_ARCHS $arch"
+        done
+    fi
+
+    # If we cannot find any arch, set to default archs
+    if [ -z "$FOUND_ARCHS" ]; then
+        FOUND_ARCHS=$DEFAULT_ARCHS
+    fi
+
     echo "$(sort_uniq $FOUND_ARCHS)"
 }
 
@@ -1125,8 +1197,36 @@ find_ndk_archs ()
 # Return: arch names not in ndk default archs
 find_ndk_unknown_archs()
 {
-  local FOUND_ARCHS=$(find_ndk_archs)
-  echo "$(filter_out "$DEFAULT_ARCHS" "$FOUND_ARCHS")"
+    local FOUND_ARCHS=$(find_ndk_archs)
+    # TODO: arm64, x86_64 is here just to be found as known arch.
+    # It can be removed as soon as it is added into $DEFAULT_ARCHS
+    echo "$(filter_out "$DEFAULT_ARCHS arm64 x86_64 mips64" "$FOUND_ARCHS")"
+}
+
+# Determine whether given arch is in unknown archs list
+# $1: arch
+# Return: yes or no
+arch_in_unknown_archs()
+{
+    local UNKNOWN_ARCH=$(find_ndk_unknown_archs | grep $1)
+    if [ -z "$UNKNOWN_ARCH" ]; then
+        echo "no"
+    else
+        echo "yes"
+    fi
+}
+
+# Get library suffix for given ABI
+# $1: ABI
+# Return: .so or .bc
+get_lib_suffix_for_abi ()
+{
+    local ABI=$1
+    if [ $(arch_in_unknown_archs $ABI) = "yes" ]; then
+       echo ".bc"
+    else
+       echo ".so"
+    fi
 }
 
 # Convert an ABI name into an Architecture name
@@ -1136,9 +1236,8 @@ convert_abi_to_arch ()
 {
     local RET
     local ABI=$1
-    local FOUND_ARCH
     case $ABI in
-        armeabi|armeabi-v7a)
+        armeabi|armeabi-v7a|armeabi-v7a-hard)
             RET=arm
             ;;
         x86)
@@ -1147,12 +1246,17 @@ convert_abi_to_arch ()
         mips)
             RET=mips
             ;;
+        arm64|x86_64|mips64)
+            RET=$ABI
+            ;;
+        aarch64)
+            RET=arm64
+            ;;
         *)
-            FOUND_ARCH=$(echo $(find_ndk_unknown_archs) | grep $ABI)
-            if [ ! -z $FOUND_ARCH ]; then
+            if [ "$(arch_in_unknown_archs $ABI)" = "yes" ]; then
                 RET=$ABI
             else
-                >&2 echo "ERROR: Unsupported ABI name: $ABI, use one of: armeabi, armeabi-v7a or x86 or mips"
+                >&2 echo "ERROR: Unsupported ABI name: $ABI, use one of: armeabi, armeabi-v7a, x86, mips or armeabi-v7a-hard"
                 exit 1
             fi
             ;;
@@ -1168,20 +1272,15 @@ convert_arch_to_abi ()
 {
     local RET
     local ARCH=$1
-    local FOUND_ARCH
     case $ARCH in
         arm)
-            RET=armeabi,armeabi-v7a
+            RET=armeabi,armeabi-v7a,armeabi-v7a-hard
             ;;
-        x86)
-            RET=x86
-            ;;
-        mips)
-            RET=mips
+        x86|x86_64|mips|mips64|arm64)
+            RET=$ARCH
             ;;
         *)
-            FOUND_ARCH=$(echo $(find_ndk_unknown_archs) | grep $ARCH)
-            if [ ! -z $FOUND_ARCH ]; then
+            if [ "$(arch_in_unknown_archs $ARCH)" = "yes" ]; then
                 RET=$ARCH
             else
                 >&2 echo "ERROR: Unsupported ARCH name: $ARCH, use one of: arm, x86, mips"
@@ -1270,8 +1369,17 @@ get_default_api_level_for_arch ()
 # $1: Architecture name
 get_default_platform_sysroot_for_arch ()
 {
-    local LEVEL=$(get_default_api_level_for_arch $1)
-    echo "platforms/android-$LEVEL/arch-$1"
+    local ARCH=$1
+    local LEVEL=$(get_default_api_level_for_arch $ARCH)
+
+    if [ "$ARCH" = "aarch64" ]; then
+        ARCH=arm64
+    fi
+    if [ "$ARCH" != "${ARCH%%64}" ] ; then
+        # Hack to use new 64-bit headers only available at, say LEVEL 20
+        LEVEL=20
+    fi
+    echo "platforms/android-$LEVEL/arch-$ARCH"
 }
 
 # Guess what?

@@ -106,6 +106,26 @@ fi
 mkdir -p "$DST_DIR"
 fail_panic "Could not create destination directory: $DST_DIR"
 
+# Check if mingw compiler has dlfcn.h
+# $1: mignw compiler
+#
+mingw_has_dlfcn_h ()
+{
+   local CC="$1"
+
+   if [ ! -f "$CC" ]; then
+       # compiler not found
+       return 1
+   fi
+   "$CC" -xc /dev/null -dM -E | grep -q MINGW
+   if [ $? != 0 ]; then
+       # not a mingw compiler
+       return 1
+   fi
+
+   "$CC" -xc -c /dev/null -include dlfcn.h -o /dev/null > /dev/null 2>&1
+}
+
 # Generate a small wrapper program
 #
 # $1: program name, without any prefix (e.g. gcc, g++, ar, etc..)
@@ -120,16 +140,20 @@ gen_wrapper_program ()
     local DST_PREFIX="$3"
     local DST_FILE="$4/${SRC_PREFIX}$PROG"
     local FLAGS=""
-    local LDL_FLAGS=""
+    local LDFLAGS=""
 
     case $PROG in
-      cc|gcc)
+      cc|gcc|cpp)
           FLAGS=$FLAGS" $EXTRA_CFLAGS"
-          LDL_FLAGS="-ldl"
+          if mingw_has_dlfcn_h ${DST_PREFIX}$PROG; then
+              LDFLAGS="-ldl"
+          fi
           ;;
       c++|g++)
           FLAGS=$FLAGS" $EXTRA_CXXFLAGS"
-          LDL_FLAGS="-ldl"
+          if mingw_has_dlfcn_h ${DST_PREFIX}$PROG; then
+              LDFLAGS="-ldl"
+          fi
           ;;
       ar) FLAGS=$FLAGS" $EXTRA_ARFLAGS";;
       as) FLAGS=$FLAGS" $EXTRA_ASFLAGS";;
@@ -143,7 +167,7 @@ gen_wrapper_program ()
     cat > "$DST_FILE" << EOF
 #!/bin/sh
 # Auto-generated, do not edit
-${DST_PREFIX}$PROG $FLAGS "\$@" $LDL_FLAGS
+${DST_PREFIX}$PROG $FLAGS "\$@" $LDFLAGS
 EOF
     chmod +x "$DST_FILE"
     log "Generating: ${SRC_PREFIX}$PROG"

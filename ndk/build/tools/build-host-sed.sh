@@ -51,6 +51,7 @@ fi
 
 log "Using sources from: $SED_SRCDIR"
 
+prepare_abi_configure_build
 prepare_host_build
 
 BUILD_DIR=$NDK_TMPDIR

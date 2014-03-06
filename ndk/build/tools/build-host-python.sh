@@ -16,6 +16,10 @@
 # limitations under the License.
 #
 # Rebuild the host Python binaries from sources.
+# Also copies any gnu libstdc++ pretty-printers
+# found in $TOOLCHAIN_SRC_DIR/gcc/gcc-*
+# and Joachim Reichel's stlport pretty printers
+# found in sources/host-tools/gdb-pretty-printers/stlport
 #
 
 # include common function and variable definitions
@@ -43,11 +47,11 @@ following:
    darwin-x86
    darwin-x86_64
 
-For example, here's how to rebuild Python 2.7.3 on Linux
+For example, here's how to rebuild Python 2.7.5 on Linux
 for six different systems:
 
-  $PROGNAME --build-dir=/path/to/toolchain/src \
-    --python-version=2.7.3 \
+  $PROGNAME --build-dir=/path/to/toolchain/src \n \
+    --python-version=2.7.5 \n \
     --systems=linux-x86,linux-x86_64,windows,windows-x86_64,darwin-x86,darwin-x86_64"
 
 TOOLCHAIN_SRC_DIR=
@@ -66,7 +70,8 @@ BUILD_DIR=
 register_var_option "--build-dir=<path>" BUILD_DIR "Build Python into directory"
 
 bh_register_options
-
+register_try64_option
+register_canadian_option
 register_jobs_option
 
 extract_parameters "$@"
@@ -78,18 +83,62 @@ fi
 if [ -z "$TOOLCHAIN_SRC_DIR" ]; then
     panic "Please use --toolchain-src-dir=<path> to select toolchain source directory."
 fi
+check_toolchain_src_dir "$TOOLCHAIN_SRC_DIR"
+TOOLCHAIN_SRC_DIR=`cd $TOOLCHAIN_SRC_DIR; pwd`
 
 BH_HOST_SYSTEMS=$(commas_to_spaces $BH_HOST_SYSTEMS)
+AUTO_BUILD="no"
+
+if [ "$MINGW" = "yes" ]; then
+    BH_HOST_SYSTEMS="windows"
+    log "Auto-config: --systems=windows"
+fi
+
+if [ "$DARWIN" = "yes" ]; then
+    BH_HOST_SYSTEMS="darwin-x86"
+    log "Auto-config: --systems=darwin-x86"
+fi
+
+determine_systems ()
+{
+    local IN_SYSTEMS="$1"
+    local OUT_SYSTEMS
+
+    for SYSTEM in $IN_SYSTEMS; do
+        if [ "$TRY64" = "yes" ]; then
+            case $SYSTEM in
+                darwin-x86|linux-x86|windows-x86)
+                    SYSTEM=${SYSTEM%%x86}x86_64
+                    ;;
+                windows)
+                    SYSTEM=windows-x86_64
+                    ;;
+            esac
+        else
+            # 'windows-x86' causes substitution
+            # failure at the packing stage.
+            case $SYSTEM in
+                windows-x86)
+                    SYSTEM=windows
+                    ;;
+            esac
+        fi
+        OUT_SYSTEMS="$OUT_SYSTEMS $SYSTEM"
+    done
+    echo $OUT_SYSTEMS
+}
+
+BH_HOST_SYSTEMS=$(determine_systems "$BH_HOST_SYSTEMS")
+
+# Build python for build machine automatically
+if [ "$(bh_list_contains $BH_BUILD_TAG $BH_HOST_SYSTEMS)" = "no" ]; then
+    BH_HOST_SYSTEMS="$BH_BUILD_TAG $BH_HOST_SYSTEMS"
+    AUTO_BUILD="yes"
+fi
 
 # Python needs to execute itself during its build process, so must build the build
 # Python first. It should also be an error if not asked to build for build machine.
 BH_HOST_SYSTEMS=$(bh_sort_systems_build_first "$BH_HOST_SYSTEMS")
-
-# Make sure that the the user asked for the build OS's Python to be built.
-#  and that the above sort command worked correctly.
-if [ ! "$(bh_list_contains $BH_BUILD_TAG $BH_HOST_SYSTEMS)" = "first" ] ; then
-    panic "Cross building Python requires building for the build OS!"
-fi
 
 download_package ()
 {
@@ -165,35 +214,6 @@ for VERSION in $(commas_to_spaces $PYTHON_VERSION); do
     fi
 done
 
-# Return the build install directory of a given Python version
-# $1: host system tag
-# $2: python version
-# The suffix of this has to match python_ndk_install_dir
-#  as I package them from the build folder, substituting
-#  the end part of python_build_install_dir matching python_ndk_install_dir
-#  with nothing.
-# Needs to match with
-#  python_build_install_dir () in build-host-gdb.sh
-python_build_install_dir ()
-{
-    echo "$BH_BUILD_DIR/install/prebuilt/$1"
-}
-
-# $1: host system tag
-# $2: python version
-python_ndk_package_name ()
-{
-    echo "python-$2"
-}
-
-
-# Same as python_build_install_dir, but for the final NDK installation
-# directory. Relative to $NDK_DIR.
-python_ndk_install_dir ()
-{
-    echo "prebuilt/$1"
-}
-
 arch_to_qemu_arch ()
 {
     case $1 in
@@ -219,15 +239,19 @@ build_host_python ()
         panic "Missing configure script in $SRCDIR"
     fi
 
+    # Currently, 2.7.5 and 3.3.0 builds generate $SRCDIR/Lib/_sysconfigdata.py, unless it
+    # already exists (in which case it ends up wrong anyway!)... this should really be in
+    # the build directory instead.
+    if [ ! -f "$SRCDIR/Lib/_sysconfigdata.py" ]; then
+        log "Removing old $SRCDIR/Lib/_sysconfigdata.py"
+        rm -f $SRCDIR/Lib/_sysconfigdata.py
+    fi
+
     ARGS=" --prefix=$INSTALLDIR"
 
-    # Python considers it cross compiling if --host is passed
-    #  and that then requires that a CONFIG_SITE file is used.
-    # This is not necessary if it's only the arch that differs.
-    if [ ! $BH_HOST_CONFIG = $BH_BUILD_CONFIG ] ; then
-        ARGS=$ARGS" --build=$BH_BUILD_CONFIG"
-    fi
+    ARGS=$ARGS" --build=$BH_BUILD_CONFIG"
     ARGS=$ARGS" --host=$BH_HOST_CONFIG"
+    ARGS=$ARGS" --with-build-sysroot"
     ARGS=$ARGS" $PYDEBUG"
     ARGS=$ARGS" --disable-ipv6"
 
@@ -276,7 +300,7 @@ build_host_python ()
             echo "ac_cv_little_endian_double=yes"      >> $CFG_SITE
         fi
 
-        if [ $BH_HOST_OS = $BH_BUILD_OS ]; then
+        if [ "$BH_HOST_OS" = "$BH_BUILD_OS" ]; then
             # Only cross compiling from arch perspective.
             # qemu causes failures as cross-compilation is not detected
             # if a test executable can be run successfully, so we test
@@ -285,23 +309,81 @@ build_host_python ()
             QEMU_HOST_ARCH=$(arch_to_qemu_arch $BH_HOST_ARCH)
             if [ ! -z "$(which qemu-$QEMU_HOST_ARCH 2>/dev/null)" -o \
                  ! -z "$(which qemu-$QEMU_HOST_ARCH-static 2>/dev/null)" ] ; then
-               panic "Installed qemu(s) ($(which qemu-$QEMU_HOST_ARCH 2>/dev/null) $(which qemu-$QEMU_HOST_ARCH-static 2>/dev/null))" \
+               dump "WARNING: Installed qemu(s) ($(which qemu-$QEMU_HOST_ARCH 2>/dev/null) $(which qemu-$QEMU_HOST_ARCH-static 2>/dev/null))" \
                       "will prevent this build from working."
             fi
         fi
+    else
+        if [ $1 = darwin-x86 -o $1 = darwin-x86_64 ]; then
+            export LDSHARED="$CC -bundle -undefined dynamic_lookup"
+        fi
     fi
 
-    TEXT="$(bh_host_text) python-$BH_HOST_CONFIG:"
+    TEXT="$(bh_host_text) python-$BH_HOST_CONFIG-$2:"
 
     touch $SRCDIR/Include/graminit.h
     touch $SRCDIR/Python/graminit.c
     echo "" > $SRCDIR/Parser/pgen.stamp
+    touch $SRCDIR/Parser/Python.asdl
+    touch $SRCDIR/Parser/asdl.py
+    touch $SRCDIR/Parser/asdl_c.py
+    touch $SRCDIR/Include/Python-ast.h
+    touch $SRCDIR/Python/Python-ast.c
+
+    # By default, the Python build will force the following compiler flags
+    # after our own CFLAGS:
+    #   -g -fwrap -O3 -Wall -Wstrict-prototypes
+    #
+    # The '-g' is unfortunate because it makes the generated binaries
+    # much larger than necessary, and stripping them after the fact is
+    # a bit delicate when cross-compiling. To avoid this, define a
+    # custom OPT variable here (see Python-2.7.5/configure.ac) when
+    # generating non stripped builds.
+    if [ "$BH_BUILD_MODE" = "release" ]; then
+      OPT="-fwrapv -O3 -Wall -Wstrict-prototypes"
+      export OPT
+    fi
 
     dump "$TEXT Building"
     export CONFIG_SITE=$CFG_SITE &&
     run2 "$SRCDIR"/configure $ARGS &&
+    #
+    # Note 1:
+    # sharedmods is a phony target, but it's a dependency of both "make all" and also
+    # "make install", this causes it to fail on Windows as it tries to rename pydoc3
+    # to pydoc3.3 twice, and the second time aroud the file exists. So instead, we
+    # just do make install.
+    #
+    # Note 2:
+    # Can't run make install with -j as from the Makefile:
+    # install:	 altinstall bininstall maninstall
+    #  meaning altinstall and bininstall are kicked off at the same time
+    #  but actually, bininstall depends on altinstall being run first
+    #  due to libainstall: doing
+    #  $(INSTALL_SCRIPT) python-config $(DESTDIR)$(BINDIR)/python$(VERSION)-config
+    #  and bininstall: doing
+    #  (cd $(DESTDIR)$(BINDIR); $(LN) -s python$(VERSION)-config python2-config)
+    #  Though the real fix is to make bininstall depend on libainstall.
     run2 make -j$NUM_JOBS &&
-    run2 make -j$NUM_JOBS install
+    run2 make install
+
+    # Pretty printers.
+    PYPPDIR="$INSTALLDIR/share/pretty-printers/"
+
+    # .. for gnu stdlibc++
+    GCC_DIRS=$(find $TOOLCHAIN_SRC_DIR/gcc/ -maxdepth 1 -name "gcc-*" -type d)
+    for GCC_DIR in $GCC_DIRS; do
+        (
+        if [ -d "$GCC_DIR/libstdc++-v3/python" ]; then
+            cd "$GCC_DIR/libstdc++-v3/python"
+            [ -d "$PYPPDIR/libstdcxx/$(basename $GCC_DIR)" ] || mkdir -p "$PYPPDIR/libstdcxx/$(basename $GCC_DIR)"
+            run2 find . -path "*.py" -exec cp {} "$PYPPDIR/libstdcxx/$(basename $GCC_DIR)/" \;
+        fi
+        )
+    done
+
+    # .. for STLPort
+    run2 cp -rf $NDK_DIR/sources/host-tools/gdb-pretty-printers/stlport/gppfs-0.2 $PYPPDIR/stlport
 }
 
 need_build_host_python ()
@@ -319,11 +401,15 @@ install_host_python ()
 
     need_build_host_python $1 $2
 
-    dump "$(bh_host_text) python-$BH_HOST_ARCH-$2: Installing"
-    run copy_directory "$SRCDIR/bin"     "$DSTDIR/bin"
-    run copy_directory "$SRCDIR/lib"     "$DSTDIR/lib"
-    run copy_directory "$SRCDIR/share"   "$DSTDIR/share"
-    run copy_directory "$SRCDIR/include" "$DSTDIR/include"
+    if [ $AUTO_BUILD != "yes" -o $1 != $BH_BUILD_TAG ]; then
+        dump "$(bh_host_text) python-$BH_HOST_ARCH-$2: Installing"
+        run copy_directory "$SRCDIR/bin"     "$DSTDIR/bin"
+        run copy_directory "$SRCDIR/lib"     "$DSTDIR/lib"
+        run copy_directory "$SRCDIR/share"   "$DSTDIR/share"
+        run copy_directory "$SRCDIR/include" "$DSTDIR/include"
+        # remove unneeded files
+        run rm -rf "$DSTDIR/share/man"
+    fi
 }
 
 need_install_host_python ()
@@ -346,15 +432,20 @@ package_host_python ()
 {
     local BLDDIR="$(python_build_install_dir $1 $2)"
     local SRCDIR="$(python_ndk_install_dir $1 $2)"
-    # This is similar to BLDDIR=${BLDDIR%%$SRCDIR}
+    # This is similar to BLDDIR=${BLDDIR%%$SRCDIR} (and requires we use windows and not windows-x86)
     BLDDIR=$(echo "$BLDDIR" | sed "s/$(echo "$SRCDIR" | sed -e 's/\\/\\\\/g' -e 's/\//\\\//g' -e 's/&/\\\&/g')//g")
-    local PACKAGENAME=$(python_ndk_package_name $1 $2)-$1.tar.bz2
+    local PACKAGENAME=ndk-python-$(install_dir_from_host_tag $1).tar.bz2
     local PACKAGE="$PACKAGE_DIR/$PACKAGENAME"
 
     need_install_host_python $1 $2
 
     dump "$(bh_host_text) $PACKAGENAME: Packaging"
     run pack_archive "$PACKAGE" "$BLDDIR" "$SRCDIR"
+}
+
+need_package_host_python ()
+{
+    bh_stamps_do package-host-python-$1-$2 package_host_python $1 $2
 }
 
 PYTHON_VERSION=$(commas_to_spaces $PYTHON_VERSION)
@@ -371,8 +462,10 @@ done
 if [ "$PACKAGE_DIR" ]; then
     for SYSTEM in $BH_HOST_SYSTEMS; do
         bh_setup_build_for_host $SYSTEM
-        for VERSION in $PYTHON_VERSION; do
-            package_host_python $SYSTEM $VERSION
-        done
+        if [ $AUTO_BUILD != "yes" -o $SYSTEM != $BH_BUILD_TAG ]; then
+            for VERSION in $PYTHON_VERSION; do
+                need_package_host_python $SYSTEM $VERSION
+            done
+        fi
     done
 fi

@@ -60,6 +60,15 @@ ifndef APP_PROJECT_PATH
     APP_PROJECT_PATH := $(NDK_PROJECT_PATH)
 endif
 
+ifeq (null,$(APP_PROJECT_PATH))
+
+ifndef APP_PLATFORM
+    APP_PLATFORM := android-3
+    $(call ndk_log,  Defaulted to APP_PLATFORM=$(APP_PLATFORM))
+endif
+
+else
+
 # check whether APP_PLATFORM is defined. If not, look for project.properties in
 # the $(APP_PROJECT_PATH) and extract the value with awk's help. If nothing is here,
 # revert to the default value (i.e. "android-3").
@@ -80,17 +89,24 @@ ifndef APP_PLATFORM
     endif
 endif
 
+endif # APP_PROJECT_PATH == null
+
 # SPECIAL CASES:
 # 1) android-6 and android-7 are the same thing as android-5
-# 2) android-10 .. 13 is the same thing as android-9
+# 2) android-10 and 11 are the same thing as android-9
+# 3) android-19 and up are the same thing as android-19
 #
 APP_PLATFORM_LEVEL := $(strip $(subst android-,,$(APP_PLATFORM)))
 ifneq (,$(filter 6 7,$(APP_PLATFORM_LEVEL)))
     APP_PLATFORM := android-5
     $(call ndk_log,  Adjusting APP_PLATFORM android-$(APP_PLATFORM_LEVEL) to $(APP_PLATFORM))
 endif
-ifneq (,$(filter 10 11 12 13,$(APP_PLATFORM_LEVEL)))
+ifneq (,$(filter 10 11,$(APP_PLATFORM_LEVEL)))
     APP_PLATFORM := android-9
+    $(call ndk_log,  Adjusting APP_PLATFORM android-$(APP_PLATFORM_LEVEL) to $(APP_PLATFORM))
+endif
+ifneq (,$(call gt,$(APP_PLATFORM_LEVEL),19))
+    APP_PLATFORM := android-19
     $(call ndk_log,  Adjusting APP_PLATFORM android-$(APP_PLATFORM_LEVEL) to $(APP_PLATFORM))
 endif
 
@@ -100,9 +116,8 @@ APP_PIE := $(strip $(APP_PIE))
 $(call ndk_log,  APP_PIE is $(APP_PIE))
 ifndef APP_PIE
     ifneq (,$(call gte,$(APP_PLATFORM_LEVEL),16))
-        APP_PLATFORM := android-14
-        $(call ndk_log,  Adjusting APP_PLATFORM android-$(APP_PLATFORM_LEVEL) to $(APP_PLATFORM) and enabling -fPIE)
         APP_PIE := true
+        $(call ndk_log,  Enabling -fPIE)
     else
         APP_PIE := false
     endif
@@ -118,16 +133,23 @@ ifdef _bad_platform
     $(call ndk_log,Switching to $(APP_PLATFORM))
 endif
 
+ifneq (null,$(APP_PROJECT_PATH))
+
 # Check platform level (after adjustment) against android:minSdkVersion in AndroidManifest.xml
 #
 APP_MANIFEST := $(strip $(wildcard $(APP_PROJECT_PATH)/AndroidManifest.xml))
 APP_PLATFORM_LEVEL := $(strip $(subst android-,,$(APP_PLATFORM)))
 ifdef APP_MANIFEST
-  APP_MIN_PLATFORM_LEVEL := $(shell $(HOST_AWK) -f $(BUILD_AWK)/extract-minsdkversion.awk $(call host-path,$(APP_MANIFEST)))
-  ifneq (,$(call gt,$(APP_PLATFORM_LEVEL),$(APP_MIN_PLATFORM_LEVEL)))
-    $(call __ndk_warning,WARNING: APP_PLATFORM $(APP_PLATFORM) is larger than android:minSdkVersion $(APP_MIN_PLATFORM_LEVEL) in $(APP_MANIFEST))
+  APP_MIN_PLATFORM_LEVEL := $(strip $(shell $(HOST_AWK) -f $(BUILD_AWK)/extract-minsdkversion.awk $(call host-path,$(APP_MANIFEST))))
+  ifdef APP_MIN_PLATFORM_LEVEL
+    ifneq (,$(call gt,$(APP_PLATFORM_LEVEL),$(APP_MIN_PLATFORM_LEVEL)))
+      $(call __ndk_info,WARNING: APP_PLATFORM $(APP_PLATFORM) is larger than android:minSdkVersion $(APP_MIN_PLATFORM_LEVEL) in $(APP_MANIFEST))
+    endif
   endif
 endif
+
+endif # APP_PROJECT_PATH == null
+
 
 # Check that the value of APP_ABI corresponds to known ABIs
 # 'all' is a special case that means 'all supported ABIs'
@@ -139,7 +161,7 @@ endif
 # Because GNU Make makes the APP_ABI variable read-only (any assignments
 # to it will be ignored)
 #
-APP_ABI := $(strip $(APP_ABI))
+APP_ABI := $(subst $(comma),$(space),$(strip $(APP_ABI)))
 ifndef APP_ABI
     # Default ABI is 'armeabi'
     APP_ABI := armeabi
@@ -167,6 +189,11 @@ ifdef APP_BUILD_SCRIPT
     APP_BUILD_SCRIPT := $(_build_script)
     $(call ndk_log,  Using build script $(APP_BUILD_SCRIPT))
 else
+    ifeq (null,$(APP_PROJECT_PATH))
+      $(call __ndk_info,NDK_PROJECT_PATH==null.  Please explicitly set APP_BUILD_SCRIPT.)
+      $(call __ndk_error,Aborting.)
+    endif
+
     _build_script := $(strip $(wildcard $(APP_PROJECT_PATH)/jni/Android.mk))
     ifndef _build_script
         $(call __ndk_info,There is no Android.mk under $(APP_PROJECT_PATH)/jni)
@@ -232,7 +259,12 @@ else
 endif
 
 APP_CFLAGS := $(strip $(APP_CFLAGS))
-APP_LDFLAGS := $(strip $(APP_LDFLAGS))
+APP_CONLYFLAGS := $(strip $(APP_CONLYFLAGS))
+APP_CPPFLAGS := $(strip $(APP_CPPFLAGS))
+APP_CXXFLAGS := $(strip $(APP_CXXFLAGS))
+APP_RENDERSCRIPT_FLAGS := $(strip $(APP_RENDERSCRIPT_FLAGS))
+APP_ASMFLAGS := $(strip $(APP_ASMFLAGS))
+APP_LDFLAGS  := $(strip $(APP_LDFLAGS))
 
 # Check that APP_STL is defined. If not, use the default value (system)
 # otherwise, check that the name is correct.

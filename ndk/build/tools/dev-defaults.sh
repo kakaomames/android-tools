@@ -6,10 +6,10 @@
 # Note: levels 6 and 7 are omitted since they have the same native
 # APIs as level 5. Same for levels 10, 11 and 12
 #
-API_LEVELS="3 4 5 8 9 14"
+API_LEVELS="3 4 5 8 9 12 13 14 15 16 17 18 19"
 
 # Default ABIs for the target prebuilt binaries.
-PREBUILT_ABIS="armeabi armeabi-v7a x86 mips"
+PREBUILT_ABIS="armeabi armeabi-v7a x86 mips armeabi-v7a-hard"
 
 # Location of the STLport sources, relative to the NDK root directory
 STLPORT_SUBDIR=sources/cxx-stl/stlport
@@ -21,30 +21,50 @@ GABIXX_SUBDIR=sources/cxx-stl/gabi++
 # root directory.
 GNUSTL_SUBDIR=sources/cxx-stl/gnu-libstdc++
 
+# Location of the LLVM libc++ headers and libraries, relative to the NDK
+# root directory.
+LIBCXX_SUBDIR=sources/cxx-stl/llvm-libc++
+
 # Location of the libportable sources, relative to the NDK root directory
 LIBPORTABLE_SUBDIR=sources/android/libportable
 
+# Location of the gccunwind sources, relative to the NDK root directory
+GCCUNWIND_SUBDIR=sources/android/gccunwind
+
+# Location of the compiler-rt sources, relative to the NDK root directory
+COMPILER_RT_SUBDIR=sources/android/compiler-rt
+
+# Location of the support sources for libc++, relative to the NDK root directory
+SUPPORT_SUBDIR=sources/android/support
+
 # The date to use when downloading toolchain sources from AOSP servers
 # Leave it empty for tip of tree.
-TOOLCHAIN_GIT_DATE=2013-03-19
+TOOLCHAIN_GIT_DATE=now
 
 # The space-separated list of all GCC versions we support in this NDK
-DEFAULT_GCC_VERSION_LIST="4.6 4.7 4.4.3"
+DEFAULT_GCC_VERSION_LIST="4.6 4.8"
 
 # The default GCC version for this NDK, i.e. the first item in
 # $DEFAULT_GCC_VERSION_LIST
 #
 DEFAULT_GCC_VERSION=$(echo "$DEFAULT_GCC_VERSION_LIST" | tr ' ' '\n' | head -n 1)
+# The default GCC version for "clang -gcc-toolchain", the latest item in
+# $DEFAULT_GCC_VERSION_LIST
+#
+DEFAULT_LLVM_GCC_VERSION=$(echo "$DEFAULT_GCC_VERSION_LIST" | tr ' ' '\n' | tail -n 1)
 
 DEFAULT_BINUTILS_VERSION=2.21
 DEFAULT_GDB_VERSION=7.3.x
 DEFAULT_MPFR_VERSION=3.1.1
 DEFAULT_GMP_VERSION=5.0.5
 DEFAULT_MPC_VERSION=1.0.1
-DEFAULT_CLOOG_VERSION=0.17.0
+DEFAULT_CLOOG_VERSION=0.18.0
+DEFAULT_ISL_VERSION=0.11.1
 DEFAULT_PPL_VERSION=1.0
-DEFAULT_PYTHON_VERSION=2.7.3
+DEFAULT_PYTHON_VERSION=2.7.5
 DEFAULT_PERL_VERSION=5.16.2
+
+RECENT_BINUTILS_VERSION=2.23
 
 # Default platform to build target binaries against.
 DEFAULT_PLATFORM=android-9
@@ -59,14 +79,23 @@ DEFAULT_ARCHS="arm x86 mips"
 DEFAULT_ARCH_TOOLCHAIN_NAME_arm=arm-linux-androideabi
 DEFAULT_ARCH_TOOLCHAIN_PREFIX_arm=arm-linux-androideabi
 
+DEFAULT_ARCH_TOOLCHAIN_NAME_arm64=aarch64-linux-android
+DEFAULT_ARCH_TOOLCHAIN_PREFIX_arm64=aarch64-linux-android
+
 DEFAULT_ARCH_TOOLCHAIN_NAME_x86=x86
 DEFAULT_ARCH_TOOLCHAIN_PREFIX_x86=i686-linux-android
+
+DEFAULT_ARCH_TOOLCHAIN_NAME_x86_64=x86_64
+DEFAULT_ARCH_TOOLCHAIN_PREFIX_x86_64=x86_64-linux-android
 
 DEFAULT_ARCH_TOOLCHAIN_NAME_mips=mipsel-linux-android
 DEFAULT_ARCH_TOOLCHAIN_PREFIX_mips=mipsel-linux-android
 
+DEFAULT_ARCH_TOOLCHAIN_NAME_mips64=mips64el-linux-android
+DEFAULT_ARCH_TOOLCHAIN_PREFIX_mips64=mips64el-linux-android
+
 # The space-separated list of all LLVM versions we support in NDK
-DEFAULT_LLVM_VERSION_LIST="3.2 3.1"
+DEFAULT_LLVM_VERSION_LIST="3.4 3.3"
 
 # The default LLVM version (first item in the list)
 DEFAULT_LLVM_VERSION=$(echo "$DEFAULT_LLVM_VERSION_LIST" | tr ' ' '\n' | head -n 1)
@@ -90,14 +119,11 @@ get_default_abi_for_arch ()
         arm)
             RET="armeabi"
             ;;
-        x86)
-            RET="x86"
-            ;;
-        mips)
-            RET="mips"
+        x86|x86_64|mips)
+            RET="$1"
             ;;
         *)
-            2> echo "ERROR: Unsupported architecture name: $1, use one of: arm x86 mips"
+            2> echo "ERROR: Unsupported architecture name: $1, use one of: arm x86 x86_64 mips"
             exit 1
             ;;
     esac
@@ -113,16 +139,13 @@ get_default_abis_for_arch ()
     local RET
     case $1 in
         arm)
-            RET="armeabi armeabi-v7a"
+            RET="armeabi armeabi-v7a armeabi-v7a-hard"
             ;;
-        x86)
-            RET="x86"
-            ;;
-        mips)
-            RET="mips"
+        x86|x86_64|mips)
+            RET="$1"
             ;;
         *)
-            2> echo "ERROR: Unsupported architecture name: $1, use one of: arm x86 mips"
+            2> echo "ERROR: Unsupported architecture name: $1, use one of: arm x86 x86_64 mips"
             exit 1
             ;;
     esac
@@ -163,7 +186,7 @@ get_default_toolchain_prefix_for_arch ()
 
 # Get the list of all toolchain names for a given architecture
 # $1: architecture (e.g. 'arm')
-# Out: list of toolchain names for this arch (e.g. arm-linux-androideabi-4.6 arm-linux-androideabi-4.4.3)
+# Out: list of toolchain names for this arch (e.g. arm-linux-androideabi-4.6 arm-linux-androideabi-4.8)
 # Return empty for unknown arch
 get_toolchain_name_list_for_arch ()
 {
@@ -183,9 +206,9 @@ get_toolchain_name_list_for_arch ()
 # Return the binutils version to be used by default when
 # building a given version of GCC. This is needed to ensure
 # we use binutils-2.19 when building gcc-4.4.3 for ARM and x86,
-# and binutils-2.21 in other cases (mips, or gcc-4.6).
+# and later binutils in other cases (mips, or gcc-4.6+).
 #
-# Note that technically, we could use 2.21 for all versions of
+# Note that technically, we could use latest binutils for all versions of
 # GCC, however, in NDK r7, we did build GCC 4.4.3 with binutils-2.20.1
 # and this resulted in weird C++ debugging bugs. For NDK r7b and higher,
 # binutils was reverted to 2.19, to ensure at least
@@ -196,8 +219,39 @@ get_toolchain_name_list_for_arch ()
 get_default_binutils_version_for_gcc ()
 {
     case $1 in
-        arm-*-4.4.3|x86-4.4.3|x86-*-4.4.3) echo "2.19";;
-        arm-*-4.7|x86-4.7|x86-*-4.7|mipsel-*-4.7) echo "2.22";;
-        *) echo "$DEFAULT_BINUTILS_VERSION";;
+        mipsel-*-4.4.3|*-4.6) echo "$DEFAULT_BINUTILS_VERSION";;
+        *-4.4.3) echo "2.19";;
+        x86*-4.7) echo "2.23";;  # Use 2.23 to get x32 support in ld.gold
+        *-4.7) echo "2.22";;
+        *) echo "2.23";;
+    esac
+}
+
+# Return the binutils version to be used by default when
+# building a given version of llvm. For llvm-3.4 or later,
+# we use binutils-2.23 to ensure the LLVMgold.so could be
+# built properly. For llvm-3.3, we use binutils-2.21 as default.
+#
+# $1: toolchain with version numer (e.g. 'llvm-3.3')
+#
+get_default_binutils_version_for_llvm ()
+{
+    case $1 in
+        *-3.3|*-3.2) echo "2.21";;
+        *-3.4) echo "2.23";;
+        *) echo "2.23";;
+    esac
+}
+
+# Return the gdb version to be used by default when building a given
+# version of GCC.
+#
+# $1: toolchain with version numer (e.g. 'arm-linux-androideabi-4.6')
+#
+get_default_gdb_version_for_gcc ()
+{
+    case $1 in
+        x86*|aarch64-*) echo "7.6";;
+        *) echo "$DEFAULT_GDB_VERSION";;
     esac
 }

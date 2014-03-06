@@ -27,8 +27,12 @@ register_var_option "--ndk-dir=<path>" NDK_DIR "Put binaries into NDK install di
 BUILD_DIR=/tmp/ndk-$USER/build
 register_var_option "--build-dir=<path>" BUILD_DIR "Specify temporary build directory"
 
-ARCHS=$DEFAULT_ARCHS
+ARCHS=$(find_ndk_unknown_archs)
+ARCHS="$DEFAULT_ARCHS $ARCHS"
 register_var_option "--arch=<arch>" ARCHS "Specify target architectures"
+
+NO_GEN_PLATFORMS=
+register_var_option "--no-gen-platforms" NO_GEN_PLATFORMS "Don't generate platforms/ directory, use existing one"
 
 SYSTEMS=$HOST_TAG32
 if [ "$HOST_TAG32" = "linux-x86" ]; then
@@ -94,9 +98,13 @@ FLAGS=$FLAGS" --ndk-dir=$NDK_DIR"
 FLAGS=$FLAGS" --package-dir=$PACKAGE_DIR"
 FLAGS=$FLAGS" --arch=$(spaces_to_commas $ARCHS)"
 
+if [ ! -z "$NO_GEN_PLATFORMS" ]; then
+    FLAGS=$FLAGS" --no-gen-platforms"
+fi
+
 HOST_FLAGS=$FLAGS" --systems=$(spaces_to_commas $SYSTEMS)"
 if [ "$TRY64" = "yes" ]; then
-    HOST_FLAG=$HOST_FLAGS" --try-64"
+    HOST_FLAGS=$HOST_FLAGS" --try-64"
 fi
 if [ "$DARWIN_SSH" ]; then
     HOST_FLAGS=$HOST_FLAGS" --darwin-ssh=$DARWIN_SSH"

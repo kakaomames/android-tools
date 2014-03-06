@@ -3,8 +3,8 @@
 PROGDIR=`dirname $0`
 NDK=`cd $PROGDIR/.. && pwd`
 NDK_BUILDTOOLS_PATH=$NDK/build/tools
-. $NDK/build/core/ndk-common.sh
-. $NDK/build/tools/prebuilt-common.sh
+. $NDK_BUILDTOOLS_PATH/ndk-common.sh
+. $NDK_BUILDTOOLS_PATH/prebuilt-common.sh
 
 # Find all devices
 DEVICE_arm=
@@ -12,34 +12,44 @@ DEVICE_mips=
 DEVICE_x86=
 
 ADB_CMD=`which adb`
-if [ -n $ADB_CMD ] ; then
-    # Get list of online devices, turn ' ' in device into '.'
-    DEVICES=`$ADB_CMD devices | grep -v offline | awk 'NR>1 {gsub(/[ \t]+device$/,""); print;}' | sed '/^$/d' | tr ' ' '.'`
-    for DEVICE in $DEVICES; do
-        # undo previous ' '-to-'.' translation
-        DEVICE=$(echo $DEVICE | tr '.' ' ')
-        # get arch
-        ARCH=`$ADB_CMD -s "$DEVICE" shell getprop ro.product.cpu.abi | tr -dc '[:print:]'`
-        case "$ARCH" in
-            armeabi*)
-                    DEVICE_arm=$DEVICE
-                    ;;
-            x86)
-                    DEVICE_x86=$DEVICE
-                    ;;
-            mips*)
-                    DEVICE_mips=$DEVICE
-                    ;;
-            *)
-                    echo "ERROR: Unsupported architecture: $ARCH"
-                    exit 1
-        esac
-    done
-fi
 
-echo "DEVICE_arm=$DEVICE_arm"
-echo "DEVICE_x86=$DEVICE_x86"
-echo "DEVICE_mips=$DEVICE_mips"
+if [ -n "$ANDROID_SERIAL" ] ; then
+    echo ANDROID_SERIAL=$ANDROID_SERIAL
+else
+    if [ -n $ADB_CMD  ] ; then
+        # Get list of online devices, turn ' ' in device into '#'
+        DEVICES=`$ADB_CMD devices | grep -v offline | awk 'NR>1 {gsub(/[ \t]+device$/,""); print;}' | sed '/^$/d' | tr ' ' '#'`
+        for DEVICE in $DEVICES; do
+            # undo previous ' '-to-'#' translation
+            DEVICE=$(echo "$DEVICE" | tr '#' ' ')
+            # get arch
+            ARCH=`$ADB_CMD -s "$DEVICE" shell getprop ro.product.cpu.abi | tr -dc '[:print:]'`
+            case "$ARCH" in
+                armeabi*)
+                        if [ -z "$DEVICE_arm" ]; then
+                            DEVICE_arm=$DEVICE
+                        fi
+                        ;;
+                x86)
+                        if [ -z "$DEVICE_x86" ]; then
+                            DEVICE_x86=$DEVICE
+                        fi
+                        ;;
+                mips*)
+                        if [ -z "$DEVICE_mips" ]; then
+                            DEVICE_mips=$DEVICE
+                        fi
+                        ;;
+                *)
+                        echo "ERROR: Unsupported architecture: $ARCH"
+                        exit 1
+            esac
+        done
+    fi
+    echo "DEVICE_arm=$DEVICE_arm"
+    echo "DEVICE_x86=$DEVICE_x86"
+    echo "DEVICE_mips=$DEVICE_mips"
+fi
 
 #
 # check if we need to also test 32-bit host toolchain
@@ -131,14 +141,16 @@ STANDALONE_TMPDIR=$NDK_TMPDIR
 # $2: API level
 # $3: Arch
 # $4: GCC version
+# $5: STL
 standalone_path ()
 {
     local TAG=$1
     local API=$2
     local ARCH=$3
     local GCC_VERSION=$4
+    local STL=$5
 
-    echo ${STANDALONE_TMPDIR}/android-ndk-api${API}-${ARCH}-${TAG}-${GCC_VERSION}
+    echo ${STANDALONE_TMPDIR}/android-ndk-api${API}-${ARCH}-${TAG}-${GCC_VERSION}-${STL}
 }
 
 # $1: Host tag
@@ -146,6 +158,7 @@ standalone_path ()
 # $3: Arch
 # $4: GCC version
 # $5: LLVM version
+# $6: STL
 make_standalone ()
 {
     local TAG=$1
@@ -153,14 +166,16 @@ make_standalone ()
     local ARCH=$3
     local GCC_VERSION=$4
     local LLVM_VERSION=$5
+    local STL=$6
 
     (cd $NDK && \
      ./build/tools/make-standalone-toolchain.sh \
         --platform=android-$API \
-        --install-dir=$(standalone_path $TAG $API $ARCH $GCC_VERSION) \
+        --install-dir=$(standalone_path $TAG $API $ARCH $GCC_VERSION $STL) \
         --llvm-version=$LLVM_VERSION \
         --toolchain=$(get_toolchain_name_for_arch $ARCH $GCC_VERSION) \
-        --system=$TAG)
+        --system=$TAG \
+        --stl=$STL)
 }
 
 API=14
@@ -170,23 +185,25 @@ for ARCH in $(commas_to_spaces $DEFAULT_ARCHS); do
             dump "### [$TAG] Testing $ARCH gcc-$GCC_VERSION toolchain with --sysroot"
             (cd $NDK && \
                 ./tests/standalone/run.sh --prefix=$(get_toolchain_binprefix_for_arch $ARCH $GCC_VERSION $TAG)-gcc)
-            GCC_TESTED=no
-            for LLVM_VERSION in $(commas_to_spaces $DEFAULT_LLVM_VERSION_LIST); do
-                dump "### [$TAG] Making $ARCH gcc-$GCC_VERSION/clang$LLVM_VERSION standalone toolchain"
-                make_standalone $TAG $API $ARCH $GCC_VERSION $LLVM_VERSION
-                if [ "$GCC_TESTED" != "yes" ]; then
-                    dump "### [$TAG] Testing $ARCH gcc-$GCC_VERSION standalone toolchain"
+            for STL in gnustl stlport libc++; do
+                GCC_TESTED=no
+                for LLVM_VERSION in $(commas_to_spaces $DEFAULT_LLVM_VERSION_LIST); do
+                    dump "### [$TAG] Making $ARCH gcc-$GCC_VERSION/clang$LLVM_VERSION standalone toolchain STL=$STL"
+                    make_standalone $TAG $API $ARCH $GCC_VERSION $LLVM_VERSION $STL
+                    if [ "$GCC_TESTED" != "yes" ]; then
+                        dump "### [$TAG] Testing $ARCH gcc-$GCC_VERSION standalone toolchain"
+                        (cd $NDK && \
+                            ./tests/standalone/run.sh --no-sysroot \
+                                --prefix=$(standalone_path $TAG $API $ARCH $GCC_VERSION $STL)/bin/$(get_default_toolchain_prefix_for_arch $ARCH)-gcc)
+                        GCC_TESTED=yes
+                    fi
+                    dump "### [$TAG] Testing clang$LLVM_VERSION in $ARCH gcc-$GCC_VERSION standalone toolchain STL=$STL"
                     (cd $NDK && \
                         ./tests/standalone/run.sh --no-sysroot \
-                            --prefix=$(standalone_path $TAG $API $ARCH $GCC_VERSION)/bin/$(get_default_toolchain_prefix_for_arch $ARCH)-gcc)
-                    GCC_TESTED=yes
-                fi
-                dump "### [$TAG] Testing clang$LLVM_VERSION in $ARCH gcc-$GCC_VERSION standalone toolchain"
-                (cd $NDK && \
-                    ./tests/standalone/run.sh --no-sysroot \
-                        --prefix=$(standalone_path $TAG $API $ARCH $GCC_VERSION)/bin/clang)
-                rm -rf $(standalone_path $TAG $API $ARCH $GCC_VERSION)
-            done
+                            --prefix=$(standalone_path $TAG $API $ARCH $GCC_VERSION $STL)/bin/clang)
+                    rm -rf $(standalone_path $TAG $API $ARCH $GCC_VERSION $STL)
+                done
+	    done
         done
     done
 done

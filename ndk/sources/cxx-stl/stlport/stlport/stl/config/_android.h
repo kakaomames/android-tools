@@ -3,6 +3,9 @@
 
 #define _STLP_PLATFORM "Android"
 
+#include <sys/cdefs.h>
+#define _STLP_CALL __NDK_FPABI__
+
 // Mostly Unix-like.
 #define _STLP_UNIX 1
 
@@ -52,7 +55,7 @@
 
 // The system math library doesn't have long double variants, e.g
 // sinl, cosl, etc
-#define _STLP_NO_VENDOR_MATH_L 1
+#define _STLP_NO_VENDOR_MATH_L
 
 // Define how to include our native headers.
 #define _STLP_NATIVE_HEADER(header) <usr/include/header>

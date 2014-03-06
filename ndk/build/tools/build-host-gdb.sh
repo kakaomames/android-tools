@@ -130,12 +130,12 @@ gdb_ndk_package_name ()
 # directory. Relative to $NDK_DIR.
 gdb_ndk_install_dir ()
 {
-    echo "gdb-$(get_toolchain_name_for_arch $(bh_tag_to_arch $2))-$3/prebuilt/$1"
+    echo "toolchains/gdb-$(get_toolchain_name_for_arch $(bh_tag_to_arch $2))-$3/prebuilt/$(install_dir_from_host_tag $1)"
 }
 
 python_build_install_dir ()
 {
-    echo "$PYTHON_BUILD_DIR/install/prebuilt/$1"
+    echo "$PYTHON_BUILD_DIR/install/prebuilt/$(install_dir_from_host_tag $1)"
 }
 
 # $1: host system tag
@@ -196,7 +196,7 @@ build_host_gdb ()
     ARGS=$ARGS" --disable-docs"
     ARGS=$ARGS" --with-expat"
     ARGS=$ARGS" --with-libexpat-prefix=$EXPATPREFIX"
-    if [ "$PYTHON_VERSION" ]; then
+    if [ -n "$PYTHON_VERSION" ]; then
         ARGS=$ARGS" --with-python=$(python_build_install_dir $BH_HOST_TAG)/bin/python-config.sh"
         if [ $1 = windows-x86 -o $1 = windows-x86_64 ]; then
             # This is necessary for the Python integration to build.
@@ -212,6 +212,7 @@ build_host_gdb ()
     run2 "$SRCDIR"/configure $ARGS &&
     run2 make -j$NUM_JOBS &&
     run2 make -j$NUM_JOBS install
+    fail_panic "Failed to configure/make/install gdb"
 }
 
 need_build_host_gdb ()
@@ -227,6 +228,7 @@ install_host_gdb ()
 {
     local SRCDIR="$(gdb_build_install_dir $1 $2 $3)"
     local DSTDIR="$NDK_DIR/$(gdb_ndk_install_dir $1 $2 $3)"
+    local PYDIR="$NDK_DIR/$(python_ndk_install_dir $1)"
 
     need_build_host_gdb $1 $2 $3
 
@@ -237,6 +239,37 @@ install_host_gdb ()
     if [ -d "$SRCDIR/share/gdb" ]; then
         run copy_directory "$SRCDIR/share/gdb" "$DSTDIR/share/gdb"
     fi
+
+    # build the gdb stub and replace gdb with it. This is done post-install
+    # so files are in the correct place when determining the relative path.
+
+    case "$1" in
+        windows*)
+            dump "$TEXT Building gdb-stub"
+            bh_setup_host_env
+            GCC_FOR_STUB=${BH_HOST_CONFIG}-gcc
+            GCC_FOR_STUB_TARGET=`$GCC_FOR_STUB -dumpmachine`
+            if [ "$GCC_FOR_STUB_TARGET" = "i586-mingw32msvc" ]; then
+                GCC_FOR_STUB=i686-w64-mingw32-gcc
+                dump "Override compiler for gdb-stub: $GCC_FOR_STUB"
+            fi
+
+            # Uses $TOOLCHAIN_PATH/bin/$(bh_tag_to_config_triplet $2)-gdb.exe (1) instead of
+            # ${DSTDIR}/bin/$(bh_tag_to_config_triplet $2)-gdb.exe (2) because
+            # the final layout is to (1) which is a folder deeper than (2).
+            # Sample (1):
+            #  $NDK/gdb-arm-linux-androideabi-4.8/prebuilt/windows/bin/arm-linux-androideabi-gdb.exe
+            # Sample (2):
+            #  $NDK/toolchains/arm-linux-androideabi-4.8/prebuilt/windows/bin/arm-linux-androideabi-gdb.exe
+            run $NDK_BUILDTOOLS_PATH/build-gdb-stub.sh \
+                --gdb-executable-path=${DSTDIR}/bin/$(bh_tag_to_config_triplet $2)-gdb.exe \
+                --python-prefix-dir=${PYDIR} \
+                --mingw-w64-gcc=${GCC_FOR_STUB}
+            fail_panic "Failed to build gdb-sutb"
+            ;;
+        *)
+            ;;
+    esac
 }
 
 need_install_host_gdb ()

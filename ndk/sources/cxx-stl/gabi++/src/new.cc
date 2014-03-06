@@ -26,6 +26,7 @@
 // SUCH DAMAGE.
 //
 
+#include <gabixx_config.h>
 #include <stdlib.h>
 #include <new>
 
@@ -36,29 +37,63 @@ namespace {
 
 namespace std {
 
-#if !defined(GABIXX_LIBCXX)
+#if !defined(LIBCXXABI)
   const nothrow_t nothrow = {};
-#endif  // !defined(GABIXX_LIBCXX)
+#endif
 
-  bad_alloc::bad_alloc() throw() {
+  bad_alloc::bad_alloc() _GABIXX_NOEXCEPT {
   }
 
-  bad_alloc::~bad_alloc() throw() {
+  bad_alloc::~bad_alloc() _GABIXX_NOEXCEPT {
   }
 
-  const char* bad_alloc::what() const throw() {
+  const char* bad_alloc::what() const _GABIXX_NOEXCEPT {
     return "std::bad_alloc";
   }
 
-  new_handler set_new_handler(new_handler next_handler) throw() {
-    new_handler old_handler = cur_handler;
-    cur_handler = next_handler;
-    return old_handler;
+  bad_array_new_length::bad_array_new_length() _GABIXX_NOEXCEPT
+  {
+  }
+
+  bad_array_new_length::~bad_array_new_length() _GABIXX_NOEXCEPT
+  {
+  }
+
+  const char*
+  bad_array_new_length::what() const _GABIXX_NOEXCEPT
+  {
+    return "bad_array_new_length";
+  }
+
+#if __cplusplus > 201103L
+// C++14 stuff
+  bad_array_length::bad_array_length() _GABIXX_NOEXCEPT
+  {
+  }
+
+  bad_array_length::~bad_array_length() _GABIXX_NOEXCEPT
+  {
+  }
+
+  const char*
+  bad_array_length::what() const _GABIXX_NOEXCEPT
+  {
+    return "bad_array_length";
+  }
+#endif
+
+  new_handler set_new_handler(new_handler next_handler) _GABIXX_NOEXCEPT {
+    return __gabixx_sync_swap(&cur_handler, next_handler);
+  }
+
+  new_handler get_new_handler() _GABIXX_NOEXCEPT {
+    return __gabixx_sync_load(&cur_handler);
   }
 
 } // namespace std
 
-__attribute__ ((weak))
+#if !defined(LIBCXXABI)
+_GABIXX_WEAK
 void* operator new(std::size_t size) throw(std::bad_alloc) {
   void* space;
   do {
@@ -66,29 +101,34 @@ void* operator new(std::size_t size) throw(std::bad_alloc) {
     if (space) {
       return space;
     }
-    new_handler handler = cur_handler;
+    new_handler handler = std::get_new_handler();
     if (handler == NULL) {
       throw std::bad_alloc();
     }
     handler();
   } while (space == 0);
+  __builtin_unreachable();
 }
 
-__attribute__ ((weak))
-void* operator new(std::size_t size, const std::nothrow_t& no) throw() {
+_GABIXX_WEAK
+void* operator new(std::size_t size, const std::nothrow_t& no)
+    _GABIXX_NOEXCEPT {
   try {
-    ::operator new(size);
+    return ::operator new(size);
   } catch (const std::bad_alloc&) {
     return 0;
   }
 }
 
-__attribute__ ((weak))
+_GABIXX_WEAK
 void* operator new[](std::size_t size) throw(std::bad_alloc) {
   return ::operator new(size);
 }
 
-__attribute__ ((weak))
-void* operator new[](std::size_t size, const std::nothrow_t& no) throw() {
+_GABIXX_WEAK
+void* operator new[](std::size_t size, const std::nothrow_t& no)
+    _GABIXX_NOEXCEPT {
   return ::operator new(size, no);
 }
+
+#endif  // !defined(LIBCXXABI)

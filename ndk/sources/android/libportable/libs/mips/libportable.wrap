@@ -12,6 +12,17 @@
 --wrap=eventfd
 --wrap=execve
 --wrap=fcntl
+--wrap=feclearexcept
+--wrap=fegetenv
+--wrap=fegetexceptflag
+--wrap=fegetround
+--wrap=feholdexcept
+--wrap=feraiseexcept
+--wrap=fesetenv
+--wrap=fesetexceptflag
+--wrap=fesetround
+--wrap=fetestexcept
+--wrap=feupdateenv
 --wrap=freeaddrinfo
 --wrap=fstat
 --wrap=fstatat
@@ -128,4 +139,7 @@
 --wrap=timer_create
 --wrap=timerfd_create
 --wrap=tkill
+--wrap=wait
+--wrap=wait3
+--wrap=wait4
 --wrap=waitpid
