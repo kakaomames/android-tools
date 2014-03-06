@@ -37,11 +37,36 @@
 #ifndef	_SYS_CDEFS_H_
 #define	_SYS_CDEFS_H_
 
-
-/* our implementation of wchar_t is only 8-bit - die die non-portable code */
+/* In previous NDK releases, wchar_t was defined as 'unsigned char'
+ * when targetting API level < 9 (i.e. Froyo or older).
+ *
+ * This is no longer the case, but you can define _WCHAR_IS_8BIT
+ * at compile time to restore the old behaviour.
+ *
+ * The reason for this redefine is purely historical. Until Android 2.3,
+ * i.e. API level 9, there was absolutely no official support for wchar_t
+ * in the C library, but compiling GCC and the GNU libstdc++ required a
+ * working <wchar.h>.
+ *
+ * To allow this while keeping the C library small, wchar_t was redefined
+ * explicitely as an 8-bit unsigned integer (which is perfectly allowed
+ * by the standard) and a very small set of wcs-xxx functions provided
+ * as wrappers around the corresponding str-xxx ones.
+ *
+ * Starting with API level 9, wchar_t is properly defined as a 32-bit
+ * type (as mandated by the compiler itself), and the lines below
+ * were removed (see $NDK/platforms/android-9/include/sys/cdefs.h).
+ *
+ * Note that this only affects C source compilation. For C++, wchar_t
+ * is a compiler keyboard that cannot be redefined and is always 32-bit.
+ *
+ * On the other hand, _WCHAR_IS_8BIT also affects the definition of
+ * WCHAR_MIN, WCHAR_MAX and WEOF (see <wchar.h> comments).
+ */
+#ifdef _WCHAR_IS_8BIT
 #undef  __WCHAR_TYPE__
 #define __WCHAR_TYPE__  unsigned char
-
+#endif
 
 /*
  * Macro to test if we're using a GNU C compiler of a specific vintage
@@ -504,5 +529,32 @@
 
 #define  __BIONIC__   1
 #include <android/api-level.h>
+
+/* __NDK_FPABI__ or __NDK_FPABI_MATH__ are applied to APIs taking or returning float or
+   [long] double, to ensure even at the presence of -mhard-float (which implies
+   -mfloat-abi=hard), calling to 32-bit Android native APIs still follow -mfloat-abi=softfp.
+
+   __NDK_FPABI_MATH__ is applied to APIs in math.h.  It normally equals to __NDK_FPABI__,
+   but allows use of customized libm.a compiled with -mhard-float by -D_NDK_MATH_NO_SOFTFP=1
+
+   NOTE: Disable for clang for now unless _NDK_MATH_NO_SOFTFP=1, because clang before 3.4 doesn't
+         allow change of calling convension for builtin and produces error message reads:
+
+           a.i:564:6: error: function declared 'aapcs' here was previously declared without calling convention
+           int  sin(double d) __attribute__((pcs("aapcs")));
+                ^
+           a.i:564:6: note: previous declaration is here
+ */
+#if defined(__ANDROID__) && !__LP64__ && defined( __arm__)
+#define __NDK_FPABI__ __attribute__((pcs("aapcs")))
+#else
+#define __NDK_FPABI__
+#endif
+
+#if (!defined(_NDK_MATH_NO_SOFTFP) || _NDK_MATH_NO_SOFTFP != 1) && !defined(__clang__)
+#define __NDK_FPABI_MATH__ __NDK_FPABI__
+#else
+#define __NDK_FPABI_MATH__  /* nothing */
+#endif
 
 #endif /* !_SYS_CDEFS_H_ */

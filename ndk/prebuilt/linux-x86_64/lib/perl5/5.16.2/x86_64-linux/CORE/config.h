@@ -9,9 +9,9 @@
 
 /* Package name      : perl5
  * Source directory  : .
- * Configuration time: Wed Mar 13 18:28:05 PDT 2013
+ * Configuration time: Fri Aug 30 02:48:55 PDT 2013
  * Configured by     : andrewhsieh
- * Target system     : linux ahsieh.mtv.corp.google.com 3.2.5-gg987 #1 smp fri sep 14 02:36:36 pdt 2012 x86_64 x86_64 x86_64 gnulinux 
+ * Target system     : linux ahsieh.mtv.corp.google.com 3.2.5-gg1236 #1 smp tue may 21 02:35:06 pdt 2013 x86_64 x86_64 x86_64 gnulinux 
  */
 
 #ifndef _config_h_
@@ -890,7 +890,7 @@
  *	feature tests from Configure are generally more reliable.
  */
 #define OSNAME "linux"		/**/
-#define OSVERS "3.2.5-gg987"		/**/
+#define OSVERS "3.2.5-gg1236"		/**/
 
 /* USE_CROSS_COMPILE:
  *	This symbol, if defined, indicates that Perl is being cross-compiled.

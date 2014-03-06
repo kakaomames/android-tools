@@ -20,7 +20,7 @@
 $(call assert-defined,TARGET_PLATFORM TARGET_ARCH TARGET_ARCH_ABI)
 $(call assert-defined,NDK_APPS NDK_APP_STL)
 
-LLVM_VERSION_LIST := 2.6 2.7 2.8 2.9 3.0 3.1 3.2
+LLVM_VERSION_LIST := 2.6 2.7 2.8 2.9 3.0 3.1 3.2 3.3 3.4
 
 # Check that we have a toolchain that supports the current ABI.
 # NOTE: If NDK_TOOLCHAIN is defined, we're going to use it.
@@ -33,8 +33,8 @@ ifndef NDK_TOOLCHAIN
     $(foreach _ver,$(LLVM_VERSION_LIST), \
         $(eval TARGET_TOOLCHAIN_LIST := \
             $(filter-out %-clang$(_ver),$(TARGET_TOOLCHAIN_LIST))))
-    # Filter out 4.7 which is considered experimental at this moment
-    TARGET_TOOLCHAIN_LIST := $(filter-out %4.7,$(TARGET_TOOLCHAIN_LIST))
+    # Filter out 4.7 and 4.8 which is considered experimental at this moment
+    TARGET_TOOLCHAIN_LIST := $(filter-out %4.7 %4.8,$(TARGET_TOOLCHAIN_LIST))
 
     ifndef TARGET_TOOLCHAIN_LIST
         $(call __ndk_info,There is no toolchain that supports the $(TARGET_ARCH_ABI) ABI.)
@@ -52,7 +52,7 @@ ifndef NDK_TOOLCHAIN
     ifdef NDK_TOOLCHAIN_VERSION
         # Replace "clang" with the most recent verion
         ifeq ($(NDK_TOOLCHAIN_VERSION),clang)
-            NDK_TOOLCHAIN_VERSION=clang$(lastword $(LLVM_VERSION_LIST))
+            override NDK_TOOLCHAIN_VERSION := clang$(lastword $(LLVM_VERSION_LIST))
         endif
         # We assume the toolchain name uses dashes (-) as separators and doesn't
         # contain any space. The following is a bit subtle, but essentially
@@ -67,10 +67,11 @@ ifndef NDK_TOOLCHAIN
         #
         TARGET_TOOLCHAIN_BASE := $(subst $(space),-,$(call chop,$(subst -,$(space),$(TARGET_TOOLCHAIN))))
         # if TARGET_TOOLCHAIN_BASE is llvm, remove clang from NDK_TOOLCHAIN_VERSION
+        VERSION := $(NDK_TOOLCHAIN_VERSION)
         ifeq ($(TARGET_TOOLCHAIN_BASE),llvm)
-            NDK_TOOLCHAIN_VERSION := $(subst clang,,$(NDK_TOOLCHAIN_VERSION))
+            VERSION := $(subst clang,,$(NDK_TOOLCHAIN_VERSION))
         endif
-        TARGET_TOOLCHAIN := $(TARGET_TOOLCHAIN_BASE)-$(NDK_TOOLCHAIN_VERSION)
+        TARGET_TOOLCHAIN := $(TARGET_TOOLCHAIN_BASE)-$(VERSION)
         $(call ndk_log,Using target toolchain '$(TARGET_TOOLCHAIN)' for '$(TARGET_ARCH_ABI)' ABI (through NDK_TOOLCHAIN_VERSION))
     else
         $(call ndk_log,Using target toolchain '$(TARGET_TOOLCHAIN)' for '$(TARGET_ARCH_ABI)' ABI)
@@ -123,7 +124,13 @@ TOOLCHAIN_PREFIX := $(TOOLCHAIN_PREBUILT_ROOT)/bin/$(TOOLCHAIN_PREFIX)
 TARGET_GDBSERVER := $(NDK_ROOT)/prebuilt/android-$(TARGET_ARCH)/gdbserver/gdbserver
 
 # compute NDK_APP_DST_DIR as the destination directory for the generated files
-NDK_APP_DST_DIR := $(NDK_APP_PROJECT_PATH)/libs/$(TARGET_ARCH_ABI)
+NDK_APP_DST_DIR := $(NDK_APP_LIBS_OUT)/$(TARGET_ARCH_ABI)
+# install armeabi-v7a-hard to lib/armeabi-v7a, unless under testing where env. var. _NDK_TESTING_ALL_=yes
+ifneq ($(_NDK_TESTING_ALL_),yes)
+ifeq ($(TARGET_ARCH_ABI),armeabi-v7a-hard)
+NDK_APP_DST_DIR := $(NDK_APP_LIBS_OUT)/armeabi-v7a
+endif
+endif
 
 # Default build commands, can be overriden by the toolchain's setup script
 include $(BUILD_SYSTEM)/default-build-commands.mk
@@ -144,6 +151,7 @@ ifeq ($(TARGET_SONAME_EXTENSION),.so)
 
 installed_modules: $(NDK_APP_GDBSERVER)
 
+$(NDK_APP_GDBSERVER): PRIVATE_ABI     := $(TARGET_ARCH_ABI)
 $(NDK_APP_GDBSERVER): PRIVATE_NAME    := $(TOOLCHAIN_NAME)
 $(NDK_APP_GDBSERVER): PRIVATE_SRC     := $(TARGET_GDBSERVER)
 $(NDK_APP_GDBSERVER): PRIVATE_DST     := $(NDK_APP_GDBSERVER)
@@ -151,17 +159,21 @@ $(NDK_APP_GDBSERVER): PRIVATE_DST     := $(NDK_APP_GDBSERVER)
 $(call generate-file-dir,$(NDK_APP_GDBSERVER))
 
 $(NDK_APP_GDBSERVER): clean-installed-binaries
-	@ $(HOST_ECHO) "Gdbserver      : [$(PRIVATE_NAME)] $(call pretty-dir,$(PRIVATE_DST))"
+	$(call host-echo-build-step,$(PRIVATE_ABI),Gdbserver) "[$(PRIVATE_NAME)] $(call pretty-dir,$(PRIVATE_DST))"
 	$(hide) $(call host-install,$(PRIVATE_SRC),$(PRIVATE_DST))
+endif
 
+# Install gdb.setup for both .so and .bc projects
+ifneq (,$(filter $(TARGET_SONAME_EXTENSION),.so .bc))
 installed_modules: $(NDK_APP_GDBSETUP)
 
+$(NDK_APP_GDBSETUP): PRIVATE_ABI := $(TARGET_ARCH_ABI)
 $(NDK_APP_GDBSETUP): PRIVATE_DST := $(NDK_APP_GDBSETUP)
 $(NDK_APP_GDBSETUP): PRIVATE_SOLIB_PATH := $(TARGET_OUT)
 $(NDK_APP_GDBSETUP): PRIVATE_SRC_DIRS := $(SYSROOT_INC)/usr/include
 
 $(NDK_APP_GDBSETUP):
-	@ $(HOST_ECHO) "Gdbsetup       : $(call pretty-dir,$(PRIVATE_DST))"
+	$(call host-echo-build-step,$(PRIVATE_ABI),Gdbsetup) "$(call pretty-dir,$(PRIVATE_DST))"
 	$(hide) $(HOST_ECHO) "set solib-search-path $(call host-path,$(PRIVATE_SOLIB_PATH))" > $(PRIVATE_DST)
 	$(hide) $(HOST_ECHO) "directory $(call host-path,$(call remove-duplicates,$(PRIVATE_SRC_DIRS)))" >> $(PRIVATE_DST)
 
@@ -206,8 +218,14 @@ $(foreach __pass2_module,$(__ndk_modules),\
 #
 ifeq ($(strip $(NDK_APP_MODULES)),)
     WANTED_MODULES := $(call modules-get-all-installable,$(modules-get-top-list))
+    ifeq (,$(strip $(WANTED_MODULES)))
+        WANTED_MODULES := $(modules-get-top-list)
+        $(call ndk_log,[$(TARGET_ARCH_ABI)] No installable modules in project - forcing static library build)
+    endif
 else
     WANTED_MODULES := $(call module-get-all-dependencies,$(NDK_APP_MODULES))
 endif
+
+$(call ndk_log,[$(TARGET_ARCH_ABI)] Modules to build: $(WANTED_MODULES))
 
 WANTED_INSTALLED_MODULES += $(call map,module-get-installed,$(WANTED_MODULES))

@@ -38,6 +38,9 @@ typedef enum {
     ANDROID_CPU_FAMILY_ARM,
     ANDROID_CPU_FAMILY_X86,
     ANDROID_CPU_FAMILY_MIPS,
+    ANDROID_CPU_FAMILY_ARM64,
+    ANDROID_CPU_FAMILY_X86_64,
+    ANDROID_CPU_FAMILY_MIPS64,
 
     ANDROID_CPU_FAMILY_MAX  /* do not remove */
 
@@ -189,6 +192,21 @@ extern int         android_getCpuCount(void);
  */
 extern int android_setCpu(int      cpu_count,
                           uint64_t cpu_features);
+
+#ifdef __arm__
+/* Retrieve the ARM 32-bit CPUID value from the kernel.
+ * Note that this cannot work on sandboxed processes under 4.1 and
+ * higher, unless you called android_setCpuArm() before.
+ */
+extern uint32_t android_getCpuIdArm(void);
+
+/* An ARM-specific variant of android_setCpu() that also allows you
+ * to set the ARM CPUID field.
+ */
+extern int android_setCpuArm(int      cpu_count,
+                             uint64_t cpu_features,
+                             uint32_t cpu_id);
+#endif
 
 __END_DECLS
 

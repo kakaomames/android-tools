@@ -244,7 +244,7 @@ builder_sources ()
             echo "ERROR: Missing source file: $srcfull"
             exit 1
         fi
-        obj=$(basename "$src")
+        obj=$src
         cflags="$_BUILD_CFLAGS"
         for inc in $_BUILD_C_INCLUDES; do
             cflags=$cflags" -I$inc"
@@ -279,6 +279,11 @@ builder_sources ()
                 ;;
         esac
 
+        # Source file path can include ../ path items, ensure
+        # that the generated object do not back up the output
+        # directory by translating them to __/
+        obj=$(echo "$obj" | tr '../' '__/')
+
         # Ensure we have unwind tables in the generated machine code
         # This is useful to get good stack traces
         cflags=$cflags" -funwind-tables"
@@ -288,6 +293,7 @@ builder_sources ()
             echo "$obj: $srcfull" >> $_BUILD_MK
         fi
         builder_log "${_BUILD_PREFIX}$text: $src"
+        builder_command mkdir -p $(dirname "$obj")
         builder_command $NDK_CCACHE $cc -c -o "$obj" "$srcfull" $cflags
         fail_panic "Could not compile ${_BUILD_PREFIX}$src"
         _BUILD_OBJECTS=$_BUILD_OBJECTS" $obj"
@@ -311,7 +317,8 @@ builder_static_library ()
         _BUILD_AR=${AR:-ar}
     fi
     builder_log "${_BUILD_PREFIX}Archive: $libname"
-    builder_command ${_BUILD_AR} crs "$lib" "$_BUILD_OBJECTS"
+    rm -f "$lib"
+    builder_command ${_BUILD_AR} crsD "$lib" "$_BUILD_OBJECTS"
     fail_panic "Could not archive ${_BUILD_PREFIX}$libname objects!"
 }
 
@@ -332,16 +339,27 @@ builder_host_static_library ()
         _BUILD_AR=${AR:-ar}
     fi
     builder_log "${_BUILD_PREFIX}Archive: $libname"
-    builder_command ${_BUILD_AR} crs "$lib" "$_BUILD_OBJECTS"
+    rm -f "$lib"
+    builder_command ${_BUILD_AR} crsD "$lib" "$_BUILD_OBJECTS"
     fail_panic "Could not archive ${_BUILD_PREFIX}$libname objects!"
 }
 
 builder_shared_library ()
 {
-    local lib libname
+    local lib libname suffix libm
     libname=$1
+    suffix=$2
+    armeabi_v7a_float_abi=$3
+
+    if [ -z "$suffix" ]; then
+        suffix=".so"
+    fi
+    libm="-lm"
+    if [ "$armeabi_v7a_float_abi" = "hard" ]; then
+        libm="-lm_hard"
+    fi
     lib=$_BUILD_DSTDIR/$libname
-    lib=${lib%%.so}.so
+    lib=${lib%%${suffix}}${suffix}
     if [ "$_BUILD_MK" ]; then
         _BUILD_TARGETS=$_BUILD_TARGETS" $lib"
         echo "$lib: $_BUILD_OBJECTS" >> $_BUILD_MK
@@ -353,13 +371,43 @@ builder_shared_library ()
     #            for other platforms.
     builder_command ${_BUILD_CXX} \
         -Wl,-soname,$(basename $lib) \
-        -Wl,-shared,-Bsymbolic \
+        -Wl,-shared \
         $_BUILD_LDFLAGS_BEGIN_SO \
         $_BUILD_OBJECTS \
         $_BUILD_STATIC_LIBRARIES \
         -lgcc \
         $_BUILD_SHARED_LIBRARIES \
-        -lc -lm \
+        -lc $libm \
+        $_BUILD_LDFLAGS \
+        $_BUILD_LDFLAGS_END_SO \
+        -o $lib
+    fail_panic "Could not create ${_BUILD_PREFIX}shared library $libname"
+}
+
+# Same as builder_shared_library, but do not link the default libs
+builder_nostdlib_shared_library ()
+{
+    local lib libname suffix
+    libname=$1
+    suffix=$2
+    if [ -z "$suffix" ]; then
+        suffix=".so"
+    fi
+    lib=$_BUILD_DSTDIR/$libname
+    lib=${lib%%${suffix}}${suffix}
+    if [ "$_BUILD_MK" ]; then
+        _BUILD_TARGETS=$_BUILD_TARGETS" $lib"
+        echo "$lib: $_BUILD_OBJECTS" >> $_BUILD_MK
+    fi
+    builder_log "${_BUILD_PREFIX}SharedLibrary: $libname"
+
+    builder_command ${_BUILD_CXX} \
+        -Wl,-soname,$(basename $lib) \
+        -Wl,-shared \
+        $_BUILD_LDFLAGS_BEGIN_SO \
+        $_BUILD_OBJECTS \
+        $_BUILD_STATIC_LIBRARIES \
+        $_BUILD_SHARED_LIBRARIES \
         $_BUILD_LDFLAGS \
         $_BUILD_LDFLAGS_END_SO \
         -o $lib
@@ -442,12 +490,13 @@ builder_end ()
 # Same as builder_begin, but to target Android with a specific ABI
 # $1: ABI name (e.g. armeabi)
 # $2: Build directory
-# $3: Optional llvm version
-# $4: Optional Makefile name
+# $3: Gcc version
+# $4: Optional llvm version
+# $5: Optional Makefile name
 builder_begin_android ()
 {
     local ABI BUILDDIR LLVM_VERSION MAKEFILE
-    local ARCH UNKNOWN_ARCH PLATFORM SYSROOT FLAGS
+    local ARCH PLATFORM SYSROOT FLAGS
     local CRTBEGIN_SO_O CRTEND_SO_O CRTBEGIN_EXE_SO CRTEND_SO_O
     local BINPREFIX GCC_TOOLCHAIN LLVM_TRIPLE
     if [ -z "$NDK_DIR" ]; then
@@ -457,22 +506,24 @@ builder_begin_android ()
     fi
     ABI=$1
     BUILDDIR=$2
-    LLVM_VERSION=$3
-    MAKEFILE=$4
+    GCC_VERSION=$3
+    LLVM_VERSION=$4
+    MAKEFILE=$5
     ARCH=$(convert_abi_to_arch $ABI)
-    UNKNOWN_ARCH=$(find_ndk_unknown_archs | grep $ARCH)
     PLATFORM=${2##android-}
     SYSROOT=$NDK_DIR/platforms/android-$PLATFORM/arch-$ARCH
 
-    if [ ! -z "$UNKNOWN_ARCH" ]; then
+    if [ "$(arch_in_unknown_archs $ARCH)" = "yes" ]; then
         LLVM_VERSION=$DEFAULT_LLVM_VERSION
     fi
 
     if [ -z "$LLVM_VERSION" ]; then
-        BINPREFIX=$NDK_DIR/$(get_default_toolchain_binprefix_for_arch $ARCH)
+        BINPREFIX=$NDK_DIR/$(get_toolchain_binprefix_for_arch $ARCH $GCC_VERSION)
     else
         BINPREFIX=$NDK_DIR/$(get_llvm_toolchain_binprefix $LLVM_VERSION)
-        GCC_TOOLCHAIN=`dirname $NDK_DIR/$(get_default_toolchain_binprefix_for_arch $ARCH)`
+        # override GCC_VERSION to pick 4.8 instead of the default
+        GCC_VERSION=$DEFAULT_LLVM_GCC_VERSION
+        GCC_TOOLCHAIN=`dirname $NDK_DIR/$(get_toolchain_binprefix_for_arch $ARCH $GCC_VERSION)`
         GCC_TOOLCHAIN=`dirname $GCC_TOOLCHAIN`
     fi
 
@@ -500,7 +551,7 @@ builder_begin_android ()
             armeabi)
                 LLVM_TRIPLE=armv5te-none-linux-androideabi
                 ;;
-            armeabi-v7a)
+            armeabi-v7a|armeabi-v7a-hard)
                 LLVM_TRIPLE=armv7-none-linux-androideabi
                 ;;
             x86)
@@ -537,11 +588,23 @@ builder_begin_android ()
 
     case $ABI in
         armeabi)
-            builder_cflags "-mthumb"
+            if [ -z "$LLVM_VERSION" ]; then
+                # add -minline-thumb1-jumptable such that gabi++/stlport/libc++ can be linked
+                # with compiler-rt where helpers __gnu_thumb1_case_* (in libgcc.a) don't exist
+                builder_cflags "-mthumb -minline-thumb1-jumptable"
+            else
+                builder_cflags "-mthumb"
+            fi
             ;;
-        armeabi-v7a)
-            builder_cflags "-mthumb -march=armv7-a -mfloat-abi=softfp -mfpu=vfpv3-d16"
+        armeabi-v7a|armeabi-v7a-hard)
+            builder_cflags "-mthumb -march=armv7-a -mfpu=vfpv3-d16"
             builder_ldflags "-march=armv7-a -Wl,--fix-cortex-a8"
+            if [ "$ABI" != "armeabi-v7a-hard" ]; then
+                builder_cflags "-mfloat-abi=softfp"
+            else
+                builder_cflags "-mhard-float -D_NDK_MATH_NO_SOFTFP=1"
+                builder_ldflags "-Wl,--no-warn-mismatch -lm_hard"
+            fi
             ;;
     esac
 }

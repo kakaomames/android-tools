@@ -63,6 +63,7 @@ __hidden char *map_portable_signum_to_name(int portable_signum)
     char *name;
 
     switch(portable_signum) {
+    case 0:                     name = "SIG_0_PORTABLE:0";              break;
     case SIGHUP_PORTABLE:       name = "SIGHUP_PORTABLE:1";             break;
     case SIGINT_PORTABLE:       name = "SIGINT_PORTABLE:2";             break;
     case SIGQUIT_PORTABLE:      name = "SIGQUIT_PORTABLE:3";            break;
@@ -140,6 +141,7 @@ __hidden char *map_mips_signum_to_name(int mips_signum)
     char *name;
 
     switch(mips_signum) {
+    case 0:             name = "SIG_0:0";       break;
     case SIGHUP:        name = "SIGHUP:1";      break;
     case SIGINT:        name = "SIGINT:2";      break;
     case SIGQUIT:       name = "SIGQUIT:3";     break;
@@ -223,6 +225,10 @@ __hidden int signum_pton(int portable_signum)
     int mips_signum = -1;
 
     switch(portable_signum) {
+
+    case 0:                             /* 0 */
+        return 0;
+
     case SIGHUP_PORTABLE:               /* 1 */
         return SIGHUP;
 
@@ -340,8 +346,8 @@ __hidden int signum_pton(int portable_signum)
         } else if (portable_signum > NSIG_PORTABLE) {
             mips_signum = (portable_signum - NSIG_PORTABLE) +  NSIG;
         } else {
-            ALOGE("%s: 0 <= portable_signum:%d <= NSIG_PORTABLE:%d; Not supported, return(0);",
-                  __func__, portable_signum,      NSIG_PORTABLE);
+            ALOGE("%s: 0 < portable_signum:%d <= NSIG_PORTABLE:%d; Not supported, return(0);",
+                 __func__, portable_signum,      NSIG_PORTABLE);
 
             mips_signum = 0;
         }
@@ -362,6 +368,9 @@ __hidden int signum_ntop(int mips_signum)
     int portable_ssignum = -1;
 
     switch(mips_signum) {
+    case 0:                             /* 0 */
+        return 0;
+
     case SIGHUP:                        /* 1 */
         return SIGHUP_PORTABLE;
 
@@ -696,9 +705,10 @@ do_signal_portable(int portable_signum, sighandler_portable_t portable_handler,
 
     mips_signum = signum_pton(portable_signum);
 
-    if ((portable_signum != 0) && ((mips_signum <= 0) || (mips_signum > NSIG))) {
+    if ((mips_signum <= 0) || (mips_signum > NSIG)) {
         /*
-         * Invalid request; Let the kernel generate the proper return value and set errno.
+         * Invalid signal number, perhaps zero. Let the kernel generate the
+         * proper return value and set errno.
          */
         mips_handler = sighandler_pton(portable_handler, 0);
         rv = mips_signal_fn(mips_signum, mips_handler);
@@ -735,6 +745,7 @@ do_signal_portable(int portable_signum, sighandler_portable_t portable_handler,
  */
 sighandler_portable_t WRAP(signal)(int portable_signum, sighandler_portable_t handler)
 {
+    extern __sighandler_t REAL(bsd_signal)(int, __sighandler_t);
     sighandler_portable_t rv;
 
     ALOGV(" ");
@@ -742,7 +753,7 @@ sighandler_portable_t WRAP(signal)(int portable_signum, sighandler_portable_t ha
               portable_signum,    handler);
 
     /* bsd does a SA_RESTART */
-    rv = do_signal_portable(portable_signum, handler, bsd_signal);
+    rv = do_signal_portable(portable_signum, handler, REAL(bsd_signal));
 
     ALOGV("%s: return(ret:%p); }", __func__, rv);
     return rv;
@@ -751,6 +762,7 @@ sighandler_portable_t WRAP(signal)(int portable_signum, sighandler_portable_t ha
 
 sighandler_portable_t WRAP(sysv_signal)(int portable_signum, sighandler_portable_t handler)
 {
+    extern __sighandler_t REAL(sysv_signal)(int, __sighandler_t);
     sighandler_portable_t rv;
 
     ALOGV(" ");
@@ -758,7 +770,7 @@ sighandler_portable_t WRAP(sysv_signal)(int portable_signum, sighandler_portable
               portable_signum,    handler);
 
     /* sysv does a SA_RESETHAND */
-    rv = do_signal_portable(portable_signum, handler, sysv_signal);
+    rv = do_signal_portable(portable_signum, handler, REAL(sysv_signal));
 
     ALOGV("%s: return(ret:%p); }", __func__, rv);
     return rv;
@@ -775,6 +787,7 @@ sighandler_portable_t WRAP(sysv_signal)(int portable_signum, sighandler_portable
 
 sighandler_portable_t WRAP(bsd_signal)(int portable_signum, sighandler_portable_t handler)
 {
+    extern __sighandler_t REAL(bsd_signal)(int, __sighandler_t);
     sighandler_portable_t rv;
 
     ALOGV(" ");
@@ -782,7 +795,7 @@ sighandler_portable_t WRAP(bsd_signal)(int portable_signum, sighandler_portable_
               portable_signum,    handler);
 
     /* bsd does a SA_RESTART */
-    rv = do_signal_portable(portable_signum, handler, bsd_signal);
+    rv = do_signal_portable(portable_signum, handler, REAL(bsd_signal));
 
     ALOGV("%s: return(ret:%p); }", __func__, rv);
     return rv;
@@ -801,6 +814,11 @@ static int do_kill(int id, int portable_signum, int (*fn)(int, int))
 
     mips_signum = signum_pton(portable_signum);
 
+    /*
+     * SIG_0 gets passed down to the kernel to test for the existence of a process.
+     * If a non-zero portable_signum has been mapped to 0,
+     * it's unsupported and will be ignored.
+     */
     if ((portable_signum != 0) && (mips_signum == 0)) {
         rv = 0;
     } else {
@@ -876,6 +894,10 @@ int WRAP(tgkill)(int tgid, int tid, int portable_signum)
 
     mips_signum = signum_pton(portable_signum);
 
+    /*
+     * If a non-zero portable_signum has been mapped to 0,
+     * it is unsupported and will be ignored.
+     */
     if ((portable_signum != 0) && (mips_signum == 0))
         rv = 0;
     else
@@ -895,6 +917,11 @@ int WRAP(raise)(int portable_signum)
 
     ALOGV("%s(portable_signum:%d:'%s') {", __func__, portable_signum, portable_signame);
 
+    /*
+     * SIG_0 gets passed down to the kernel to test for the existence of a process.
+     * If a non-zero portable_signum has been mapped to 0,
+     * it's unsupported and will be ignored.
+     */
     if ((portable_signum != 0) && (mips_signum == 0))
         rv = 0;
     else
@@ -1000,7 +1027,7 @@ static int sigaction_flags_pton(int portable_flags)
         ALOGV("%s: SA_THIRTYTWO_PORTABLE isn't SUPPORTED.", __func__);
     }
     if (portable_flags & SA_RESTORER_PORTABLE) {
-        mips_flags |= SA_RESTORER;
+        ALOGV("%s: SA_RESTORER isn't SUPPORTED.", __func__);
     }
     if (portable_flags & SA_ONSTACK_PORTABLE) {
         mips_flags |= SA_ONSTACK;
@@ -1032,7 +1059,6 @@ int sigaction_flags_ntop(int mips_flags)
 #ifdef SA_THIRTYTWO
     if (mips_flags & SA_THIRTYTWO)      portable_flags |= SA_THIRTYTWO_PORTABLE;
 #endif
-    if (mips_flags & SA_RESTORER)       portable_flags |= SA_RESTORER_PORTABLE;
     if (mips_flags & SA_ONSTACK)        portable_flags |= SA_ONSTACK_PORTABLE;
     if (mips_flags & SA_RESTART)        portable_flags |= SA_RESTART_PORTABLE;
     if (mips_flags & SA_NODEFER)        portable_flags |= SA_NODEFER_PORTABLE;
@@ -1098,8 +1124,11 @@ static int do_sigaction_portable(int portable_signum, const struct sigaction_por
     mips_signum = signum_pton(portable_signum);
     mips_signame = map_mips_signum_to_name(mips_signum);
 
+    /*
+     * If a non-zero portable_signum has been mapped to 0,
+     * it's unsupported and will be ignored.
+     */
     if ((portable_signum != 0) && (mips_signum == 0)) {
-        /* We got a portable signum that we can't map; Ignore the request */
         rv = 0;
         goto done;
     }
@@ -1329,7 +1358,6 @@ __hidden int read_signalfd_mapper(int fd, void *buf, size_t count)
     return rv;
 }
 
-
 int WRAP(sigsuspend)(const sigset_portable_t *portable_sigmask)
 {
     int rv;
@@ -1338,7 +1366,7 @@ int WRAP(sigsuspend)(const sigset_portable_t *portable_sigmask)
     ALOGV("%s(portable_sigmask:%p) {", __func__, portable_sigmask);
 
     if (invalid_pointer((void *)portable_sigmask)) {
-        errno = EFAULT;
+        *REAL(__errno)() = EFAULT;
         rv = -1;
     } else {
         sigset_pton((sigset_portable_t *)portable_sigmask, &mips_sigmask);
@@ -1359,7 +1387,7 @@ int WRAP(sigpending)(sigset_portable_t *portable_sigset)
               portable_sigset);
 
     if (invalid_pointer((void *)portable_sigset)) {
-        errno = EFAULT;
+        *REAL(__errno)() = EFAULT;
         rv = -1;
     } else {
         rv = REAL(sigpending)(&mips_sigset);
@@ -1382,7 +1410,7 @@ int WRAP(sigwait)(const sigset_portable_t *portable_sigset, int *ptr_to_portable
               portable_sigset,    ptr_to_portable_sig);
 
     if (invalid_pointer((void *)portable_sigset)) {
-        errno = EFAULT;
+        *REAL(__errno)() = EFAULT;
         rv = -1;
     } else {
         sigset_pton((sigset_portable_t *)portable_sigset, &mips_sigset);
@@ -1408,9 +1436,11 @@ int WRAP(siginterrupt)(int portable_signum, int flag)
 
     mips_signum = signum_pton(portable_signum);
 
+    /*
+     * If a non-zero portable_signum has been mapped to 0,
+     * it's unsupported and will be ignored.
+     */
     if ((portable_signum != 0) && (mips_signum == 0)) {
-        ALOGE("%s: Unsupported portable_signum:%d; Ignoring.", __func__,
-                               portable_signum);
         rv = 0;
     } else {
         rv = REAL(siginterrupt)(mips_signum, flag);
@@ -1508,7 +1538,7 @@ int WRAP(__rt_sigaction)(int portable_signum, const struct sigaction_portable *a
 
     /* NOTE: ARM kernel is expecting sizeof(sigset_t) to be 8 bytes */
     if (sigsetsize != (2* sizeof(long))) {
-        errno = EINVAL;
+        *REAL(__errno)() = EINVAL;
         rv = -1;
         goto done;
     }
@@ -1533,7 +1563,7 @@ int WRAP(__rt_sigprocmask)(int portable_how,
 
     /* NOTE: ARM kernel is expecting sizeof(sigset_t) to be 8 bytes */
     if (sigsetsize != (2* sizeof(long))) {
-        errno = EINVAL;
+        *REAL(__errno)() = EINVAL;
         rv = -1;
         goto done;
     }
@@ -1565,7 +1595,7 @@ int WRAP(__rt_sigtimedwait)(const sigset_portable_t *portable_sigset,
 
     /* NOTE: ARM kernel is expecting sizeof(sigset_t) to be 8 bytes */
     if (portable_sigsetsize != (2* sizeof(long))) {
-        errno = EINVAL;
+        *REAL(__errno)() = EINVAL;
         rv = -1;
         goto done;
     }
@@ -1664,6 +1694,15 @@ int WRAP(rt_sigqueueinfo)(pid_t pid, int portable_sig, siginfo_portable_t *porta
 
     native_sig = signum_pton(portable_sig);
 
+    /*
+     * If a non-zero portable_signum has been mapped to 0,
+     * it's unsupported and will be ignored.
+     */
+    if ((portable_sig != 0) && (native_sig == 0)) {
+        rv = 0;
+        goto done;
+    }
+
     if (portable_sip != NULL) {
         native_sip = &native_siginfo;
         siginfo_pton(portable_sip, native_sip);
@@ -1672,6 +1711,7 @@ int WRAP(rt_sigqueueinfo)(pid_t pid, int portable_sig, siginfo_portable_t *porta
     }
     rv = syscall(__NR_rt_sigqueueinfo, pid, native_sig, native_sip);
 
+done:
     ALOGV("%s: return(rv:%d); }", __func__, rv);
     return rv;
 }
@@ -1695,6 +1735,14 @@ int WRAP(rt_tgsigqueueinfo)(pid_t tgid, pid_t pid, int portable_sig,
 
     native_sig = signum_pton(portable_sig);
 
+    /*
+     * If a non-zero portable_signum has been mapped to 0,
+     * it's unsupported and will be ignored.
+     */
+    if ((portable_sig != 0) && (native_sig == 0)) {
+        rv = 0;
+        goto done;
+    }
     if (portable_sip != NULL) {
         native_sip = &native_siginfo;
         siginfo_pton(portable_sip, native_sip);
@@ -1703,6 +1751,7 @@ int WRAP(rt_tgsigqueueinfo)(pid_t tgid, pid_t pid, int portable_sig,
     }
     rv = syscall(__NR_rt_tgsigqueueinfo, pid, native_sig, native_sip);
 
+done:
     ALOGV("%s: return(rv:%d); }", __func__, rv);
     return rv;
 }

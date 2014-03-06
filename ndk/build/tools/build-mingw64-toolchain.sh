@@ -20,7 +20,7 @@
 #
 # GOOGLE_PREBUILT=<some folder>
 # git clone https://android.googlesource.com/platform/prebuilt $GOOGLE_PREBUILT
-# export PATH=$GOOGLE_PREBUILT/linux-x86/toolchain/i686-linux-glibc2.7-4.4.3/bin:$PATH
+# export PATH=$GOOGLE_PREBUILT/linux-x86/toolchain/i686-linux-glibc2.7-4.6/bin:$PATH
 # build-mingw64-toolchain.sh --target-arch=i686                       \
 #                            --package-dir=i686-w64-mingw32-toolchain \
 #                            --binprefix=i686-linux
@@ -147,7 +147,7 @@ GCC_VERSION=4.7.2
 # Need at least revision 5166
 # For reference, I've built a working NDK with 5445
 # (latest as of Sun Feb 3 2013 is 5578)
-MINGW_W64_VERSION=svn@5166
+MINGW_W64_VERSION=svn@5861
 
 JOBS=$(( $NUM_CORES * 2 ))
 
@@ -429,17 +429,17 @@ if [ -z "$MINGW_W64_REVISION" ] ; then
 fi
 
 if [ ! -d $MINGW_W64_SRC ]; then
-    echo "Checking out https://mingw-w64.svn.sourceforge.net/svnroot/mingw-w64/trunk$MINGW_W64_REVISION $MINGW_W64_SRC"
-    run svn co https://mingw-w64.svn.sourceforge.net/svnroot/mingw-w64/trunk$MINGW_W64_REVISION $MINGW_W64_SRC
-fi
-
-PATCHES_DIR="$PROGDIR/toolchain-patches-host/mingw-w64"
-if [ -d "$PATCHES_DIR" ] ; then
-    PATCHES=$(find "$PATCHES_DIR" -name "*.patch" | sort)
-    for PATCH in $PATCHES; do
-        echo "Patching mingw-w64-$MINGW_W64_REVISION with $PATCH"
-        (cd $MINGW_W64_SRC && run patch -p0 < $PATCH)
-    done
+    MINGW64_SVN_URL=https://svn.code.sf.net/p/mingw-w64/code/trunk$MINGW_W64_REVISION
+    echo "Checking out $MINGW64_SVN_URL $MINGW_W64_SRC"
+    run svn co $MINGW64_SVN_URL $MINGW_W64_SRC
+    PATCHES_DIR="$PROGDIR/toolchain-patches-host/mingw-w64"
+    if [ -d "$PATCHES_DIR" ] ; then
+        PATCHES=$(find "$PATCHES_DIR" -name "*.patch" | sort)
+        for PATCH in $PATCHES; do
+            echo "Patching mingw-w64-$MINGW_W64_REVISION with $PATCH"
+            (cd $MINGW_W64_SRC && run patch -p0 < $PATCH)
+        done
+    fi
 fi
 
 # Let's generate the licenses/ directory

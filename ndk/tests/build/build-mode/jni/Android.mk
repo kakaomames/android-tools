@@ -1,5 +1,7 @@
 LOCAL_PATH := $(call my-dir)
 
+ifeq ($(strip $(filter-out $(NDK_KNOWN_ARCHS),$(TARGET_ARCH))),)
+
 # We build up to 4 armeabi binaries
 # To check for thumb/arm build modes, either with the .arm extension
 # or using LOCAL_ARM_MODE
@@ -36,7 +38,7 @@ endif # TARGET_ARCH == arm
 
 # We build 8 armeabi-v7a binaries because we need to check neon as well
 #
-ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
+ifneq ($(filter $(TARGET_ARCH_ABI), armeabi-v7a armeabi-v7a-hard),)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := test_build_mode_thumb2
@@ -106,7 +108,7 @@ LOCAL_ARM_MODE := arm
 LOCAL_ARM_NEON := true
 include $(BUILD_EXECUTABLE)
 
-endif # TARGET_ARCH_ABI == armeabi-v7a
+endif # TARGET_ARCH_ABI == armeabi-v7a || armeabi-v7a-hard
 
 # We only build a single binary for x86
 #
@@ -120,3 +122,14 @@ include $(BUILD_EXECUTABLE)
 
 endif # TARGET_ARCH == x86
 
+ifeq ($(TARGET_ARCH),mips)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := test_build_mode_mips
+LOCAL_CFLAGS += -DCHECK_MIPS
+LOCAL_SRC_FILES := main.c
+include $(BUILD_EXECUTABLE)
+
+endif # TARGET_ARCH == mips
+
+endif # if TARGET_ARCH is known arch

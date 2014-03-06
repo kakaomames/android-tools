@@ -25,7 +25,7 @@
 # after doing ndk-build && ant install && <start-application-on-device>
 #
 PROGDIR=`dirname $0`
-PROGDIR=`cd $PROGDIR && pwd`
+PROGDIR=`cd $PROGDIR && pwd -P`
 
 # Check if absolute NDK path contain space
 #
@@ -35,7 +35,9 @@ case $PROGDIR in
         ;;
 esac
 
-. $PROGDIR/build/core/ndk-common.sh
+NDK_BUILDTOOLS_PATH=$PROGDIR/build/tools
+. $PROGDIR/build/tools/prebuilt-common.sh
+. $PROGDIR/build/tools/ndk-common.sh
 
 force_32bit_binaries
 
@@ -72,9 +74,14 @@ ADB_CMD=${ADB_CMD:-$(find_program adb)}
 ADB_FLAGS=${ADB_FLAGS:-}
 DEVICE_SERIAL=
 
+JDB_CMD=${JDB_CMD:-$(find_program jdb)}
+
 AWK_CMD=${AWK_CMD:-$(find_program awk)}
 
 DEBUG_PORT=5039
+JDB_PORT=65534
+
+UNKNOWN_ABI=$(find_ndk_unknown_archs)
 
 # Delay in seconds between launching the activity and attaching gdbserver on it.
 # This is needed because there is no way to know when the activity has really
@@ -91,6 +98,7 @@ OPTION_START=no
 OPTION_LAUNCH=
 OPTION_LAUNCH_LIST=no
 OPTION_DELAY=
+OPTION_WAIT="-D"
 
 check_parameter ()
 {
@@ -250,6 +258,10 @@ while [ -n "$1" ]; do
         --delay=*)
             OPTION_DELAY="$optarg"
             ;;
+        --nowait)
+            JDB_PORT=
+            OPTION_WAIT=
+            ;;
         -*) # unknown options
             echo "ERROR: Unknown option '$opt', use --help for list of valid ones."
             exit 1
@@ -265,6 +277,15 @@ while [ -n "$1" ]; do
     shift
 done
 
+if [ -z "$JDB_CMD" ] && [ -n "$OPTION_WAIT" ]; then
+    echo "ERROR: 'jdb' not found; you must either install the JDK, or specify --nowait"
+    exit 1
+fi
+if [ -n "$JDB_PORT" ] && [ "$JDB_PORT" = "$DEBUG_PORT" ]; then
+    echo "ERROR: --port specified cannot be $JDB_PORT without --nowait"
+    exit 1
+fi
+
 if [ "$OPTION_HELP" = "yes" ] ; then
     echo "Usage: $PROGNAME [options]"
     echo ""
@@ -276,6 +297,8 @@ if [ "$OPTION_HELP" = "yes" ] ; then
     echo "    --help|-h|-?      Print this help"
     echo "    --verbose         Enable verbose mode"
     echo "    --force           Kill existing debug session if it exists"
+    echo "    --nowait          Don't have application wait for debugger to attach"
+    echo "                         (This might cause you to miss some early JNI breakpoints)"
     echo "    --start           Launch application instead of attaching to existing one"
     echo "    --launch=<name>   Same as --start, but specify activity name (see below)"
     echo "    --launch-list     List all launchable activity names from manifest"
@@ -334,6 +357,9 @@ if [ "x$DEVICE_SERIAL" = "x" ]; then
 else
     log "Using ADB flags: $ADB_FLAGS" \"$DEVICE_SERIAL\"
 fi
+
+JDB_CMD=$(quote_spaces $JDB_CMD)
+log "Using JDB command: $JDB_CMD"
 
 # Run an ADB command with the right ADB flags
 # $1+: adb command parameter
@@ -480,6 +506,8 @@ if [ "$APP_ABIS" != "${APP_ABIS%%all*}" ] ; then
   APP_ABIS_BACK="${APP_ABIS#*all}"
   APP_ABIS="${APP_ABIS_FRONT}${ALL_ABIS}${APP_ABIS_BACK}"
 fi
+# replace "armeabi-v7a-hard" with "armeabi-v7a"
+APP_ABIS=`echo $APP_ABIS | sed -e 's/armeabi-v7a-hard/armeabi-v7a/g'`
 log "ABIs targetted by application: $APP_ABIS"
 
 # Check the ADB command, and that we can connect to the device/emulator
@@ -517,17 +545,23 @@ adb_var_shell CPU_ABI2 getprop ro.product.cpu.abi2
 # Both CPU_ABI1 and CPU_ABI2 may contain multiple comma-delimited abis.
 # Concatanate CPU_ABI1 and CPU_ABI2 and replace all ',' with space.
 # Add trailing space to ease whole-word matching of APP_ABI.
-CPU_ABIS="$CPU_ABI1,$CPU_ABI2,"
+CPU_ABIS="$CPU_ABI1,$CPU_ABI2"
 CPU_ABIS=$(echo $CPU_ABIS | tr ',' ' ')
 log "Device CPU ABIs: $CPU_ABIS"
 
-for APP_ABI in $APP_ABIS; do
-    if [ "$CPU_ABIS" != "${CPU_ABIS%$APP_ABI *}" ] ; then
-        COMPAT_ABI=$APP_ABI
-        break
-    fi
-done
+APP_ABIS=$APP_ABIS" "
 
+adb_var_shell BCFILES run-as $PACKAGE_NAME /system/bin/sh -c "ls lib/*.bc"
+if [ $? == 0 ]; then
+    COMPAT_ABI="$UNKNOWN_ABI"
+else
+    for CPU_ABI in $CPU_ABIS; do
+        if [ "$APP_ABIS" != "${APP_ABIS%$CPU_ABI *}" ] ; then
+            COMPAT_ABI=$CPU_ABI
+            break
+        fi
+    done
+fi
 if [ "$COMPAT_ABI" = none ] ; then
     echo "ERROR: The device does not support the application's targetted CPU ABIs!"
     echo "       Device supports:  $CPU_ABIS"
@@ -540,7 +574,13 @@ log "Compatible device ABI: $COMPAT_ABI"
 GDBSETUP_INIT=`get_build_var_for_abi NDK_APP_GDBSETUP $COMPAT_ABI`
 log "Using gdb setup init: $GDBSETUP_INIT"
 
-TOOLCHAIN_PREFIX=`get_build_var_for_abi TOOLCHAIN_PREFIX $COMPAT_ABI`
+# Find the prefix for gdb-client
+if [ "$COMPAT_ABI" != "$UNKNOWN_ABI" ]; then
+    TOOLCHAIN_PREFIX=`get_build_var_for_abi TOOLCHAIN_PREFIX $COMPAT_ABI`
+else
+    TOOLCHAIN_ABI=$(echo $CPU_ABIS | awk '{print $NF}')
+    TOOLCHAIN_PREFIX=`get_build_var_for_abi TOOLCHAIN_PREFIX $TOOLCHAIN_ABI`
+fi
 log "Using toolchain prefix: $TOOLCHAIN_PREFIX"
 
 APP_OUT=`get_build_var_for_abi TARGET_OUT $COMPAT_ABI`
@@ -550,11 +590,11 @@ log "Using app out directory: $APP_OUT"
 DEBUGGABLE=`run_awk_manifest_script extract-debuggable.awk`
 log "Found debuggable flag: $DEBUGGABLE"
 if [ $? != 0 -o "$DEBUGGABLE" != "true" ] ; then
-    # If gdbserver exists, then we built with 'ndk-build NDK_DEBUG=1' and it's
+    # If gdb.setup exists, then we built with 'ndk-build NDK_DEBUG=1' and it's
     # ok to not have android:debuggable set to true in the original manifest.
     # However, if this is not the case, then complain!!
-    if [ -f $PROJECT/libs/$COMPAT_ABI/gdbserver ] ; then
-        log "Found gdbserver under libs/$COMPAT_ABI, assuming app was built with NDK_DEBUG=1"
+    if [ -f $PROJECT/libs/$COMPAT_ABI/gdb.setup ] ; then
+        log "Found gdb.setup under libs/$COMPAT_ABI, assuming app was built with NDK_DEBUG=1"
     else
         echo "ERROR: Package $PACKAGE_NAME is not debuggable ! You can fix that in two ways:"
         echo ""
@@ -569,8 +609,8 @@ if [ $? != 0 -o "$DEBUGGABLE" != "true" ] ; then
 else
     # DEBUGGABLE is true in the manifest. Let's check that the user didn't change the
     # debuggable flag in the manifest without calling ndk-build afterwards.
-    if [ ! -f $PROJECT/libs/$COMPAT_ABI/gdbserver ] ; then
-        echo "ERROR: Could not find gdbserver binary under $PROJECT/libs/$COMPAT_ABI"
+    if [ ! -f $PROJECT/libs/$COMPAT_ABI/gdb.setup ] ; then
+        echo "ERROR: Could not find gdb.setup under $PROJECT/libs/$COMPAT_ABI"
         echo "       This usually means you modified your AndroidManifest.xml to set"
         echo "       the android:debuggable flag to 'true' but did not rebuild the"
         echo "       native binaries. Please call 'ndk-build' to do so,"
@@ -578,17 +618,6 @@ else
         exit 1
     fi
 fi
-
-# Let's check that 'gdbserver' is properly installed on the device too. If this
-# is not the case, the user didn't install the proper package after rebuilding.
-#
-adb_var_shell2 DEVICE_GDBSERVER ls /data/data/$PACKAGE_NAME/lib/gdbserver
-if [ $? != 0 ]; then
-    echo "ERROR: Non-debuggable application installed on the target device."
-    echo "       Please re-install the debuggable version!"
-    exit 1
-fi
-log "Found device gdbserver: $DEVICE_GDBSERVER"
 
 # Find the <dataDir> of the package on the device
 adb_var_shell2 DATA_DIR run-as $PACKAGE_NAME /system/bin/sh -c pwd
@@ -598,6 +627,39 @@ if [ $? != 0 -o -z "$DATA_DIR" ] ; then
     exit 1
 fi
 log "Found data directory: '$DATA_DIR'"
+
+# Let's check that 'gdbserver' is properly installed on the device too. If 'gdbserver'
+# is not there, push 'gdbserver' found in prebuilt.
+#
+DEVICE_GDBSERVER=$DATA_DIR/lib/gdbserver
+adb_var_shell2 GDBSERVER_RESULT ls $DEVICE_GDBSERVER
+if [ $? != 0 ]; then
+
+    # Figure out what's the target-arch and find gdbserver in prebuilt.
+    TARGET_ARCH=none
+
+    for ANDROID_ARCH in $ANDROID_NDK_ROOT/prebuilt/android-*; do
+        ANDROID_ARCH=${ANDROID_ARCH#*android-}
+        if [ x"$CPU_ABIS" != x"${CPU_ABIS#$ANDROID_ARCH*}" ]; then
+            TARGET_ARCH=$ANDROID_ARCH
+            break;
+        fi
+    done
+
+    if [ $TARGET_ARCH != "none" ]; then
+        DEVICE_GDBSERVER=/data/local/tmp/gdbserver
+
+        adb shell mkdir -p /data/local/tmp
+        adb push ${ANDROID_NDK_ROOT}/prebuilt/android-${TARGET_ARCH}/gdbserver/gdbserver \
+                 $DEVICE_GDBSERVER
+        log "Push gdbserver in device"
+    else
+        echo "ERROR: Non-debuggable application installed on the target device."
+        echo "       Please re-install the debuggable version!"
+        exit 1
+    fi
+fi
+log "Found device gdbserver: $DEVICE_GDBSERVER"
 
 # Launch the activity if needed
 if [ "$OPTION_START" = "yes" ] ; then
@@ -623,7 +685,7 @@ fi
 
 if [ -n "$OPTION_LAUNCH" ] ; then
     log "Launching activity: $PACKAGE_NAME/$OPTION_LAUNCH"
-    run adb_cmd shell am start -n $PACKAGE_NAME/$OPTION_LAUNCH
+    run adb_cmd shell am start $OPTION_WAIT -n $PACKAGE_NAME/$OPTION_LAUNCH
     if [ $? != 0 ] ; then
         echo "ERROR: Could not launch specified activity: $OPTION_LAUNCH"
         echo "       Use --launch-list to dump a list of valid values."
@@ -666,7 +728,7 @@ fi
 
 # Launch gdbserver now
 DEBUG_SOCKET=debug-socket
-run adb_cmd shell run-as $PACKAGE_NAME lib/gdbserver +$DEBUG_SOCKET --attach $PID &
+run adb_cmd shell run-as $PACKAGE_NAME $DEVICE_GDBSERVER +$DEBUG_SOCKET --attach $PID &
 if [ $? != 0 ] ; then
     echo "ERROR: Could not launch gdbserver on the device?"
     exit 1
@@ -692,6 +754,26 @@ log "Pulled linker from device/emulator."
 
 run adb_cmd pull /system/lib/libc.so `native_path $APP_OUT/libc.so`
 log "Pulled libc.so from device/emulator."
+
+# Setup JDB connection, for --start or --launch
+if [ "$OPTION_START" = "yes" ] || [ -n "$OPTION_LAUNCH" ] ; then
+    if [ -n "$JDB_PORT" ]; then
+        log "Setup JDB connection"
+        run adb_cmd forward tcp:$JDB_PORT jdwp:$PID
+        sleep 1
+        $JDB_CMD -connect com.sun.jdi.SocketAttach:hostname=localhost,port=$JDB_PORT &
+        sleep 1
+    fi
+fi
+
+# If we are debugging UNKNOWN_ABI, download compiled *.so from device.
+#
+if [ "$COMPAT_ABI" == "$UNKNOWN_ABI" ]; then
+    for bc in $BCFILES; do
+        log "Pulled $(basename $bc .bc).so from device/emulator."
+        adb pull $DATA_DIR/lib/$(basename $bc .bc).so $PROJECT/obj/local/$UNKNOWN_ABI/
+    done
+fi
 
 # Now launch the appropriate gdb client with the right init commands
 #

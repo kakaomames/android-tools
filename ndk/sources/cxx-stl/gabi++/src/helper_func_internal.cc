@@ -37,14 +37,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <cxxabi.h>
 #include <exception>
 #include <unwind.h>
+#include "cxxabi_defines.h"
 #include "helper_func_internal.h"
-
-#include <android/log.h>
-#include <dlfcn.h>
-#include <stdio.h>
 
 namespace __cxxabiv1 {
 
@@ -53,7 +49,7 @@ namespace __cxxabiv1 {
                                      uint8_t ttypeEncoding,
                                      _Unwind_Exception* unwind_exception);
 
-  void call_terminate(_Unwind_Exception* unwind_exception) {
+  _GABIXX_NORETURN void call_terminate(_Unwind_Exception* unwind_exception) {
     __cxa_begin_catch(unwind_exception);  // terminate is also a handler
     std::terminate();
   }
@@ -346,7 +342,8 @@ namespace __cxxabiv1 {
   }
 
   // lower-level runtime library API function that unwinds the frame
-  extern "C" bool __gnu_unwind_frame(_Unwind_Exception*, _Unwind_Context*);
+  extern "C" _Unwind_Reason_Code __gnu_unwind_frame(_Unwind_Exception*,
+                                                    _Unwind_Context*);
 
   void setRegisters(_Unwind_Exception* unwind_exception,
                     _Unwind_Context* context,
@@ -392,11 +389,10 @@ namespace __cxxabiv1 {
     const uint8_t* lsda = (const uint8_t*)_Unwind_GetLanguageSpecificData(ctx);
     const uint8_t* classInfo = NULL;
     uint8_t lpStartEncoding = *lsda++;
+    __attribute__((unused))
     const uint8_t* lpStart = (const uint8_t*)readEncodedPointer(&lsda, lpStartEncoding);
+    __attribute__((unused))
     uintptr_t funcStart = _Unwind_GetRegionStart(ctx);
-    if (lpStart == 0) {
-      lpStart = (const uint8_t*)funcStart;
-    }
     uint8_t ttypeEncoding = *lsda++;
     if (ttypeEncoding != DW_EH_PE_omit) {
       uintptr_t classInfoOffset = readULEB128(&lsda);
@@ -511,47 +507,5 @@ namespace __cxxabiv1 {
                                         const ScanResultInternal& results) {}
 
 #endif // __arm__
-
-  void fatalError(const char* message) {
-
-    // Note: Printing to stderr is only useful when running an executable
-    // from a shell, e.g. when using 'adb shell'. For regular
-    // applications, stderr is redirected to /dev/null by default.
-    fprintf(stderr, "PANIC:GAbi++:%s\n", message);
-
-    // Always print the message to the log, when possible. Use
-    // dlopen()/dlsym() to avoid adding an explicit dependency
-    // to -llog in GAbi++ for this sole feature.
-    //
-    // An explicit dependency to -ldl can be avoided because these
-    // functions are implemented directly by the dynamic linker.
-    // That is, except when this code is linked into a static
-    // executable. In this case, adding -ldl to the final link command
-    // will be necessary, but the dlopen() will always return NULL.
-    //
-    // There is unfortunately no way to detect where this code is going
-    // to be used at compile time, but static executables are strongly
-    // discouraged on the platform because they can't implement ASLR.
-    //
-    typedef void (*logfunc_t)(int, const char*, const char*);
-    logfunc_t logger = NULL;
-
-    // Note that this should always succeed in a regular application,
-    // because the library is already loaded into the process' address
-    // space by Zygote before forking the application process.
-    // This will fail in static executables, because the static
-    // version of -ldl only contains empty stubs.
-    void* liblog = dlopen("liblog.so", RTLD_NOW);
-
-    if (liblog != NULL) {
-      logger = reinterpret_cast<logfunc_t>(dlsym(liblog, "__android_log_print"));
-      if (logger != NULL) {
-        (*logger)(ANDROID_LOG_FATAL, "GAbi++", message);
-      }
-      dlclose(liblog);
-    }
-
-    std::terminate();
-  }
 
 } // namespace __cxxabiv1

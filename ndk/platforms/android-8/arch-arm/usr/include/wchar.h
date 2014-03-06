@@ -40,6 +40,7 @@
 #include <malloc.h>
 
 #include <stddef.h>
+#include <sys/_wchar_limits.h>
 
 /* IMPORTANT: Any code that relies on wide character support is essentially
  *            non-portable and/or broken. the only reason this header exist
@@ -70,9 +71,20 @@ typedef enum {
     WC_TYPE_MAX
 } wctype_t;
 
-#define  WCHAR_MAX   255
-#define  WCHAR_MIN   0
+/* WEOF used to be defined as simply -1, which is
+ * invalid (the standard mandates that the expression must have wint_t
+ * type). Revert to the old broken behaviour is _WCHAR_IS_8BIT is defined.
+ * See http://b.android.com/57267 */
+#ifdef _WCHAR_IS_8BIT
 #define  WEOF        (-1)
+#else
+#define  WEOF        ((wint_t)-1)
+#endif
+#ifdef _WCHAR_IS_8BIT
+#define  WEOF        (-1)
+#else
+#define  WEOF        ((wint_t)-1)
+#endif
 
 extern wint_t            btowc(int);
 extern int               fwprintf(FILE *, const wchar_t *, ...);
@@ -128,7 +140,7 @@ extern wchar_t          *wcsrchr(const wchar_t *, wchar_t);
 extern size_t            wcsrtombs(char *, const wchar_t **, size_t, mbstate_t *);
 extern size_t            wcsspn(const wchar_t *, const wchar_t *);
 extern wchar_t          *wcsstr(const wchar_t *, const wchar_t *);
-extern double            wcstod(const wchar_t *, wchar_t **);
+extern double            wcstod(const wchar_t *, wchar_t **) __NDK_FPABI__;
 extern wchar_t          *wcstok(wchar_t *, const wchar_t *, wchar_t **);
 extern long int          wcstol(const wchar_t *, wchar_t **, int);
 extern size_t            wcstombs(char *, const wchar_t *, size_t);

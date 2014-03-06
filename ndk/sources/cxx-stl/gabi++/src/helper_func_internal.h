@@ -36,10 +36,10 @@
 // Target-independent helper functions
 namespace __cxxabiv1 {
 
-  void call_terminate(_Unwind_Exception* unwind_exception);
+  _GABIXX_NORETURN void call_terminate(_Unwind_Exception* unwind_exception) _GABIXX_HIDDEN;
 
 #if __arm__
-  uint32_t decodeRelocTarget2 (uint32_t ptr);
+  uint32_t decodeRelocTarget2 (uint32_t ptr) _GABIXX_HIDDEN;
 #endif
 
   // An exception spec acts like a catch handler, but in reverse.
@@ -50,33 +50,38 @@ namespace __cxxabiv1 {
                              uint8_t ttypeEncoding,
                              const std::type_info* excpType,
                              void* adjustedPtr,
-                             _Unwind_Exception* unwind_exception);
+                             _Unwind_Exception* unwind_exception)
+      _GABIXX_HIDDEN;
 
   void setRegisters(_Unwind_Exception* unwind_exception,
                     _Unwind_Context* context,
-                    const ScanResultInternal& results);
+                    const ScanResultInternal& results) _GABIXX_HIDDEN;
 
   _Unwind_Reason_Code continueUnwinding(_Unwind_Exception *ex,
-                                        _Unwind_Context *context);
+                                        _Unwind_Context *context)
+      _GABIXX_HIDDEN;
 
   void saveDataToBarrierCache(_Unwind_Exception* exc,
                               _Unwind_Context* ctx,
-                              const ScanResultInternal& results);
+                              const ScanResultInternal& results)
+      _GABIXX_HIDDEN;
 
   void loadDataFromBarrierCache(_Unwind_Exception* exc,
-                                ScanResultInternal& results);
+                                ScanResultInternal& results)
+      _GABIXX_HIDDEN;
 
-  void prepareBeginCleanup(_Unwind_Exception* exc);
+  void prepareBeginCleanup(_Unwind_Exception* exc) _GABIXX_HIDDEN;
 
   void saveUnexpectedDataToBarrierCache(_Unwind_Exception* exc,
                                         _Unwind_Context* ctx,
-                                        const ScanResultInternal& results);
+                                        const ScanResultInternal& results)
+      _GABIXX_HIDDEN;
 
   void scanEHTable(ScanResultInternal& results,
                    _Unwind_Action actions,
                    bool native_exception,
                    _Unwind_Exception* unwind_exception,
-                   _Unwind_Context* context);
+                   _Unwind_Context* context) _GABIXX_HIDDEN;
 
   // Make it easier to adapt to Itanium PR
 #ifdef __arm__
@@ -87,7 +92,7 @@ namespace __cxxabiv1 {
       int version = 1; \
       uint64_t exceptionClass = unwind_exception->exception_class; \
       _Unwind_Action actions = 0; \
-      switch (state) { \
+      switch (state & _US_ACTION_MASK) { \
       default: { \
         return _URC_FAILURE; \
       } \
@@ -113,10 +118,6 @@ namespace __cxxabiv1 {
       __gxx_personality_v0(int version, _Unwind_Action actions, uint64_t exceptionClass, \
                            _Unwind_Exception* unwind_exception, _Unwind_Context* context) {
 #endif
-
-  // Print an error message to either stderr or the log. Then calls
-  // std::terminate(). Note: This always appends a newline to the message.
-  void fatalError(const char* message);
 
 } // namespace __cxxabiv1
 

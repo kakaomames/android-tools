@@ -29,6 +29,15 @@ int main(void)
     case ANDROID_CPU_FAMILY_MIPS:
         printf("CPU family is MIPS\n");
         break;
+    case ANDROID_CPU_FAMILY_ARM64:
+        printf("CPU family is ARM64\n");
+        break;
+    case ANDROID_CPU_FAMILY_X86_64:
+        printf("CPU family is x86_64\n");
+        break;
+    case ANDROID_CPU_FAMILY_MIPS64:
+        printf("CPU family is MIPS64\n");
+        break;
     default:
         fprintf(stderr, "Unsupported CPU family: %d\n", family);
         return 1;
@@ -55,6 +64,15 @@ int main(void)
         CHECK(iWMMXt)
 #undef CHECK
     }
+
+#ifdef __arm__
+    uint32_t cpu_id = android_getCpuIdArm();
+    printf( "ARM CpuID: %08x\n", cpu_id);
+    printf( "   implementer: %02x\n", (cpu_id >> 24) & 0xff);
+    printf( "   variant    : %02x\n", (cpu_id >> 20) & 0x0f);
+    printf( "   part       : %03x\n", (cpu_id >> 4) & 0xfff);
+    printf( "   revision   : %x\n",    cpu_id & 0x0f);
+#endif
 
     if (family == ANDROID_CPU_FAMILY_X86) {
         uint64_t features = android_getCpuFeatures();
