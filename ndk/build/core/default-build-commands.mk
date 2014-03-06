@@ -53,6 +53,13 @@ TARGET_RELRO_LDFLAGS := -Wl,-z,relro -Wl,-z,now
 # These flags disable the above security feature
 TARGET_DISABLE_RELRO_LDFLAGS := -Wl,-z,norelro -Wl,-z,lazy
 
+# This flag are used to provide compiler protection against format
+# string vulnerabilities.
+TARGET_FORMAT_STRING_CFLAGS := -Wformat -Werror=format-security
+
+# This flag disables the above security checks
+TARGET_DISABLE_FORMAT_STRING_CFLAGS := -Wno-error=format-security
+
 # NOTE: Ensure that TARGET_LIBGCC is placed after all private objects
 #       and static libraries, but before any other library in the link
 #       command line when generating shared libraries and executables.
@@ -73,11 +80,17 @@ $(PRIVATE_CXX) \
     -o $(call host-path,$(LOCAL_BUILT_MODULE))
 endef
 
+# The following -rpath-link= are needed for ld.bfd (default for MIPS) when
+# linking executable to supress warning about missing symbol by *so not directly needed.
+# ld.gold (default for ARM and X86) and ld.mcld don't emulate this buggy behavior,
+# and ignore -rpath-link completely.
 define cmd-build-executable
 $(PRIVATE_CXX) \
     -Wl,--gc-sections \
     -Wl,-z,nocopyreloc \
     --sysroot=$(call host-path,$(PRIVATE_SYSROOT_LINK)) \
+    -Wl,-rpath-link=$(call host-path,$(PRIVATE_SYSROOT_LINK)/usr/lib) \
+    -Wl,-rpath-link=$(call host-path,$(TARGET_OUT)) \
     $(PRIVATE_LINKER_OBJECTS_AND_LIBRARIES) \
     $(PRIVATE_LDFLAGS) \
     $(PRIVATE_LDLIBS) \
@@ -92,6 +105,9 @@ endef
 # It is thus safe to use --strip-unneeded, which is only dangerous
 # when applied to static libraries or object files.
 cmd-strip = $(PRIVATE_STRIP) --strip-unneeded $(call host-path,$1)
+
+# The command objcopy --add-gnu-debuglink= will be needed for Valgrind
+cmd-add-gnu-debuglink = $(PRIVATE_OBJCOPY) --add-gnu-debuglink=$(strip $(call host-path,$2)) $(call host-path,$1)
 
 TARGET_LIBGCC = -lgcc
 TARGET_LDLIBS := -lc -lm
@@ -108,6 +124,7 @@ else
 TARGET_CC       = $(TOOLCHAIN_PREFIX)gcc
 endif
 TARGET_CFLAGS   =
+TARGET_CONLYFLAGS =
 
 ifneq ($(findstring c++-analyzer,$(CXX)),)
 TARGET_CXX      = $(CXX)
@@ -116,13 +133,22 @@ TARGET_CXX      = $(TOOLCHAIN_PREFIX)g++
 endif
 TARGET_CXXFLAGS = $(TARGET_CFLAGS) -fno-exceptions -fno-rtti
 
+TARGET_RS_CC    = $(RENDERSCRIPT_TOOLCHAIN_PREFIX)llvm-rs-cc
+TARGET_RS_BCC   = $(RENDERSCRIPT_TOOLCHAIN_PREFIX)bcc_compat
+TARGET_RS_FLAGS = -Wall -Werror
+
+TARGET_ASM      = $(HOST_PREBUILT)/yasm
+TARGET_ASMFLAGS =
+
 TARGET_LD       = $(TOOLCHAIN_PREFIX)ld
 TARGET_LDFLAGS :=
 
 TARGET_AR       = $(TOOLCHAIN_PREFIX)ar
-TARGET_ARFLAGS := crs
+TARGET_ARFLAGS := crsD
 
 TARGET_STRIP    = $(TOOLCHAIN_PREFIX)strip
+
+TARGET_OBJCOPY  = $(TOOLCHAIN_PREFIX)objcopy
 
 TARGET_OBJ_EXTENSION := .o
 TARGET_LIB_EXTENSION := .a

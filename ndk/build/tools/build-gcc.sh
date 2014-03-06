@@ -28,7 +28,7 @@ PROGRAM_DESCRIPTION=\
 
 Where <src-dir> is the location of toolchain sources, <ndk-dir> is
 the top-level NDK installation path and <toolchain> is the name of
-the toolchain to use (e.g. arm-linux-androideabi-4.4.3)."
+the toolchain to use (e.g. arm-linux-androideabi-4.6)."
 
 RELEASE=`date +%Y%m%d`
 BUILD_OUT=/tmp/ndk-$USER/build/toolchain
@@ -43,7 +43,12 @@ OPTION_SYSROOT=
 register_var_option "--sysroot=<path>"   OPTION_SYSROOT   "Specify sysroot directory directly"
 
 GDB_VERSION=$DEFAULT_GDB_VERSION
-register_var_option "--gdb-version=<version>"  GDB_VERSION "Specify gdb version"
+EXPLICIT_GDB_VERSION=
+register_option "--gdb-version=<version>"  do_gdb_version "Specify gdb version" "$GDB_VERSION"
+do_gdb_version () {
+    GDB_VERSION=$1
+    EXPLICIT_GDB_VERSION=true
+}
 
 BINUTILS_VERSION=$DEFAULT_BINUTILS_VERSION
 EXPLICIT_BINUTILS_VERSION=
@@ -65,8 +70,14 @@ register_var_option "--mpc-version=<version>" MPC_VERSION "Specify mpc version"
 CLOOG_VERSION=$DEFAULT_CLOOG_VERSION
 register_var_option "--cloog-version=<version>" CLOOG_VERSION "Specify cloog version"
 
+ISL_VERSION=$DEFAULT_ISL_VERSION
+register_var_option "--isl-version=<version>" ISL_VERSION "Specify ISL version"
+
 PPL_VERSION=$DEFAULT_PPL_VERSION
 register_var_option "--ppl-version=<version>" PPL_VERSION "Specify ppl version"
+
+WITH_PYTHON=
+register_var_option "--with-python=<path/to/python-config.sh>" WITH_PYTHON "Specify python config script, or prebuilt"
 
 PACKAGE_DIR=
 register_var_option "--package-dir=<path>" PACKAGE_DIR "Create archive tarball in specific directory"
@@ -84,8 +95,8 @@ setup_default_log_file $BUILD_OUT/config.log
 
 set_parameters ()
 {
-    SRC_DIR=`cd $1; pwd`
-    NDK_DIR=`cd $2; pwd`
+    SRC_DIR="$1"
+    NDK_DIR="$2"
     TOOLCHAIN="$3"
 
     # Check source directory
@@ -99,7 +110,7 @@ set_parameters ()
         echo "ERROR: Source directory does not contain gcc sources: $SRC_DIR"
         exit 1
     fi
-
+    SRC_DIR=`cd $SRC_DIR; pwd`
     log "Using source directory: $SRC_DIR"
 
     # Check NDK installation directory
@@ -116,7 +127,7 @@ set_parameters ()
             exit 1
         fi
     fi
-
+    NDK_DIR=`cd $NDK_DIR; pwd`
     log "Using NDK directory: $NDK_DIR"
 
     # Check toolchain name
@@ -128,6 +139,14 @@ set_parameters ()
 }
 
 set_parameters $PARAMETERS
+
+# Disable x86_64 build for toolchains older than 4.7
+case "$TOOLCHAIN" in
+  x86_64-4.4.3|x86_64-4.6)
+    echo "ERROR: x86_64 toolchain is enabled in 4.7+. Please try to build newer version."
+    exit 1
+    ;;
+esac
 
 prepare_target_build
 
@@ -152,6 +171,30 @@ if [ ! -d $SRC_DIR/binutils/binutils-$BINUTILS_VERSION ] ; then
     echo "ERROR: Missing binutils sources: $SRC_DIR/binutils/binutils-$BINUTILS_VERSION"
     echo "       Use --binutils-version=<version> to specify alternative."
     exit 1
+fi
+
+if [ -z "$EXPLICIT_GDB_VERSION" ]; then
+    GDB_VERSION=$(get_default_gdb_version_for_gcc $TOOLCHAIN)
+    dump "Auto-config: --gdb-version=$GDB_VERSION"
+fi
+
+if [ ! -d $SRC_DIR/gdb/gdb-$GDB_VERSION ] ; then
+    echo "ERROR: Missing gdb sources: $SRC_DIR/gdb/gdb-$GDB_VERSION"
+    echo "       Use --gdb-version=<version> to specify alternative."
+    exit 1
+fi
+
+if [ ! -z "$WITH_PYTHON" ] ; then
+    if [ "$WITH_PYTHON" = "prebuilt" ] ; then
+        WITH_PYTHON_SCRIPT="$ANDROID_NDK_ROOT/prebuilt/$HOST_TAG/bin/python-config.sh"
+    fi
+    if [ ! -f "$WITH_PYTHON_SCRIPT" ] ; then
+        echo "ERROR: --with-python ($WITH_PYTHON_SCRIPT)"
+        echo "       Does not exist!"
+        exit 1
+    else
+        WITH_PYTHON="--with-python=$WITH_PYTHON_SCRIPT"
+    fi
 fi
 
 fix_option MPFR_VERSION "$OPTION_MPFR_VERSION" "mpfr version"
@@ -229,6 +272,10 @@ export ABI=$HOST_GMP_ABI
 CFLAGS_FOR_BUILD="-O2 -s -Wno-error"
 LDFLAGS_FOR_BUILD=
 
+if [ "$MINGW" = "yes" ] ; then
+    CFLAGS_FOR_BUILD=$CFLAGS_FOR_BUILD" -D__USE_MINGW_ANSI_STDIO=1"
+fi
+
 CFLAGS="$CFLAGS_FOR_BUILD $HOST_CFLAGS"
 LDFLAGS="$LDFLAGS_FOR_BUILD $HOST_LDFLAGS"
 
@@ -261,23 +308,38 @@ else
 fi
 
 # Enable OpenMP
-EXTRA_CONFIG_FLAGS=$EXTRA_CONFIG_FLAGS" --enable-libgomp"
+case "$TOOLCHAIN" in
+    *) EXTRA_CONFIG_FLAGS=$EXTRA_CONFIG_FLAGS" --enable-libgomp" ;;
+esac
+
+# Disable libsanitizer (which depends on libstdc++ built separately) for now
+EXTRA_CONFIG_FLAGS=$EXTRA_CONFIG_FLAGS" --disable-libsanitizer"
 
 # Enable Gold as default
 case "$TOOLCHAIN" in
-    # Note that only ARM and X86 are supported
-    x86-4.6|arm-linux-androideabi-4.6|x86-4.7|arm-linux-androideabi-4.7)
+    # Note that only ARM and X86 >= GCC 4.6 are supported
+    mips*)
+    ;;
+    *-4.4.3)
+    ;;
+    *)
         EXTRA_CONFIG_FLAGS=$EXTRA_CONFIG_FLAGS" --enable-gold=default"
     ;;
 esac
 
 # Enable Graphite
 case "$TOOLCHAIN" in
-    # Only for 4.6 and 4.7 for now
+    *-4.4.3) ;;
     *-4.6|*-4.7)
         EXTRA_CONFIG_FLAGS=$EXTRA_CONFIG_FLAGS" --enable-graphite=yes --with-cloog-version=$CLOOG_VERSION --with-ppl-version=$PPL_VERSION"
     ;;
+    *)
+        EXTRA_CONFIG_FLAGS=$EXTRA_CONFIG_FLAGS" --enable-graphite=yes --with-cloog-version=$CLOOG_VERSION --with-isl-version=$ISL_VERSION"
+    ;;
 esac
+
+# Enable linker option -eh-frame-hdr also for static executable
+EXTRA_CONFIG_FLAGS=$EXTRA_CONFIG_FLAGS" --enable-eh-frame-hdr-for-static"
 
 cd $BUILD_OUT && run \
 $BUILD_SRCDIR/configure --target=$ABI_CONFIGURE_TARGET \
@@ -293,6 +355,7 @@ $BUILD_SRCDIR/configure --target=$ABI_CONFIGURE_TARGET \
                         --with-gmp-version=$GMP_VERSION \
                         --with-gcc-version=$GCC_VERSION \
                         --with-gdb-version=$GDB_VERSION \
+                        $WITH_PYTHON \
                         --with-gxx-include-dir=$TOOLCHAIN_BUILD_PREFIX/include/c++/$GCC_VERSION \
                         --with-bugurl=$DEFAULT_ISSUE_TRACKER_URL \
                         $EXTRA_CONFIG_FLAGS \
@@ -301,6 +364,7 @@ if [ $? != 0 ] ; then
     dump "Error while trying to configure toolchain build. See $TMPLOG"
     exit 1
 fi
+
 ABI="$OLD_ABI"
 # build the toolchain
 dump "Building : $TOOLCHAIN toolchain [this can take a long time]."
@@ -342,6 +406,87 @@ if [ $? != 0 ] ; then
     exit 1
 fi
 
+unwind_library_for_abi ()
+{
+    local ABI="$1"
+    local BASE_DIR OBJS UNWIND_OBJS
+
+    case $ABI in
+    armeabi)
+    BASE_DIR="$BUILD_OUT/gcc-$GCC_VERSION/$ABI_CONFIGURE_TARGET/libgcc/"
+    OBJS="unwind-arm.o \
+          libunwind.o \
+          pr-support.o \
+          unwind-c.o"
+    ;;
+    armeabi-v7a)
+    BASE_DIR="$BUILD_OUT/gcc-$GCC_VERSION/$ABI_CONFIGURE_TARGET/armv7-a/libgcc/"
+    OBJS="unwind-arm.o \
+          libunwind.o \
+          pr-support.o \
+          unwind-c.o"
+    ;;
+    armeabi-v7a-hard)
+    BASE_DIR="$BUILD_OUT/gcc-$GCC_VERSION/$ABI_CONFIGURE_TARGET/armv7-a/hard/libgcc/"
+    OBJS="unwind-arm.o \
+          libunwind.o \
+          pr-support.o \
+          unwind-c.o"
+    ;;
+    x86)
+    BASE_DIR="$BUILD_OUT/gcc-$GCC_VERSION/$ABI_CONFIGURE_TARGET/libgcc/"
+    if [ "$GCC_VERSION" = "4.6" -o "$GCC_VERSION" = "4.4.3" ]; then
+       OBJS="unwind-c.o \
+          unwind-dw2-fde-glibc.o \
+          unwind-dw2.o"
+    else
+       OBJS="unwind-c.o \
+          unwind-dw2-fde-dip.o \
+          unwind-dw2.o"
+    fi
+    ;;
+    mips)
+    BASE_DIR="$BUILD_OUT/gcc-$GCC_VERSION/$ABI_CONFIGURE_TARGET/libgcc/"
+    if [ "$GCC_VERSION" = "4.6" -o "$GCC_VERSION" = "4.4.3" ]; then
+       OBJS="unwind-c.o \
+          unwind-dw2-fde-glibc.o \
+          unwind-dw2.o"
+    else
+       OBJS="unwind-c.o \
+          unwind-dw2-fde-dip.o \
+          unwind-dw2.o"
+    fi
+    ;;
+    esac
+
+    for OBJ in $OBJS; do
+        UNWIND_OBJS=$UNWIND_OBJS" $BASE_DIR/$OBJ"
+    done
+    echo $UNWIND_OBJS
+}
+
+# Create libgccunwind.a for app linking
+# $1: arch name
+# $2: NDK_DIR
+create_unwind_library ()
+{
+    local ARCH="$1"
+    local NDK_DIR="$2"
+    local ABIS=$(commas_to_spaces $(convert_archs_to_abis $ARCH))
+    local ABI UNWIND_OBJS UNWIND_LIB
+    for ABI in $ABIS; do
+        UNWIND_OBJS=$(unwind_library_for_abi $ABI)
+        UNWIND_LIB_DIR="$NDK_DIR/$GCCUNWIND_SUBDIR/libs/$ABI/"
+        run mkdir -p $UNWIND_LIB_DIR
+        run ar crsD $UNWIND_LIB_DIR/libgccunwind.a $UNWIND_OBJS
+    done
+}
+
+# Only create libgccunwind.a when building default version of gcc
+if [ "$HOST_OS" = "linux" -a "$GCC_VERSION" = "$DEFAULT_GCC_VERSION" ]; then # or latest gcc ie 4.8?
+    run create_unwind_library $ARCH $NDK_DIR
+fi
+
 # copy to toolchain path
 run copy_directory "$TOOLCHAIN_BUILD_PREFIX" "$TOOLCHAIN_PATH"
 
@@ -355,14 +500,38 @@ if [ "$MINGW" = "yes" -o "$DARWIN" = "yes" ] ; then
         find . \( -name "*.a" -o -name "*.la" -o -name "*.spec" \) -exec install -D "{}" "$TOOLCHAIN_TARGET_LIB_PATH/{}" \;)
 fi
 
+# build the gdb stub and replace gdb with it. This is done post-install
+# so files are in the correct place when determining the relative path.
+if [ "$MINGW" = "yes" ] ; then
+    WITH_PYTHON_PREFIX=$(dirname $(dirname "$WITH_PYTHON_SCRIPT"))
+    dump "Building : $TOOLCHAIN GDB stub. "$TOOLCHAIN_PATH/bin/${ABI_CONFIGURE_TARGET}-gdb.exe", "$WITH_PYTHON_PREFIX", $ABI_CONFIGURE_HOST-gcc"
+    GCC_FOR_STUB=$ABI_CONFIGURE_HOST-gcc
+    if [ "$TRY64" != "yes" ]; then
+        # The i586-mingw32msvc-gcc is missing CreateJobObject, SetInformationJobObject, and
+        # AssignProcessToJobObject needed for gdb-stub.c.  Hack to use i686-w64-mingw32-gcc.  ToDo:
+        GCC_FOR_STUB_TARGET=`$GCC_FOR_STUB -dumpmachine`
+        if [ "$GCC_FOR_STUB_TARGET" = "i586-mingw32msvc" ]; then
+            GCC_FOR_STUB=i686-w64-mingw32-gcc
+            dump "Override compiler for gdb-stub: $GCC_FOR_STUB"
+	fi
+    fi
+    run $NDK_DIR/build/tools/build-gdb-stub.sh --gdb-executable-path="$TOOLCHAIN_PATH/bin/${ABI_CONFIGURE_TARGET}-gdb.exe" \
+                                               --python-prefix-dir=${WITH_PYTHON_PREFIX} \
+                                               --mingw-w64-gcc=$GCC_FOR_STUB
+    fail_panic "Could not build gdb-stub"
+fi
+
 # don't forget to copy the GPL and LGPL license files
 run cp -f $TOOLCHAIN_LICENSES/COPYING $TOOLCHAIN_LICENSES/COPYING.LIB $TOOLCHAIN_PATH
 
 # remove some unneeded files
 run rm -f $TOOLCHAIN_PATH/bin/*-gccbug
+run rm -f $TOOLCHAIN_PATH/bin/*gdbtui$HOST_EXE
+run rm -f $TOOLCHAIN_PATH/bin/*-run$HOST_EXE
 run rm -rf $TOOLCHAIN_PATH/info
 run rm -rf $TOOLCHAIN_PATH/man
-run rm -rf $TOOLCHAIN_PATH/share
+run rm -rf $TOOLCHAIN_PATH/share/info
+run rm -rf $TOOLCHAIN_PATH/share/man
 run rm -rf $TOOLCHAIN_PATH/lib/gcc/$ABI_CONFIGURE_TARGET/*/install-tools
 run rm -rf $TOOLCHAIN_PATH/lib/gcc/$ABI_CONFIGURE_TARGET/*/plugin
 run rm -rf $TOOLCHAIN_PATH/libexec/gcc/$ABI_CONFIGURE_TARGET/*/install-tools
@@ -385,6 +554,53 @@ run $STRIP $TOOLCHAIN_PATH/$ABI_CONFIGURE_TARGET/bin/*
 run $STRIP $TOOLCHAIN_PATH/libexec/gcc/*/*/cc1$HOST_EXE
 run $STRIP $TOOLCHAIN_PATH/libexec/gcc/*/*/cc1plus$HOST_EXE
 run $STRIP $TOOLCHAIN_PATH/libexec/gcc/*/*/collect2$HOST_EXE
+run $STRIP $TOOLCHAIN_PATH/libexec/gcc/*/*/lto*$HOST_EXE
+
+# Some of the files should really be links to save space.
+# This is mostly to reduce the size of the Windows zip archives,
+# since:
+#  - The toolchain install script actually use hard-links
+#  - Tar automatically detects hard links and will only store a
+#    single copy of each file anyway.
+
+# $1: Source file (will be changed to a link)
+# $2: Destination (relative to source).
+do_relink () {
+    log "Relink: $1 --> $2"
+    local BASENAME DIRNAME
+    DIRNAME=$(dirname "$1")
+    BASENAME=$(basename "$1")
+    ( cd "$DIRNAME" && rm -f "$BASENAME" && ln -s "$2" "$BASENAME" )
+    fail_panic "Can't relink $1 to $2"
+}
+
+# <config>/bin/<name> should point to ../../<config>-<name>
+LINK_FILES=$(cd $TOOLCHAIN_PATH/$ABI_CONFIGURE_TARGET/bin && ls * 2>/dev/null)
+for LINK_FILE in $LINK_FILES; do
+  do_relink $TOOLCHAIN_PATH/$ABI_CONFIGURE_TARGET/bin/$LINK_FILE ../../bin/$ABI_CONFIGURE_TARGET-$LINK_FILE
+done
+
+# $1: Source file prefix (e.g. 'c++')
+# $2: Destination file prefix (e.g. 'g++')
+# $3: Alternative file prefix if $2 doesn't exist (eg. ld.bfd)
+do_relink_bin () {
+    local DST_FILE=$2
+    if [ ! -f "$TOOLCHAIN_PATH/bin/$ABI_CONFIGURE_TARGET-$DST_FILE$HOST_EXE" ]; then
+        DST_FILE=$3
+    fi
+    if [ ! -f "$TOOLCHAIN_PATH/bin/$ABI_CONFIGURE_TARGET-$DST_FILE$HOST_EXE" ]; then
+        echo "ERROR: Can't relink $1 to $DST_FILE because $DST_FILE doesn't exist"
+        exit 1
+    fi
+    do_relink \
+        $TOOLCHAIN_PATH/bin/$ABI_CONFIGURE_TARGET-$1$HOST_EXE \
+        $ABI_CONFIGURE_TARGET-$DST_FILE$HOST_EXE
+}
+
+do_relink_bin c++ g++
+do_relink_bin gcc-$GCC_VERSION gcc
+# symlink ld to either ld.gold or ld.bfd
+do_relink_bin ld ld.gold ld.bfd
 
 # copy SOURCES file if present
 if [ -f "$SRC_DIR/SOURCES" ]; then
@@ -395,7 +611,27 @@ if [ "$PACKAGE_DIR" ]; then
     ARCHIVE="$TOOLCHAIN-$HOST_TAG.tar.bz2"
     SUBDIR=$(get_toolchain_install_subdir $TOOLCHAIN $HOST_TAG)
     dump "Packaging $ARCHIVE"
-    pack_archive "$PACKAGE_DIR/$ARCHIVE" "$NDK_DIR" "$SUBDIR"
+  # exlude ld.mcld
+    EXCLUSIONS=
+    if [ -f $SUBDIR/bin/$ABI_CONFIGURE_TARGET-ld.mcld${HOST_EXE} ] ; then
+        EXCLUSIONS=$EXCLUSIONS" --exclude=$SUBDIR/bin/$ABI_CONFIGURE_TARGET-ld.mcld${HOST_EXE}"
+    fi
+    if [ -f $SUBDIR/$ABI_CONFIGURE_TARGET/bin/ld.mcld${HOST_EXE} ] ; then
+        EXCLUSIONS=$EXCLUSIONS" --exclude=$SUBDIR/$ABI_CONFIGURE_TARGET/bin/ld.mcld${HOST_EXE}"
+    fi
+    pack_archive "$PACKAGE_DIR/$ARCHIVE" "$NDK_DIR" "$SUBDIR" $EXCLUSIONS
+    # package libgccunwind.a
+    if [ "$HOST_OS" = "linux" -a "$GCC_VERSION" = "$DEFAULT_GCC_VERSION" ]; then
+        ABIS=$(commas_to_spaces $(convert_archs_to_abis $ARCH))
+        for ABI in $ABIS; do
+            FILES="$GCCUNWIND_SUBDIR/libs/$ABI/libgccunwind.a"
+            PACKAGE="$PACKAGE_DIR/libgccunwind-libs-$ABI.tar.bz2"
+            log "Packaging: $PACKAGE"
+            pack_archive "$PACKAGE" "$NDK_DIR" "$FILES"
+            fail_panic "Could not package $ABI libgccunwind binaries!"
+            dump "Packaging: $PACKAGE"
+        done
+    fi
 fi
 
 dump "Done."

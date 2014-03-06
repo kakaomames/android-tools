@@ -211,6 +211,13 @@ else
     $(call ndk_log, Host operating system detected: $(HOST_OS))
 endif
 
+# Always use /usr/bin/file on Darwin to avoid relying on broken Ports
+# version. See http://b.android.com/53769 .
+HOST_FILE_PROGRAM := file
+ifeq ($(HOST_OS),darwin)
+HOST_FILE_PROGRAM := /usr/bin/file
+endif
+
 HOST_ARCH := $(strip $(HOST_ARCH))
 HOST_ARCH64 :=
 ifndef HOST_ARCH
@@ -219,14 +226,15 @@ ifndef HOST_ARCH
         ifeq ($(HOST_ARCH),AMD64)
             HOST_ARCH := x86
         endif
-        ifneq ("",$(shell echo "%ProgramW6432%"))
+        # Windows is 64-bit if either ProgramW6432 or ProgramFiles(x86) is set
+        ifneq ("/",$(shell echo "%ProgramW6432%/%ProgramFiles(x86)%"))
             HOST_ARCH64 := x86_64
         endif
     else # HOST_OS_BASE != windows
         UNAME := $(shell uname -m)
         ifneq (,$(findstring 86,$(UNAME)))
             HOST_ARCH := x86
-            ifneq (,$(shell file -L $(SHELL) | grep 'x86[_-]64'))
+            ifneq (,$(shell $(HOST_FILE_PROGRAM) -L $(SHELL) | grep 'x86[_-]64'))
                 HOST_ARCH64 := x86_64
             endif
         endif
@@ -290,6 +298,7 @@ HOST_PREBUILT := $(strip $(wildcard $(HOST_PREBUILT_ROOT)/bin))
 HOST_AWK := $(strip $(NDK_HOST_AWK))
 HOST_SED  := $(strip $(NDK_HOST_SED))
 HOST_MAKE := $(strip $(NDK_HOST_MAKE))
+HOST_PYTHON := $(strip $(NDK_HOST_PYTHON))
 ifdef HOST_PREBUILT
     $(call ndk_log,Host tools prebuilt directory: $(HOST_PREBUILT))
     # The windows prebuilt binaries are for ndk-build.cmd
@@ -303,6 +312,9 @@ ifdef HOST_PREBUILT
         endif
         ifndef HOST_MAKE
             HOST_MAKE := $(wildcard $(HOST_PREBUILT)/make$(HOST_EXEEXT))
+        endif
+       ifndef HOST_PYTHON
+            HOST_PYTHON := $(wildcard $(HOST_PREBUILT)/python$(HOST_EXEEXT))
         endif
     endif
 else
@@ -454,7 +466,7 @@ ifndef NDK_PLATFORMS_ROOT
         $(if $(strip $(wildcard $(NDK_ROOT)/RELEASE.TXT)),\
             $(call __ndk_info,Please define NDK_PLATFORMS_ROOT to point to a valid directory.)\
         ,\
-            $(call __ndk_info,Please run build/tools/build-platforms.sh to build the corresponding directory.)\
+            $(call __ndk_info,Please run build/tools/gen-platforms.sh to build the corresponding directory.)\
         )
         $(call __ndk_error,Aborting)
     endif
@@ -494,7 +506,7 @@ $(call ndk_log,Found max platform level: $(NDK_MAX_PLATFORM_LEVEL))
 # in build/toolchains/<name>/ that will be included here.
 #
 # Each one of these files should define the following variables:
-#   TOOLCHAIN_NAME   toolchain name (e.g. arm-linux-androideabi-4.4.3)
+#   TOOLCHAIN_NAME   toolchain name (e.g. arm-linux-androideabi-4.6)
 #   TOOLCHAIN_ABIS   list of target ABIs supported by the toolchain.
 #
 # Then, it should include $(ADD_TOOLCHAIN) which will perform
@@ -505,11 +517,19 @@ $(call ndk_log,Found max platform level: $(NDK_MAX_PLATFORM_LEVEL))
 # the build script to include in each toolchain config.mk
 ADD_TOOLCHAIN := $(BUILD_SYSTEM)/add-toolchain.mk
 
-# the list of known values
-NDK_KNOWN_ABIS     := armeabi-v7a armeabi x86 mips
-NDK_KNOWN_ARCHS    := arm x86 mips
+# the list of known abis and archs
+NDK_KNOWN_DEVICE_ABIS := armeabi-v7a armeabi x86 mips
+NDK_KNOWN_ABIS     := armeabi-v7a-hard $(NDK_KNOWN_DEVICE_ABIS)
+NDK_KNOWN_ARCHS    := arm x86 mips arm64 x86_64 mips64
 _archs := $(sort $(strip $(notdir $(wildcard $(NDK_PLATFORMS_ROOT)/android-*/arch-*))))
 NDK_FOUND_ARCHS    := $(_archs:arch-%=%)
+
+# the list of abis 'APP_ABI=all' is expanded to
+ifeq ($(_NDK_TESTING_ALL_),yes)
+NDK_APP_ABI_ALL_EXPANDED := $(NDK_KNOWN_ABIS)
+else
+NDK_APP_ABI_ALL_EXPANDED := $(NDK_KNOWN_DEVICE_ABIS)
+endif
 
 # the list of all toolchains in this NDK
 NDK_ALL_TOOLCHAINS :=
@@ -552,13 +572,13 @@ endif
 # version number. Unlike NDK_TOOLCHAIN, this only changes the suffix of
 # the toolchain path we're using.
 #
-# For example, if GCC 4.6 is the default, defining NDK_TOOLCHAIN_VERSION=4.4.3
+# For example, if GCC 4.6 is the default, defining NDK_TOOLCHAIN_VERSION=4.8
 # will ensure that ndk-build uses the following toolchains, depending on
 # the target architecture:
 #
-#    arm -> arm-linux-androideabi-4.4.3
-#    x86 -> x86-android-linux-4.4.3
-#    mips -> mipsel-linux-android-4.4.3
+#    arm -> arm-linux-androideabi-4.8
+#    x86 -> x86-android-linux-4.8
+#    mips -> mipsel-linux-android-4.8
 #
 # This is used in setup-toolchain.mk
 #

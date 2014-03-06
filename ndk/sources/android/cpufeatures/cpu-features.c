@@ -56,10 +56,15 @@
  *
  * NDK r4: Initial release
  */
+
+#if defined(__le32__)
+
+// When users enter this, we should only provide interface and
+// libportable will give the implementations.
+
+#else // !__le32__
+
 #include <sys/system_properties.h>
-#ifdef __arm__
-#include <machine/cpu-features.h>
-#endif
 #include <pthread.h>
 #include "cpu-features.h"
 #include <stdio.h>
@@ -72,6 +77,10 @@ static  int                g_inited;
 static  AndroidCpuFamily   g_cpuFamily;
 static  uint64_t           g_cpuFeatures;
 static  int                g_cpuCount;
+
+#ifdef __arm__
+static  uint32_t           g_cpuIdArm;
+#endif
 
 static const int  android_cpufeatures_debug = 0;
 
@@ -231,10 +240,6 @@ EXIT:
     return result;
 }
 
-/* Like strlen(), but for constant string literals */
-#define STRLEN_CONST(x)  ((sizeof(x)-1)
-
-
 /* Checks that a space-separated list of items contains one given 'item'.
  * Returns 1 if found, 0 otherwise.
  */
@@ -268,7 +273,7 @@ has_list_item(const char* list, const char* item)
     return 0;
 }
 
-/* Parse an decimal integer starting from 'input', but not going further
+/* Parse a number starting from 'input', but not going further
  * than 'limit'. Return the value into '*result'.
  *
  * NOTE: Does not skip over leading spaces, or deal with sign characters.
@@ -279,15 +284,23 @@ has_list_item(const char* list, const char* item)
  * be <= 'limit').
  */
 static const char*
-parse_decimal(const char* input, const char* limit, int* result)
+parse_number(const char* input, const char* limit, int base, int* result)
 {
     const char* p = input;
     int val = 0;
     while (p < limit) {
         int d = (*p - '0');
-        if ((unsigned)d >= 10U)
-            break;
-        val = val*10 + d;
+        if ((unsigned)d >= 10U) {
+            d = (*p - 'a');
+            if ((unsigned)d >= 6U)
+              d = (*p - 'A');
+            if ((unsigned)d >= 6U)
+              break;
+            d += 10;
+        }
+        if (d >= base)
+          break;
+        val = val*base + d;
         p++;
     }
     if (p == input)
@@ -295,6 +308,18 @@ parse_decimal(const char* input, const char* limit, int* result)
 
     *result = val;
     return p;
+}
+
+static const char*
+parse_decimal(const char* input, const char* limit, int* result)
+{
+    return parse_number(input, limit, 10, result);
+}
+
+static const char*
+parse_hexadecimal(const char* input, const char* limit, int* result)
+{
+    return parse_number(input, limit, 16, result);
 }
 
 /* This small data type is used to represent a CPU list / mask, as read
@@ -525,12 +550,19 @@ get_cpu_count(void)
 static void
 android_cpuInitFamily(void)
 {
-#if defined(__ARM_ARCH__)
+#if defined(__arm__)
     g_cpuFamily = ANDROID_CPU_FAMILY_ARM;
 #elif defined(__i386__)
     g_cpuFamily = ANDROID_CPU_FAMILY_X86;
-#elif defined(_MIPS_ARCH)
+#elif defined(__mips64)
+/* Needs to be before __mips__ since the compiler defines both */
+    g_cpuFamily = ANDROID_CPU_FAMILY_MIPS64;
+#elif defined(__mips__)
     g_cpuFamily = ANDROID_CPU_FAMILY_MIPS;
+#elif defined(__aarch64__)
+    g_cpuFamily = ANDROID_CPU_FAMILY_ARM64;
+#elif defined(__x86_64__)
+    g_cpuFamily = ANDROID_CPU_FAMILY_X86_64;
 #else
     g_cpuFamily = ANDROID_CPU_FAMILY_UNKNOWN;
 #endif
@@ -575,7 +607,7 @@ android_cpuInit(void)
 
     D("found cpuCount = %d\n", g_cpuCount);
 
-#ifdef __ARM_ARCH__
+#ifdef __arm__
     {
         char*  features = NULL;
         char*  architecture = NULL;
@@ -696,20 +728,86 @@ android_cpuInit(void)
                 g_cpuFeatures |= ANDROID_CPU_ARM_FEATURE_VFPv2 |
                                  ANDROID_CPU_ARM_FEATURE_ARMv7;
 
-            // Note that some buggy kernels do not report these even when
-            // the CPU actually support the division instructions. However,
-            // assume that if 'vfpv4' is detected, then the CPU supports
-            // sdiv/udiv properly.
-            if (has_idiva || has_vfpv4)
+            if (has_idiva)
                 g_cpuFeatures |= ANDROID_CPU_ARM_FEATURE_IDIV_ARM;
-            if (has_idivt || has_vfpv4)
+            if (has_idivt)
                 g_cpuFeatures |= ANDROID_CPU_ARM_FEATURE_IDIV_THUMB2;
 
             if (has_iwmmxt)
                 g_cpuFeatures |= ANDROID_CPU_ARM_FEATURE_iWMMXt;
         }
+
+        /* Extract the cpuid value from various fields */
+        // The CPUID value is broken up in several entries in /proc/cpuinfo.
+        // This table is used to rebuild it from the entries.
+        static const struct CpuIdEntry {
+            const char* field;
+            char        format;
+            char        bit_lshift;
+            char        bit_length;
+        } cpu_id_entries[] = {
+            { "CPU implementer", 'x', 24, 8 },
+            { "CPU variant", 'x', 20, 4 },
+            { "CPU part", 'x', 4, 12 },
+            { "CPU revision", 'd', 0, 4 },
+        };
+        size_t i;
+        D("Parsing /proc/cpuinfo to recover CPUID\n");
+        for (i = 0;
+             i < sizeof(cpu_id_entries)/sizeof(cpu_id_entries[0]);
+             ++i) {
+            const struct CpuIdEntry* entry = &cpu_id_entries[i];
+            char* value = extract_cpuinfo_field(cpuinfo,
+                                                cpuinfo_len,
+                                                entry->field);
+            if (value == NULL)
+                continue;
+
+            D("field=%s value='%s'\n", entry->field, value);
+            char* value_end = value + strlen(value);
+            int val = 0;
+            const char* start = value;
+            const char* p;
+            if (value[0] == '0' && (value[1] == 'x' || value[1] == 'X')) {
+              start += 2;
+              p = parse_hexadecimal(start, value_end, &val);
+            } else if (entry->format == 'x')
+              p = parse_hexadecimal(value, value_end, &val);
+            else
+              p = parse_decimal(value, value_end, &val);
+
+            if (p > (const char*)start) {
+              val &= ((1 << entry->bit_length)-1);
+              val <<= entry->bit_lshift;
+              g_cpuIdArm |= (uint32_t) val;
+            }
+
+            free(value);
+        }
+
+        // Handle kernel configuration bugs that prevent the correct
+        // reporting of CPU features.
+        static const struct CpuFix {
+            uint32_t  cpuid;
+            uint64_t  or_flags;
+        } cpu_fixes[] = {
+            /* The Nexus 4 (Qualcomm Krait) kernel configuration
+             * forgets to report IDIV support. */
+            { 0x510006f2, ANDROID_CPU_ARM_FEATURE_IDIV_ARM |
+                          ANDROID_CPU_ARM_FEATURE_IDIV_THUMB2 },
+            { 0x510006f3, ANDROID_CPU_ARM_FEATURE_IDIV_ARM |
+                          ANDROID_CPU_ARM_FEATURE_IDIV_THUMB2 },
+        };
+        size_t n;
+        for (n = 0; n < sizeof(cpu_fixes)/sizeof(cpu_fixes[0]); ++n) {
+            const struct CpuFix* entry = &cpu_fixes[n];
+
+            if (g_cpuIdArm == entry->cpuid)
+                g_cpuFeatures |= entry->or_flags;
+        }
+
     }
-#endif /* __ARM_ARCH__ */
+#endif /* __arm__ */
 
 #ifdef __i386__
     int regs[4];
@@ -783,6 +881,25 @@ android_setCpu(int cpu_count, uint64_t cpu_features)
 
     return 1;
 }
+
+#ifdef __arm__
+uint32_t
+android_getCpuIdArm(void)
+{
+    pthread_once(&g_once, android_cpuInit);
+    return g_cpuIdArm;
+}
+
+int
+android_setCpuArm(int cpu_count, uint64_t cpu_features, uint32_t cpu_id)
+{
+    if (!android_setCpu(cpu_count, cpu_features))
+        return 0;
+
+    g_cpuIdArm = cpu_id;
+    return 1;
+}
+#endif  /* __arm__ */
 
 /*
  * Technical note: Making sense of ARM's FPU architecture versions.
@@ -968,3 +1085,5 @@ android_setCpu(int cpu_count, uint64_t cpu_features)
  * ARCH_NEON_FP16 (+EXT_FP16)
  *
  */
+
+#endif // defined(__le32__)

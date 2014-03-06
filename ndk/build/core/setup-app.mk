@@ -43,7 +43,7 @@ all: ndk-app-$(_app)
 TARGET_PLATFORM := $(call get,$(_map),APP_PLATFORM)
 
 # The ABI(s) to use
-NDK_APP_ABI := $(strip $(NDK_APP_ABI))
+NDK_APP_ABI := $(subst $(comma),$(space),$(strip $(NDK_APP_ABI)))
 ifndef NDK_APP_ABI
     # the default ABI for now is armeabi
     NDK_APP_ABI := armeabi
@@ -58,20 +58,25 @@ endif
 # Otherwise, check that we don't have an invalid value here.
 #
 ifeq ($(NDK_APP_ABI),all)
-    NDK_APP_ABI := $(NDK_KNOWN_ABIS)
+    NDK_APP_ABI := $(NDK_APP_ABI_ALL_EXPANDED)
 else
     # Plug in the unknown
     _unknown_abis := $(strip $(filter-out $(NDK_ALL_ABIS),$(NDK_APP_ABI)))
     ifneq ($(_unknown_abis),)
         ifeq (1,$(words $(filter-out $(NDK_KNOWN_ARCHS),$(NDK_FOUND_ARCHS))))
-            ifneq ($(filter %all,$(_unknown_abis)),)
-                _unknown_abis_prefix := $(_unknown_abis:%all=%)
-                NDK_APP_ABI := $(NDK_KNOWN_ABIS:%=$(_unknown_abis_prefix)%)
+            ifneq ($(filter %bcall,$(_unknown_abis)),)
+                 _unknown_abis_prefix := $(_unknown_abis:%bcall=%)
+                 NDK_APP_ABI := $(NDK_KNOWN_ABIS:%=$(_unknown_abis_prefix)bc%)
             else
-                $(foreach _abi,$(NDK_KNOWN_ABIS),\
-                    $(eval _unknown_abis := $(subst $(_abi),,$(_unknown_abis)))\
-                )
-                _unknown_abis_prefix := $(sort $(_unknown_abis))
+                ifneq ($(filter %all,$(_unknown_abis)),)
+                    _unknown_abis_prefix := $(_unknown_abis:%all=%)
+                    NDK_APP_ABI := $(NDK_KNOWN_ABIS:%=$(_unknown_abis_prefix)%)
+                else
+                    $(foreach _abi,$(NDK_KNOWN_ABIS),\
+                        $(eval _unknown_abis := $(subst $(_abi),,$(subst bc$(_abi),,$(_unknown_abis)))) \
+                    )
+                    _unknown_abis_prefix := $(sort $(_unknown_abis))
+                endif
             endif
             ifeq (1,$(words $(_unknown_abis_prefix)))
                 NDK_APP_ABI := $(subst $(_unknown_abis_prefix),$(filter-out $(NDK_KNOWN_ARCHS),$(NDK_FOUND_ARCHS)),$(NDK_APP_ABI))
@@ -95,11 +100,19 @@ endif
 ifeq ($(NDK_APP.$(_app).cleaned_binaries),)
     NDK_APP.$(_app).cleaned_binaries := true
     clean-installed-binaries::
-	$(hide) $(call host-rm,$(NDK_ALL_ABIS:%=$(NDK_APP_PROJECT_PATH)/libs/%/lib*$(TARGET_SONAME_EXTENSION)))
-	$(hide) $(call host-rm,$(NDK_ALL_ABIS:%=$(NDK_APP_PROJECT_PATH)/libs/%/gdbserver))
-	$(hide) $(call host-rm,$(NDK_ALL_ABIS:%=$(NDK_APP_PROJECT_PATH)/libs/%/gdb.setup))
+	$(hide) $(call host-rm,$(NDK_ALL_ABIS:%=$(NDK_APP_LIBS_OUT)/%/lib*$(TARGET_SONAME_EXTENSION)))
+	$(hide) $(call host-rm,$(NDK_ALL_ABIS:%=$(NDK_APP_LIBS_OUT)/%/gdbserver))
+	$(hide) $(call host-rm,$(NDK_ALL_ABIS:%=$(NDK_APP_LIBS_OUT)/%/gdb.setup))
 endif
 
+# Renderscript
+
+RENDERSCRIPT_TOOLCHAIN_ROOT   := $(NDK_ROOT)/toolchains/renderscript
+RENDERSCRIPT_TOOLCHAIN_PREBUILT_ROOT := $(call host-prebuilt-tag,$(RENDERSCRIPT_TOOLCHAIN_ROOT))
+RENDERSCRIPT_TOOLCHAIN_PREFIX := $(RENDERSCRIPT_TOOLCHAIN_PREBUILT_ROOT)/bin/
+RENDERSCRIPT_TOOLCHAIN_HEADER := $(RENDERSCRIPT_TOOLCHAIN_PREBUILT_ROOT)/lib/clang/3.3/include
+
+# Each ABI
 $(foreach _abi,$(NDK_APP_ABI),\
     $(eval TARGET_ARCH_ABI := $(_abi))\
     $(eval include $(BUILD_SYSTEM)/setup-abi.mk) \

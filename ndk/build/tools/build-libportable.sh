@@ -62,6 +62,13 @@ register_var_option "--no-makefile" NO_MAKEFILE "Do not use makefile to speed-up
 VISIBLE_LIBPORTABLE_STATIC=
 register_var_option "--visible-libportable-static" VISIBLE_LIBPORTABLE_STATIC "Do not use hidden visibility for libportable.a"
 
+GCC_VERSION=$DEFAULT_GCC_VERSION
+register_var_option "--gcc-version=<ver>" GCC_VERSION "Specify GCC version"
+
+LLVM_VERSION=
+register_var_option "--llvm-version=<ver>" LLVM_VERSION "Specify LLVM version"
+
+
 register_jobs_option
 
 extract_parameters "$@"
@@ -89,10 +96,11 @@ fail_panic "Could not create build directory: $BUILD_DIR"
 
 # Location of the libportable source tree base
 LIBPORTABLE_SRCDIR_BASE=$ANDROID_NDK_ROOT/../development/ndk/$LIBPORTABLE_SUBDIR
+CPUFEATURE_SRCDIR=$ANDROID_NDK_ROOT/sources/android/cpufeatures
 
 # Compiler flags we want to use
-LIBPORTABLE_CFLAGS="-fPIC -O2 -DANDROID -D__ANDROID__" # ToDo: -ffunction-sections -fdata-sections
-LIBPORTABLE_CFLAGS=$LIBPORTABLE_CFLAGS" -I$LIBPORTABLE_SRCDIR_BASE/common/include -D__HOST__"
+LIBPORTABLE_CFLAGS="-fPIC -O2 -DANDROID -D__ANDROID__ -ffunction-sections"
+LIBPORTABLE_CFLAGS=$LIBPORTABLE_CFLAGS" -I$LIBPORTABLE_SRCDIR_BASE/common/include -I$CPUFEATURE_SRCDIR -D__HOST__"
 LIBPORTABLE_CXXFLAGS="-fno-exceptions -fno-rtti"
 LIBPORTABLE_LDFLAGS=""
 
@@ -127,19 +135,22 @@ build_libportable_libs_for_abi ()
 
     mkdir -p "$DSTDIR"
 
-    builder_begin_android $ABI "$BUILDDIR" "$LLVM_VERSION" "$MAKEFILE"
+    builder_begin_android $ABI "$BUILDDIR" "$GCC_VERSION" "$LLVM_VERSION" "$MAKEFILE"
     builder_set_srcdir "$LIBPORTABLE_SRCDIR"
     builder_set_dstdir "$DSTDIR"
 
     if [ -z "$VISIBLE_LIBLIBPORTABLE_STATIC" ]; then
         # No -fvisibility-inlines-hidden because it is for C++, and there is
         # no C++ code in libportable
-        builder_cflags "$LIBPORTABLE_CFLAGS -fvisibility=hidden"
+        builder_cflags "$LIBPORTABLE_CFLAGS" # ToDo: -fvisibility=hidden
     else
         builder_cflags "$LIBPORTABLE_CFLAGS"
     fi
     builder_ldflags "$LIBPORTABLE_LDFLAGS"
     builder_sources $LIBPORTABLE_SOURCES
+
+    builder_set_srcdir "$CPUFEATURE_SRCDIR"
+    builder_sources $CPUFEATURE_SOURCES
 
     log "Building $DSTDIR/libportable.a"
     builder_static_library libportable
@@ -150,8 +161,9 @@ build_libportable_libs_for_abi ()
   #
   #    g++ -Wl,@/path/to/libportable.wrap
   #
-    nm -a $DSTDIR/libportable.a | grep -r __wrap_ | awk '{print $3}' | sed '/^$/d' | \
-        sed 's/^__wrap_//g' | sort | awk '{printf "--wrap=%s\n",$1}' > "$DSTDIR/libportable.wrap"
+    nm -a $DSTDIR/libportable.a | grep __wrap_ | awk '{print $3}' | sed '/^$/d' | \
+        sed 's/_wrap_/|/' | awk -F'|' '{print $2}' | sort | uniq | \
+        awk '{printf "--wrap=%s\n",$1}' > "$DSTDIR/libportable.wrap"
 }
 
 for ABI in $ABIS; do
@@ -159,7 +171,8 @@ for ABI in $ABIS; do
     ARCH=$(convert_abi_to_arch $ABI)
     LIBPORTABLE_SRCDIR=$LIBPORTABLE_SRCDIR_BASE/arch-$ARCH
     LIBPORTABLE_SOURCES=$(cd $LIBPORTABLE_SRCDIR && ls *.[cS])
-    build_libportable_libs_for_abi $ABI "$BUILD_DIR/$ABI"
+    CPUFEATURE_SOURCES=$(cd $CPUFEATURE_SRCDIR && ls *.[cS])
+    build_libportable_libs_for_abi $ABI "$BUILD_DIR/$ABI" "$OUT_DIR"
 done
 
 # If needed, package files into tarballs

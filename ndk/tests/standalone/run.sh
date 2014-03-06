@@ -31,7 +31,7 @@
 PROGNAME=$(basename "$0")
 PROGDIR=$(dirname "$0")
 NDK_ROOT=$(cd "$PROGDIR/../.." && pwd)
-. $NDK_ROOT/build/core/ndk-common.sh
+. $NDK_ROOT/build/tools/ndk-common.sh
 
 panic () {
     echo "ERROR: $@" >&2; exit 1
@@ -102,7 +102,7 @@ if [ "$HELP" ]; then
     echo "option, or by defining PREFIX in your environment before calling this script."
     echo "For example:"
     echo ""
-    echo "  $PROGNAME --prefix=\$NDK/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi"
+    echo "  $PROGNAME --prefix=\$NDK/toolchains/arm-linux-androideabi-4.6/prebuilt/linux-x86/bin/arm-linux-androideabi"
     echo ""
     echo "The prefix can also be the full-path to the \$TARGET-gcc or \$TARGET-g++ program "
     echo ""

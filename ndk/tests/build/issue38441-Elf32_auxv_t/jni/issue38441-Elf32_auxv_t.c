@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include <stdint.h>
 #include <elf.h>
 
 Elf32_auxv_t auxv32;

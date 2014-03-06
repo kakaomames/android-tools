@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python
 
 r'''
  Copyright (C) 2010 The Android Open Source Project
@@ -28,9 +28,9 @@ r'''
   adb install && <start-application-on-device>
 '''
 
-import sys, os, argparse, subprocess, types
+import sys, os, platform, argparse, subprocess, types
 import xml.etree.cElementTree as ElementTree
-import shutil
+import shutil, time
 from threading import Thread
 try:
     from Queue import Queue, Empty
@@ -39,7 +39,7 @@ except ImportError:
 
 def find_program(program, extra_paths = []):
     ''' extra_paths are searched before PATH '''
-    PATHS = extra_paths+os.environ['PATH'].split(os.pathsep)
+    PATHS = extra_paths+os.environ['PATH'].replace('"','').split(os.pathsep)
     exts = ['']
     if sys.platform.startswith('win'):
         exts += ['.exe', '.bat', '.cmd']
@@ -51,21 +51,48 @@ def find_program(program, extra_paths = []):
                     return True, full
     return False, None
 
-# Return the prebuilt bin path for the host os.
 def ndk_bin_path(ndk):
-    if sys.platform.startswith('linux'):
-        return ndk+os.sep+'prebuilt/linux-x86/bin'
-    elif sys.platform.startswith('darwin'):
-        return ndk+os.sep+'prebuilt/darwin-x86/bin'
-    elif sys.platform.startswith('win'):
-        return ndk+os.sep+'prebuilt/windows/bin'
-    return ndk+os.sep+'prebuilt/UNKNOWN/bin'
+    '''
+    Return the prebuilt bin path for the host OS.
+
+    If Python executable is the NDK-prebuilt one (it should be)
+    then use the location of the executable as the first guess.
+    We take the grand-parent foldername and then ensure that it
+    starts with one of 'linux', 'darwin' or 'windows'.
+
+    If this is not the case, then we're using some other Python
+    and fall-back to using platform.platform() and sys.maxsize.
+    '''
+
+    try:
+        ndk_host = os.path.basename(
+                    os.path.dirname(
+                     os.path.dirname(sys.executable)))
+    except:
+        ndk_host = ''
+    # NDK-prebuilt Python?
+    if (not ndk_host.startswith('linux') and
+        not ndk_host.startswith('darwin') and
+        not ndk_host.startswith('windows')):
+        is64bit = True if sys.maxsize > 2**32 else False
+        if platform.platform().startswith('Linux'):
+            ndk_host = 'linux%s' % ('-x86_64' if is64bit else '-x86')
+        elif platform.platform().startswith('Darwin'):
+            ndk_host = 'darwin%s' % ('-x86_64' if is64bit else '-x86')
+        elif platform.platform().startswith('Windows'):
+            ndk_host = 'windows%s' % ('-x86_64' if is64bit else '')
+        else:
+            ndk_host = 'UNKNOWN'
+    return ndk+os.sep+'prebuilt'+os.sep+ndk_host+os.sep+'bin'
 
 VERBOSE = False
 PROJECT = None
-PYTHON_CMD = None
 ADB_CMD = None
 GNUMAKE_CMD = None
+JDB_CMD = None
+# Extra arguments passed to the NDK build system when
+# querying it.
+GNUMAKE_FLAGS = []
 
 OPTION_FORCE = None
 OPTION_EXEC = None
@@ -73,9 +100,14 @@ OPTION_START = None
 OPTION_LAUNCH = None
 OPTION_LAUNCH_LIST = None
 OPTION_TUI = None
+OPTION_WAIT = ['-D']
+OPTION_STDCXXPYPR = None
 
+PYPRPR_BASE = sys.prefix + '/share/pretty-printers/'
+PYPRPR_GNUSTDCXX_BASE = PYPRPR_BASE + 'libstdcxx/'
 
 DEBUG_PORT = 5039
+JDB_PORT = 65534
 
 # Name of the manifest file
 MANIFEST = 'AndroidManifest.xml'
@@ -85,7 +117,7 @@ MANIFEST = 'AndroidManifest.xml'
 # started, and sometimes this takes a few seconds.
 #
 DELAY = 2.0
-NDK = os.path.abspath(os.path.dirname(sys.argv[0]))
+NDK = os.path.abspath(os.path.dirname(sys.argv[0])).replace('\\','/')
 DEVICE_SERIAL = ''
 ADB_FLAGS = ''
 
@@ -100,14 +132,19 @@ def error(string, errcode=1):
 
 def handle_args():
     global VERBOSE, DEBUG_PORT, DELAY, DEVICE_SERIAL
-    global PYTHON_CMD, GNUMAKE_CMD, ADB_CMD, ADB_FLAGS
+    global GNUMAKE_CMD, GNUMAKE_FLAGS
+    global ADB_CMD, ADB_FLAGS
+    global JDB_CMD
     global PROJECT, NDK
     global OPTION_START, OPTION_LAUNCH, OPTION_LAUNCH_LIST
-    global OPTION_FORCE, OPTION_EXEC, OPTION_TUI
+    global OPTION_FORCE, OPTION_EXEC, OPTION_TUI, OPTION_WAIT
+    global OPTION_STDCXXPYPR
+    global PYPRPR_GNUSTDCXX_BASE
 
     parser = argparse.ArgumentParser(description='''
-    Setup a gdb debugging session for your Android NDK application.
-    Read ''' + NDK + '''/docs/NDK-GDB.html for complete usage instructions.''')
+Setup a gdb debugging session for your Android NDK application.
+Read ''' + NDK + '''/docs/NDK-GDB.html for complete usage instructions.''',
+    formatter_class=argparse.RawTextHelpFormatter)
 
     parser.add_argument( '--verbose',
                          help='Enable verbose mode', action='store_true', dest='verbose')
@@ -170,14 +207,34 @@ def handle_args():
                          help='Use tui mode',
                          action='store_true', dest='tui')
 
+    parser.add_argument( '--gnumake-flag',
+                         help='Flag to pass to gnumake, e.g. NDK_TOOLCHAIN_VERSION=4.8',
+                         action='append', dest='gnumake_flags')
+
+    parser.add_argument( '--nowait',
+                         help='Do not wait for debugger to attach (may miss early JNI breakpoints)',
+                         action='store_true', dest='nowait')
+
+    if os.path.isdir(PYPRPR_GNUSTDCXX_BASE):
+        stdcxx_pypr_versions = [ 'gnustdcxx'+d.replace('gcc','')
+                                 for d in os.listdir(PYPRPR_GNUSTDCXX_BASE)
+                                 if os.path.isdir(os.path.join(PYPRPR_GNUSTDCXX_BASE, d)) ]
+    else:
+        stdcxx_pypr_versions = []
+
+    parser.add_argument( '--stdcxx-py-pr',
+                         help='Specify stdcxx python pretty-printer',
+                         choices=['auto', 'none', 'gnustdcxx'] + stdcxx_pypr_versions + ['stlport'],
+                         default='none', dest='stdcxxpypr')
+
     args = parser.parse_args()
 
     VERBOSE = args.verbose
 
     ndk_bin = ndk_bin_path(NDK)
-    (found_python,  PYTHON_CMD)  = find_program('python', [ndk_bin])
     (found_adb,     ADB_CMD)     = find_program('adb',    [ndk_bin])
     (found_gnumake, GNUMAKE_CMD) = find_program('make',   [ndk_bin])
+    (found_jdb,     JDB_CMD)     = find_program('jdb',    [])
 
     if not found_gnumake:
         error('Failed to find GNU make')
@@ -231,15 +288,25 @@ def handle_args():
     if args.delay != None:
         DELAY = args.delay
 
+    if args.gnumake_flags != None:
+        GNUMAKE_FLAGS = args.gnumake_flags
+
+    if args.nowait == True:
+        OPTION_WAIT = []
+    elif not found_jdb:
+        error('Failed to find jdb.\n..you can use --nowait to disable jdb\n..but may miss early breakpoints.')
+
+    OPTION_STDCXXPYPR = args.stdcxxpypr
+
 def get_build_var(var):
-    global GNUMAKE_CMD, NDK, PROJECT
+    global GNUMAKE_CMD, GNUMAKE_FLAGS, NDK, PROJECT
     text = subprocess.check_output([GNUMAKE_CMD,
                                   '--no-print-dir',
                                   '-f',
                                   NDK+'/build/core/build-local.mk',
                                   '-C',
                                   PROJECT,
-                                  'DUMP_'+var]
+                                  'DUMP_'+var] + GNUMAKE_FLAGS
                                   )
     # replace('\r', '') due to Windows crlf (\r\n)
     #  ...universal_newlines=True causes bytes to be returned
@@ -247,7 +314,7 @@ def get_build_var(var):
     return text.decode('ascii').replace('\r', '').splitlines()[0]
 
 def get_build_var_for_abi(var, abi):
-    global GNUMAKE_CMD, NDK, PROJECT
+    global GNUMAKE_CMD, GNUMAKE_FLAGS, NDK, PROJECT
     text = subprocess.check_output([GNUMAKE_CMD,
                                    '--no-print-dir',
                                    '-f',
@@ -255,7 +322,7 @@ def get_build_var_for_abi(var, abi):
                                    '-C',
                                    PROJECT,
                                    'DUMP_'+var,
-                                   'APP_ABI='+abi],
+                                   'APP_ABI='+abi] + GNUMAKE_FLAGS,
                                    )
     return text.decode('ascii').replace('\r', '').splitlines()[0]
 
@@ -264,23 +331,41 @@ def output_gdbserver(text):
     if not OPTION_TUI or OPTION_TUI != 'running':
         print(text)
 
-def background_spawn(args, redirect_stderr, output_fn):
+# Likewise, silent in tui mode (also prepends 'JDB :: ')
+def output_jdb(text):
+    if not OPTION_TUI or OPTION_TUI != 'running':
+        print('JDB :: %s' % text)
 
-    def async_stdout(out, queue, output_fn):
-        for line in iter(out.readline, b''):
-            output_fn(line.replace('\r', '').replace('\n', ''))
-        out.close()
+def input_jdb(inhandle):
+    while True:
+        inhandle.write('\n')
+        time.sleep(1.0)
 
-    def async_stderr(out, queue, output_fn):
-        for line in iter(out.readline, b''):
+def background_spawn(args, redirect_stderr, output_fn, redirect_stdin = None, input_fn = None):
+
+    def async_stdout(outhandle, queue, output_fn):
+        for line in iter(outhandle.readline, b''):
             output_fn(line.replace('\r', '').replace('\n', ''))
-        out.close()
+        outhandle.close()
+
+    def async_stderr(outhandle, queue, output_fn):
+        for line in iter(outhandle.readline, b''):
+            output_fn(line.replace('\r', '').replace('\n', ''))
+        outhandle.close()
+
+    def async_stdin(inhandle, queue, input_fn):
+        input_fn(inhandle)
+        inhandle.close()
 
     if redirect_stderr:
         used_stderr = subprocess.PIPE
     else:
         used_stderr = subprocess.STDOUT
-    p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=used_stderr,
+    if redirect_stdin:
+        used_stdin = subprocess.PIPE
+    else:
+        used_stdin = None
+    p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=used_stderr, stdin=used_stdin,
                          bufsize=1, close_fds='posix' in sys.builtin_module_names)
     qo = Queue()
     to = Thread(target=async_stdout, args=(p.stdout, qo, output_fn))
@@ -290,6 +375,10 @@ def background_spawn(args, redirect_stderr, output_fn):
         te = Thread(target=async_stderr, args=(p.stderr, qo, output_fn))
         te.daemon = True
         te.start()
+    if redirect_stdin:
+        ti = Thread(target=async_stdin, args=(p.stdin, qo, input_fn))
+        ti.daemon = True
+        ti.start()
 
 def adb_cmd(redirect_stderr, args, log_command=False, adb_trace=False, background=False):
     global ADB_CMD, ADB_FLAGS, DEVICE_SERIAL
@@ -435,8 +524,11 @@ def extract_launchable(xmlfile):
 
 def main():
     global ADB_CMD, NDK, PROJECT
+    global JDB_CMD
     global OPTION_START, OPTION_LAUNCH, OPTION_LAUNCH_LIST
-    global OPTION_FORCE, OPTION_EXEC, OPTION_TUI
+    global OPTION_FORCE, OPTION_EXEC, OPTION_TUI, OPTION_WAIT
+    global OPTION_STDCXXPYPR
+    global PYPRPR_BASE, PYPRPR_GNUSTDCXX_BASE
 
     if NDK.find(' ')!=-1:
         error('NDK path cannot contain space')
@@ -451,7 +543,6 @@ def main():
         log('Using ADB flags: %s' % (ADB_FLAGS))
     else:
         log('Using ADB flags: %s "%s"' % (ADB_FLAGS,DEVICE_SERIAL))
-
     if PROJECT != None:
         log('Using specified project path: %s' % (PROJECT))
         if not os.path.isdir(PROJECT):
@@ -481,7 +572,7 @@ def main():
     if PACKAGE_NAME is None:
         PACKAGE_NAME = '<none>'
     log('Found package name: %s' % (PACKAGE_NAME))
-    if PACKAGE_NAME is '<none>':
+    if PACKAGE_NAME == '<none>':
         error('''Could not extract package name from %s.
        Please check that the file is well-formed!''' % (PROJECT+os.sep+MANIFEST))
     if OPTION_LAUNCH_LIST:
@@ -588,10 +679,10 @@ After one of these, re-install to the device!''' % (PACKAGE_NAME))
             error('''It seems that your Application does not have any launchable activity!
        Please fix your manifest file and rebuild/re-install your application.''')
 
-    if len(OPTION_LAUNCH):
+    if OPTION_LAUNCH:
         log('Launching activity: %s/%s' % (PACKAGE_NAME,OPTION_LAUNCH[0]))
         retcode,LAUNCH_OUTPUT=adb_cmd(True,
-                                      ['shell', 'am', 'start', '-n', '%s/%s' % (PACKAGE_NAME,OPTION_LAUNCH[0])],
+                                      ['shell', 'am', 'start'] + OPTION_WAIT + ['-n', '%s/%s' % (PACKAGE_NAME,OPTION_LAUNCH[0])],
                                       log_command=True)
         if retcode:
             error('''Could not launch specified activity: %s
@@ -606,7 +697,7 @@ After one of these, re-install to the device!''' % (PACKAGE_NAME))
     retcode,PID = get_pid_of(PACKAGE_NAME)
     log('Found running PID: %d' % (PID))
     if retcode or PID == 0:
-        if len(OPTION_LAUNCH):
+        if OPTION_LAUNCH:
             error('''Could not extract PID of application on device/emulator.
        Weird, this probably means one of these:
 
@@ -632,7 +723,7 @@ After one of these, re-install to the device!''' % (PACKAGE_NAME))
     adb_cmd(False,
             ['shell', 'run-as', PACKAGE_NAME, 'lib/gdbserver', '+%s' % (DEBUG_SOCKET), '--attach', str(PID)],
             log_command=True, adb_trace=True, background=True)
-    log('Launched gdbserver succesfully')
+    log('Launched gdbserver succesfully.')
 
 # Make sure gdbserver was launched - debug check.
 #    adb_var_shell(['sleep', '0.1'], log_command=False)
@@ -661,6 +752,44 @@ After one of these, re-install to the device!''' % (PACKAGE_NAME))
     adb_cmd(False, ['pull', '/system/lib/libc.so', '%s/libc.so' % (APP_OUT)], log_command=True)
     log('Pulled libc.so from device/emulator.')
 
+    # Setup JDB connection, for --start or --launch
+    if (OPTION_START != None or OPTION_LAUNCH != None) and len(OPTION_WAIT):
+        log('Set up JDB connection, using jdb command: %s' % JDB_CMD)
+        retcode,_ = adb_cmd(False,
+                            ['forward', 'tcp:%d' % (JDB_PORT), 'jdwp:%d' % (PID)],
+                            log_command=True)
+        time.sleep(1.0)
+        if retcode:
+            error('Could not forward JDB port')
+        background_spawn([JDB_CMD,'-connect','com.sun.jdi.SocketAttach:hostname=localhost,port=%d' % (JDB_PORT)], True, output_jdb, True, input_jdb)
+        time.sleep(1.0)
+
+    # Work out the python pretty printer details.
+    pypr_folder = None
+    pypr_function = None
+
+    # Automatic determination of pypr.
+    if OPTION_STDCXXPYPR == 'auto':
+        libdir = os.path.join(PROJECT,'libs',COMPAT_ABI)
+        libs = [ f for f in os.listdir(libdir)
+                 if os.path.isfile(os.path.join(libdir, f)) and f.endswith('.so') ]
+        if 'libstlport_shared.so' in libs:
+            OPTION_STDCXXPYPR = 'stlport'
+        elif 'libgnustl_shared.so' in libs:
+            OPTION_STDCXXPYPR = 'gnustdcxx'
+
+    if OPTION_STDCXXPYPR == 'stlport':
+        pypr_folder = PYPRPR_BASE + 'stlport/gppfs-0.2/stlport'
+        pypr_function = 'register_stlport_printers'
+    elif OPTION_STDCXXPYPR.startswith('gnustdcxx'):
+        if OPTION_STDCXXPYPR == 'gnustdcxx':
+            NDK_TOOLCHAIN_VERSION = get_build_var_for_abi('NDK_TOOLCHAIN_VERSION', COMPAT_ABI)
+            log('Using toolchain version: %s' % (NDK_TOOLCHAIN_VERSION))
+            pypr_folder = PYPRPR_GNUSTDCXX_BASE + 'gcc-' + NDK_TOOLCHAIN_VERSION
+        else:
+            pypr_folder = PYPRPR_GNUSTDCXX_BASE + OPTION_STDCXXPYPR.replace('gnustdcxx-','gcc-')
+        pypr_function = 'register_libstdcxx_printers'
+
     # Now launch the appropriate gdb client with the right init commands
     #
     GDBCLIENT = '%sgdb' % (TOOLCHAIN_PREFIX)
@@ -668,12 +797,22 @@ After one of these, re-install to the device!''' % (PACKAGE_NAME))
     shutil.copyfile(GDBSETUP_INIT, GDBSETUP)
     with open(GDBSETUP, "a") as gdbsetup:
         #uncomment the following to debug the remote connection only
-        #echo "set debug remote 1" >> $GDBSETUP
+        #gdbsetup.write('set debug remote 1\n')
         gdbsetup.write('file '+APP_PROCESS+'\n')
         gdbsetup.write('target remote :%d\n' % (DEBUG_PORT))
+        gdbsetup.write('set breakpoint pending on\n')
+
+        if pypr_function:
+            gdbsetup.write('python\n')
+            gdbsetup.write('import sys\n')
+            gdbsetup.write('sys.path.append("%s")\n' % pypr_folder)
+            gdbsetup.write('from printers import %s\n' % pypr_function)
+            gdbsetup.write('%s(None)\n' % pypr_function)
+            gdbsetup.write('end\n')
+
         if OPTION_EXEC:
             with open(OPTION_EXEC, 'r') as execfile:
-                for line in execfile.readline():
+                for line in execfile:
                     gdbsetup.write(line)
     gdbsetup.close()
 
@@ -686,7 +825,13 @@ After one of these, re-install to the device!''' % (PACKAGE_NAME))
             OPTION_TUI = 'running'
         except:
             print('Warning: Disabled tui mode as %s does not support it' % (os.path.basename(GDBCLIENT)))
-    subprocess.call(gdbargs)
+    gdbp = subprocess.Popen(gdbargs)
+    while gdbp.returncode is None:
+        try:
+            gdbp.communicate()
+        except KeyboardInterrupt:
+            pass
+    log("Exited gdb, returncode %d" % gdbp.returncode)
 
 if __name__ == '__main__':
     main()

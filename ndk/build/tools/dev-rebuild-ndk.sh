@@ -44,6 +44,23 @@ register_var_option "--quick" OPTION_QUICK_BUILD "Only build the Linux basics"
 OPTION_TOOLCHAINS="$DEFAULT_ARCH_TOOLCHAIN_NAME_arm,$DEFAULT_ARCH_TOOLCHAIN_NAME_x86,$DEFAULT_ARCH_TOOLCHAIN_NAME_mips"
 register_var_option "--toolchains=<toolchain[,toolchain]>" OPTION_TOOLCHAINS "Toolchain(s) to package"
 
+OPTION_TRY_64=
+register_try64_option
+
+OPTION_ALSO_64=
+register_option "--also-64" do_ALSO_64 "Also build 64-bit host toolchain"
+do_ALSO_64 () { OPTION_ALSO_64=" --also-64"; }
+
+OPTION_SEPARATE_64=
+register_option "--separate-64" do_SEPARATE_64 "Separate 64-bit host toolchain to its own package"
+do_SEPARATE_64 ()
+{
+    if [ "$TRY64" = "yes" ]; then
+        echo "ERROR: You cannot use both --try-64 and --separate-64 at the same time."
+        exit 1
+    fi
+    OPTION_SEPARATE_64=" --separate-64";
+}
 # # Name of the Mac OS Build host
 # MAC_BUILD_HOST="macdroid"
 # register_var_option "--mac-host=<name>" MAC_BUILD_HOST "Hostname of the Mac OS X system"
@@ -53,6 +70,10 @@ PROGRAM_DESCRIPTION=\
 "Generate the NDK toolchain package."
 
 extract_parameters "$@"
+
+if [ "$TRY64" = "yes" ]; then
+    OPTION_TRY_64=" --try-64"
+fi
 
 TOP=$PWD
 TODAY=`date '+%Y%m%d'`
@@ -129,43 +150,20 @@ else
 fi
 
 
-ARCHS="arm x86 mips"
-for ARCH in $ARCHS
-do
-    # Set the Arch specific variables
-    case "$ARCH" in
-    arm )
-        PRODUCT=generic
-
-        unset MPFR_VERSION
-        unset GDB_VERSION
-        unset BINUTILS_VERSION
-        ;;
-    x86|mips )
-        PRODUCT=generic_$ARCH
-        ;;
-    esac
-
-
-    # Ensure we have a Product output for the NDK build
-    export ANDROID_PRODUCT_OUT=$TOP/out/target/product/$PRODUCT
-    if [ ! -d $ANDROID_PRODUCT_OUT ]; then
-        echo >&2 Rebuild for $PRODUCT first... or change PRODUCT in $0.
-        exit 1
-    fi
-done # with ARCH
+ARCHS=$(find_ndk_unknown_archs)
+ARCHS="$DEFAULT_ARCHS $ARCHS"
 
 # Build the platform
 echo
 echo "Build the ndk/platforms directory"
-logfile="$TOP/build-platforms.log"
+logfile="$TOP/gen-platforms.log"
 rotate_log $logfile
 $PROGDIR/gen-platforms.sh \
     $VERBOSE \
     --arch=$(spaces_to_commas $ARCHS)  \
     --minimal \
     --fast-copy > $logfile 2>&1
-fail_panic "build-platforms.sh failed. Logfile in $logfile"
+fail_panic "gen-platforms.sh failed. Logfile in $logfile"
 
 logfile="$TOP/rebuild-all.log"
 rotate_log $logfile
@@ -204,6 +202,8 @@ do
         $MPFR_VERSION $GDB_VERSION $BINUTILS_VERSION \
         $TARGET_PLATFORM_FLAGS \
         $VERBOSE \
+        $OPTION_TRY_64 \
+        $OPTION_ALSO_64 \
         $NDK_SRC_DIR >> $logfile 2>&1
     fail_panic "rebuild-all-prebuilt.sh failed. Logfile in $logfile"
 done # with TARGET_PLATFORM
@@ -221,6 +221,8 @@ $PROGDIR/package-release.sh \
     --out-dir=$PACKAGE_DIR \
     --arch=$(spaces_to_commas $ARCHS)  \
     --prefix=android-ndk-${OPTION_NDK_RELEASE} \
+    $OPTION_TRY_64 \
+    $OPTION_SEPARATE_64 \
     --no-git \
     $VERBOSE > $logfile 2>&1
 fail_panic "package-release.sh failed. Logfile in $logfile"

@@ -54,7 +54,8 @@ extract_platforms_from ()
 SRCDIR="../development/ndk"
 DSTDIR="$ANDROID_NDK_ROOT"
 
-ARCHS="$DEFAULT_ARCHS"
+ARCHS=$(find_ndk_unknown_archs)
+ARCHS="$DEFAULT_ARCHS $ARCHS"
 PLATFORMS=`extract_platforms_from "$SRCDIR"`
 NDK_DIR=$ANDROID_NDK_ROOT
 
@@ -69,6 +70,8 @@ OPTION_ARCH=
 OPTION_ABI=
 OPTION_DEBUG_LIBS=
 OPTION_OVERLAY=
+OPTION_GCC_VERSION=$DEFAULT_GCC_VERSION
+OPTION_LLVM_VERSION=$DEFAULT_LLVM_VERSION
 PACKAGE_DIR=
 
 VERBOSE=no
@@ -121,6 +124,12 @@ for opt do
     ;;
   --overlay)
     OPTION_OVERLAY=true
+    ;;
+  --gcc-version=*)
+    OPTION_GCC_VERSION=$optarg
+    ;;
+  --llvm-version=*)
+    OPTION_LLVM_VERSION=$optarg
     ;;
   *)
     echo "unknown option '$opt', use --help"
@@ -350,18 +359,46 @@ remove_unwanted_variable_symbols ()
   remove_unwanted_symbols_from $SYMBOL_FILE "$@"
 }
 
+# $1: Architecture
+# Out: compiler command
+get_default_compiler_for_arch()
+{
+    local ARCH=$1
+    local TOOLCHAIN_PREFIX EXTRA_CFLAGS CC
+
+    if [ "$ARCH" = "${ARCH%%64*}" -a "$(arch_in_unknown_archs $ARCH)" = "yes" ]; then
+        TOOLCHAIN_PREFIX="$NDK_DIR/$(get_llvm_toolchain_binprefix $OPTION_LLVM_VERSION)"
+        CC="$TOOLCHAIN_PREFIX/clang"
+        EXTRA_CFLAGS="-emit-llvm -target le32-none-ndk"
+    else
+        TOOLCHAIN_PREFIX="$NDK_DIR/$(get_toolchain_binprefix_for_arch $ARCH $OPTION_GCC_VERSION)"
+        TOOLCHAIN_PREFIX=${TOOLCHAIN_PREFIX%-}
+        CC="$TOOLCHAIN_PREFIX-gcc"
+        EXTRA_CFLAGS=
+    fi
+
+    if [ ! -f "$CC" ]; then
+        dump "ERROR: $ARCH toolchain not installed: $CC"
+        dump "Important: Use the --minimal flag to use this script without generated system shared libraries."
+        dump "This is generally useful when you want to generate the host cross-toolchain programs."
+        exit 1
+    fi
+    echo "$CC $EXTRA_CFLAGS"
+}
+
 # $1: library name
 # $2: functions list
 # $3: variables list
 # $4: destination file
-# $5: toolchain binprefix
+# $5: compiler command
 gen_shared_lib ()
 {
     local LIBRARY=$1
     local FUNCS="$2"
     local VARS="$3"
     local DSTFILE="$4"
-    local BINPREFIX="$5"
+    local CC="$5"
+
     # Now generate a small C source file that contains similarly-named stubs
     echo "/* Auto-generated file, do not edit */" > $TMPC
     local func var
@@ -374,7 +411,7 @@ gen_shared_lib ()
 
     # Build it with our cross-compiler. It will complain about conflicting
     # types for built-in functions, so just shut it up.
-    COMMAND="$BINPREFIX-gcc -Wl,-shared,-Bsymbolic -nostdlib -o $TMPO $TMPC"
+    COMMAND="$CC -Wl,-shared,-Bsymbolic -Wl,-soname,$LIBRARY -nostdlib -o $TMPO $TMPC"
     echo "## COMMAND: $COMMAND" > $TMPL
     $COMMAND 1>>$TMPL 2>&1
     if [ $? != 0 ] ; then
@@ -403,23 +440,17 @@ gen_shared_lib ()
 # $1: Architecture
 # $2: symbol source directory (relative to $SRCDIR)
 # $3: destination directory for generated libs (relative to $DSTDIR)
+# $4: compiler flags (optional)
 gen_shared_libraries ()
 {
     local ARCH=$1
     local SYMDIR="$SRCDIR/$2"
-    local SYSROOT="$3"
-    local DSTDIR="$DSTDIR/$SYSROOT/usr/lib"
-    local TOOLCHAIN_PREFIX funcs vars numfuncs numvars
+    local DSTDIR="$DSTDIR/$3"
+    local FLAGS="$4"
+    local CC funcs vars numfuncs numvars
 
     # Let's locate the toolchain we're going to use
-    local TOOLCHAIN_PREFIX="$NDK_DIR/$(get_default_toolchain_binprefix_for_arch $1)"
-    TOOLCHAIN_PREFIX=${TOOLCHAIN_PREFIX%-}
-    if [ ! -f "$TOOLCHAIN_PREFIX-gcc" ]; then
-        dump "ERROR: $ARCH toolchain not installed: $TOOLCHAIN_PREFIX-gcc"
-        dump "Important: Use the --minimal flag to use this script without generated system shared libraries."
-        dump "This is generally useful when you want to generate the host cross-toolchain programs."
-        exit 1
-    fi
+    CC=$(get_default_compiler_for_arch $ARCH)" $FLAGS"
 
     # In certain cases, the symbols directory doesn't exist,
     # e.g. on x86 for PLATFORM < 9
@@ -440,7 +471,7 @@ gen_shared_libraries ()
         numvars=$(echo $vars | wc -w)
         log "Generating $ARCH shared library for $LIB ($numfuncs functions + $numvars variables)"
 
-        gen_shared_lib $LIB "$funcs" "$vars" "$DSTDIR/$LIB" "$TOOLCHAIN_PREFIX"
+        gen_shared_lib $LIB "$funcs" "$vars" "$DSTDIR/$LIB" "$CC"
     done
 }
 
@@ -449,6 +480,7 @@ gen_shared_libraries ()
 # $3: common source directory (for crtbrand.c, etc)
 # $4: source directory (for *.S files)
 # $5: destination directory
+# $6: flags for compiler (optional)
 gen_crt_objects ()
 {
     local API=$1
@@ -456,26 +488,20 @@ gen_crt_objects ()
     local COMMON_SRC_DIR="$SRCDIR/$3"
     local SRC_DIR="$SRCDIR/$4"
     local DST_DIR="$DSTDIR/$5"
+    local FLAGS="$6"
     local SRC_FILE DST_FILE
-    local TOOLCHAIN_PREFIX
+    local CC
 
     if [ ! -d "$SRC_DIR" ]; then
         return
     fi
 
     # Let's locate the toolchain we're going to use
-    local TOOLCHAIN_PREFIX="$NDK_DIR/$(get_default_toolchain_binprefix_for_arch $ARCH)"
-    TOOLCHAIN_PREFIX=${TOOLCHAIN_PREFIX%-}
-    if [ ! -f "$TOOLCHAIN_PREFIX-gcc" ]; then
-        dump "ERROR: $ARCH toolchain not installed: $TOOLCHAIN_PREFIX-gcc"
-        dump "Important: Use the --minimal flag to use this script without generating object files."
-        dump "This is generally useful when you want to generate the host cross-toolchain programs."
-        exit 1
-    fi
+    CC=$(get_default_compiler_for_arch $ARCH)" $FLAGS"
 
     CRTBRAND_S=$DST_DIR/crtbrand.s
     log "Generating platform $API crtbrand assembly code: $CRTBRAND_S"
-    (cd "$COMMON_SRC_DIR" && $TOOLCHAIN_PREFIX-gcc -DPLATFORM_SDK_VERSION=$API -fpic -S -o - crtbrand.c | \
+    (cd "$COMMON_SRC_DIR" && mkdir -p `dirname $CRTBRAND_S` && $CC -DPLATFORM_SDK_VERSION=$API -fpic -S -o - crtbrand.c | \
         sed -e '/\.note\.ABI-tag/s/progbits/note/' > "$CRTBRAND_S") 1>>$TMPL 2>&1
     if [ $? != 0 ]; then
         dump "ERROR: Could not generate $CRTBRAND_S from $COMMON_SRC_DIR/crtbrand.c"
@@ -500,15 +526,30 @@ gen_crt_objects ()
                 # Add .note.ABI-tag section
                 SRC_FILE=$SRC_FILE" $CRTBRAND_S"
                 ;;
+            "crtbegin.o")
+                # If we have a single source for both crtbegin_static.o and
+                # crtbegin_dynamic.o we generate one and make a copy later.
+                DST_FILE=crtbegin_dynamic.o
+                # Add .note.ABI-tag section
+                SRC_FILE=$SRC_FILE" $CRTBRAND_S"
+                ;;
         esac
 
         log "Generating $ARCH C runtime object: $DST_FILE"
-        (cd "$SRC_DIR" && $TOOLCHAIN_PREFIX-gcc -O2 -fpic -Wl,-r -nostdlib -o "$DST_DIR/$DST_FILE" $SRC_FILE) 1>>$TMPL 2>&1
+        (cd "$SRC_DIR" && $CC \
+                 -I$SRCDIR/../../bionic/libc/include \
+                 -I$SRCDIR/../../bionic/libc/arch-common/bionic \
+                 -I$SRCDIR/../../bionic/libc/arch-$ARCH/include \
+                 -DPLATFORM_SDK_VERSION=$API \
+                 -O2 -fpic -Wl,-r -nostdlib -o "$DST_DIR/$DST_FILE" $SRC_FILE) 1>>$TMPL 2>&1
         if [ $? != 0 ]; then
             dump "ERROR: Could not generate $DST_FILE from $SRC_DIR/$SRC_FILE"
             dump "Please see the content of $TMPL for details!"
             cat $TMPL | tail -10
             exit 1
+        fi
+        if [ ! -s "$DST_DIR/crtbegin_static.o" ]; then
+            cp "$DST_DIR/crtbegin_dynamic.o" "$DST_DIR/crtbegin_static.o"
         fi
     done
     rm -f "$CRTBRAND_S"
@@ -626,7 +667,14 @@ for ARCH in $ARCHS; do
         # If --minimal is not used, copy or generate binary files.
         if [ -z "$OPTION_MINIMAL" ]; then
             # Copy the prebuilt static libraries.
-            copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib $SYSROOT_DST/lib "$ARCH sysroot libs"
+            if [ "$ARCH" = "x86_64" ]; then
+            # We need full set for multilib compiler
+                copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib $SYSROOT_DST/lib "x86 sysroot libs"
+                copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib64 $SYSROOT_DST/lib64 "x86_64 sysroot libs"
+                copy_src_directory $PLATFORM_SRC/arch-$ARCH/libx32 $SYSROOT_DST/libx32 "x32 sysroot libs"
+            else
+                copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib $SYSROOT_DST/lib "$ARCH sysroot libs"
+            fi
 
             # Generate C runtime object files when available
             PLATFORM_SRC_ARCH=$PLATFORM_SRC/arch-$ARCH/src
@@ -635,13 +683,38 @@ for ARCH in $ARCHS; do
             else
                 PREV_PLATFORM_SRC_ARCH=$PLATFORM_SRC_ARCH
             fi
-            gen_crt_objects $PLATFORM $ARCH platforms/common/src $PLATFORM_SRC_ARCH $SYSROOT_DST/lib
+
+            # Genreate crt objects for known archs
+            if [ "$(arch_in_unknown_archs $ARCH)" != "yes" ]; then
+               if [ "$ARCH" = "x86_64" ]; then
+               # We need full set for multilib compiler
+                 gen_crt_objects $PLATFORM $ARCH platforms/common/src $PLATFORM_SRC_ARCH $SYSROOT_DST/lib "-m32"
+                 gen_crt_objects $PLATFORM $ARCH platforms/common/src $PLATFORM_SRC_ARCH $SYSROOT_DST/lib64 "-m64"
+                 gen_crt_objects $PLATFORM $ARCH platforms/common/src $PLATFORM_SRC_ARCH $SYSROOT_DST/libx32 "-mx32"
+               else
+                 gen_crt_objects $PLATFORM $ARCH platforms/common/src $PLATFORM_SRC_ARCH $SYSROOT_DST/lib
+               fi
+            fi
 
             # Generate shared libraries from symbol files
-            gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $PLATFORM_DST/arch-$ARCH
+            if [ "$ARCH" = "x86_64" ]; then
+               # We need full set for multilib compiler
+               gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/lib "-m32"
+               gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/lib64 "-m64"
+               gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/libx32 "-mx32"
+            else
+               gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/lib
+            fi
         else
             # Copy the prebuilt binaries to bootstrap GCC
-            copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib-bootstrap $SYSROOT_DST/lib "$ARCH sysroot libs (boostrap)"
+            if [ "$ARCH" = "x86_64" ]; then
+               # We need full set for multilib compiler
+               copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib-bootstrap/lib $SYSROOT_DST/lib "x86 sysroot libs (boostrap)"
+               copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib-bootstrap/lib64 $SYSROOT_DST/lib64 "x86_64 sysroot libs (boostrap)"
+               copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib-bootstrap/libx32 $SYSROOT_DST/libx32 "x32 sysroot libs (boostrap)"
+            else
+               copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib-bootstrap $SYSROOT_DST/lib "$ARCH sysroot libs (boostrap)"
+            fi
         fi
         PREV_SYSROOT_DST=$SYSROOT_DST
     done

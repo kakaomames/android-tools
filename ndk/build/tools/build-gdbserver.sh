@@ -28,7 +28,7 @@ PROGRAM_DESCRIPTION=\
 
 Where <src-dir> is the location of the gdbserver sources,
 <ndk-dir> is the top-level NDK installation path and <toolchain>
-is the name of the toolchain to use (e.g. arm-linux-androideabi-4.4.3).
+is the name of the toolchain to use (e.g. arm-linux-androideabi-4.6).
 
 The final binary is placed under:
 
@@ -160,7 +160,7 @@ if [ "$NOTHREADS" != "yes" ] ; then
     # with an .a suffix. The linker will handle that seamlessly.
     run cp $LIBTHREAD_DB_DIR/thread_db.h $BUILD_SYSROOT/usr/include/
     run $TOOLCHAIN_PREFIX-gcc --sysroot=$BUILD_SYSROOT -o $BUILD_SYSROOT/usr/lib/libthread_db.o -c $LIBTHREAD_DB_DIR/libthread_db.c
-    run $TOOLCHAIN_PREFIX-ar -r $BUILD_SYSROOT/usr/lib/libthread_db.a $BUILD_SYSROOT/usr/lib/libthread_db.o
+    run $TOOLCHAIN_PREFIX-ar -rD $BUILD_SYSROOT/usr/lib/libthread_db.a $BUILD_SYSROOT/usr/lib/libthread_db.o
     if [ $? != 0 ] ; then
         dump "ERROR: Could not compile libthread_db.c!"
         exit 1
@@ -171,22 +171,6 @@ log "Using build sysroot: $BUILD_SYSROOT"
 
 # configure the gdbserver build now
 dump "Configure: $TOOLCHAIN gdbserver-$GDB_VERSION build."
-OLD_CC="$CC"
-OLD_CFLAGS="$CFLAGS"
-OLD_LDFLAGS="$LDFLAGS"
-
-INCLUDE_DIRS=\
-"-I$TOOLCHAIN_PATH/lib/gcc/$ABI_CONFIGURE_TARGET/$GCC_VERSION/include \
--I$BUILD_SYSROOT/usr/include"
-CRTBEGIN="$BUILD_SYSROOT/usr/lib/crtbegin_static.o"
-CRTEND="$BUILD_SYSROOT/usr/lib/crtend_android.o"
-
-# Note: we must put a second -lc after -lgcc to resolve a cyclical
-#       dependency on arm-linux-androideabi, where libgcc.a contains
-#       a function (__div0) which depends on raise(), implemented
-#       in the C library.
-#
-LIBRARY_LDFLAGS="$CRTBEGIN -lc -lm -lgcc -lc $CRTEND "
 
 case "$GDB_VERSION" in
     6.6)
@@ -202,14 +186,18 @@ case "$GDB_VERSION" in
         # CRTBEGIN/END above.  Clean it up and re-enable it in the future.
         CONFIGURE_FLAGS=$CONFIGURE_FLAGS" --disable-inprocess-agent"
         ;;
+    7.6)
+        CONFIGURE_FLAGS="--with-libthread-db=$BUILD_SYSROOT/usr/lib/libthread_db.a"
+        CONFIGURE_FLAGS=$CONFIGURE_FLAGS" --disable-inprocess-agent"
+        ;;
     *)
         CONFIGURE_FLAGS=""
 esac
 
 cd $BUILD_OUT &&
 export CC="$TOOLCHAIN_PREFIX-gcc --sysroot=$BUILD_SYSROOT" &&
-export CFLAGS="-O2 -nostdlib -D__ANDROID__ -DANDROID -DSTDC_HEADERS $INCLUDE_DIRS $GDBSERVER_CFLAGS"  &&
-export LDFLAGS="-static -Wl,-z,nocopyreloc -Wl,--no-undefined $LIBRARY_LDFLAGS $GDBSERVER_LDFLAGS" &&
+export CFLAGS="-O2 $GDBSERVER_CFLAGS"  &&
+export LDFLAGS="-static -Wl,-z,nocopyreloc -Wl,--no-undefined" &&
 run $SRC_DIR/configure \
 --host=$GDBSERVER_HOST \
 $CONFIGURE_FLAGS
@@ -217,9 +205,6 @@ if [ $? != 0 ] ; then
     dump "Could not configure gdbserver build. See $TMPLOG"
     exit 1
 fi
-CC="$OLD_CC"
-CFLAGS="$OLD_CFLAGS"
-LDFLAGS="$OLD_LDFLAGS"
 
 # build gdbserver
 dump "Building : $TOOLCHAIN gdbserver."

@@ -26,7 +26,7 @@ LOCAL_MODULE := libportable
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_CLASS := SHARED_LIBRARIES
 
-LOCAL_CFLAGS := -I $(LOCAL_PATH)/common/include
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/common/include
 
 # Uncomment the next line to easily enable Lib-Portable logging during development.
 # LOCAL_CFLAGS += -DLOG_NDEBUG=0
@@ -56,7 +56,9 @@ libportable_arch_src_files += \
 			arch-mips/syscall.c \
 			arch-mips/timer.c \
 			arch-mips/timerfd.c \
-			arch-mips/waitpid.c
+			arch-mips/waitpid.c \
+			arch-mips/fenv.c \
+			arch-mips/md_swap.c
 
 libportable_arch_src_files += \
 			arch-mips/_setjmp.S \
@@ -67,24 +69,20 @@ endif
 
 ifeq ($(TARGET_ARCH),arm)
 libportable_arch_src_files += \
-			arch-arm/epoll.c \
-			arch-arm/errno.c \
-			arch-arm/socket.c \
-			arch-arm/sockopt.c \
-			arch-arm/stat.c \
-			arch-arm/unwind.c
+			arch-arm/unwind.c \
+			arch-arm/fenv.c \
+			arch-arm/md_swap.c
 endif
 
 ifeq ($(TARGET_ARCH),x86)
 libportable_arch_src_files += \
 			arch-x86/epoll.c \
-			arch-x86/errno.c \
 			arch-x86/fcntl.c \
 			arch-x86/ioctl.c \
 			arch-x86/open.c \
-			arch-x86/socket.c \
-			arch-x86/sockopt.c \
-			arch-x86/stat.c
+			arch-x86/stat.c \
+			arch-x86/fenv.c \
+			arch-x86/md_swap.c
 endif
 
 LOCAL_SRC_FILES := \

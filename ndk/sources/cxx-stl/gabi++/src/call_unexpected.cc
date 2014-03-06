@@ -64,8 +64,9 @@
 
 
 #include <cstdlib>
-#include <cxxabi.h>
 #include <unwind.h>
+
+#include "cxxabi_defines.h"
 #include "dwarf_helper.h"
 #include "helper_func_internal.h"
 
@@ -281,7 +282,7 @@ void unexpected_helper(std::unexpected_handler u_handler) {
         std::terminate();
       }
       uint8_t lpStartEncoding = *lsda++;
-      const uint8_t* lpStart = (const uint8_t*)readEncodedPointer(&lsda, lpStartEncoding);
+      readEncodedPointer(&lsda, lpStartEncoding);
       uint8_t ttypeEncoding = *lsda++;
       if (ttypeEncoding == DW_EH_PE_omit) {
         terminate_helper(t_handler);
