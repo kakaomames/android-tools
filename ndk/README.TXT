@@ -1,3 +1,5 @@
+DO NOT COMMIT. TRYING INSTRUCTIONS TO MAKE CHANGES TO android_tools repo.
+
             Android Native Development Kit (NDK)
 
 
