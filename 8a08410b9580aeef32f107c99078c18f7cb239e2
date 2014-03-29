@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "AAAAdn//wQ8\u003d",
+        "filename": "ndk/build/tools/make-standalone-toolchain.sh",
+        "patchSetId": 2
+      },
+      "lineNbr": 555,
+      "author": {
+        "id": 1002927
+      },
+      "writtenOn": "2014-03-29T04:44:31Z",
+      "side": 1,
+      "message": "These lines try to copy stlport files form sources/cxx-stl/stlport/libs/armeabi-v7a-hard, but it seems those files have been stripped out from this NDK roll.\n\nThis breaks building the ASan runtime for chromium on Android, which runs this script like so:\n\ntools/clang/scripts/../../../third_party/llvm/../android_tools/ndk/build/tools/make-standalone-toolchain.sh --platform\u003dandroid-14 --install-dir\u003dtools/clang/scripts/../../../third_party/llvm/../llvm-build/android-toolchain --system\u003dlinux-x86_64 --stl\u003dstlport\n\nCan we include those files in the NDK, or remove the lines from this script that try to copy them?",
+      "revId": "8a08410b9580aeef32f107c99078c18f7cb239e2",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
+    }
+  ]
+}
