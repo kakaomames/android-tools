@@ -1,6 +1,6 @@
 Name: Android Tools (SDK/NDK)
 URL: http://developer.android.com/sdk/index.html
-Version: NDK r9e, SDK API level 16
+Version: NDK r9d, SDK API level 19
 Security Critical: no
 License: Apache Version 2.0
 
@@ -24,5 +24,6 @@ Local Modifications:
     cd chromium-trace
     ./update.py
     cp script.js style.css $ANDROID_SDK_ROOT/tools/systrace
+- An alpha version of the r9e NDK toolchain has been added in ndk_experimental.
 
 No other modifications has been made to the public Android SDK/NDK.
