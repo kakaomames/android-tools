@@ -39,6 +39,16 @@
       'includes': ['../../build/java_prebuilt.gypi'],
     },
     {
+      # This jar contains the Android support v13 library from the revision 18
+      # of the Android Support library.
+      'target_name': 'android_support_v13_javalib',
+      'type' : 'none',
+      'variables': {
+        'jar_path': '<(android_sdk_root)/extras/android/support/v13/android-support-v13.jar',
+      },
+      'includes': ['../../build/java_prebuilt.gypi'],
+    },
+    {
       # This jar contains the Android support v7 appcompat library from the
       # revision 18 of the Android Support library. This library doesn't
       # contain the resources needed for the library to work.
