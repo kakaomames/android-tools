@@ -1,0 +1,11 @@
+Commit-Queue+1: Armand Navabi <navabi@google.com>
+Code-Review+2: Armand Navabi <navabi@google.com>
+Code-Review+2: Chris Hopman <cjhopman@chromium.org>
+Verified+1: Aurimas Liutikas <aurimas@chromium.org>
+Code-Review+1: Tianyin Zhang <zty@google.com>
+Verified+1: Tianyin Zhang <zty@google.com>
+Submitted-by: Armand Navabi <navabi@google.com>
+Submitted-at: Mon, 14 Apr 2014 17:41:58 -0700
+Reviewed-on: https://gerrit.chromium.org/gerrit/69754
+Project: android_tools
+Branch: refs/heads/master
