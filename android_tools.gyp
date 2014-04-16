@@ -29,16 +29,6 @@
       'includes': ['../../build/java_prebuilt.gypi'],
     },
     {
-      # This jar contains the Android support v4 library from the revision 18
-      # of the Android Support library.
-      'target_name': 'android_support_v4_javalib',
-      'type' : 'none',
-      'variables': {
-        'jar_path': '<(android_sdk_root)/extras/android/support/v4/android-support-v4.jar',
-      },
-      'includes': ['../../build/java_prebuilt.gypi'],
-    },
-    {
       # This jar contains the Android support v13 library from the revision 18
       # of the Android Support library.
       'target_name': 'android_support_v13_javalib',
