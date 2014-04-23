@@ -16,8 +16,8 @@
  ***
  ****************************************************************************
  ****************************************************************************/
-#ifndef X86_64_PRCTL_H
-#define X86_64_PRCTL_H 1
+#ifndef _ASM_X86_PRCTL_H
+#define _ASM_X86_PRCTL_H
 #define ARCH_SET_GS 0x1001
 #define ARCH_SET_FS 0x1002
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */

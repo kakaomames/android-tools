@@ -13,6 +13,17 @@ android-ndk-r9e
 IMPORTANT CHANGES:
 ---
 
+- Added GCC 4.9 compiler.  Since GCC 4.6 is still the default,
+  you need to explicitly enable it:
+>  1. For ndk-build: Either export NDK_TOOLCHAIN_VERSION=4.9 or add it
+     in Application.mk.
+>  2. For standalone: Use "--toolchain=" option in make-standalone-toolchain.sh.
+     eg. "--toolchain=arm-linux-androideabi-4.9"
+
+- Added 3 new ABIs and 64-bit compilers support them: arm64, x86_64, and mips64
+
+- Updated mclinker to 2.7 with aarch64linux support
+
 
 IMPORTANT BUG FIXES:
 ---
@@ -82,7 +93,7 @@ IMPORTANT CHANGES:
       You may rebuild from source via "LIBCXX_FORCE_REBUILD := true"
 >  2. "make-standalone-toolchain.sh --stl=libc++" to create standalone
       toolchain with libc++ headers/lib
-  See http://b.android.com/36496 and CPLUSPLUS-SUPPORT.html
+      See http://b.android.com/36496 and CPLUSPLUS-SUPPORT.html
 
 
 IMPORTANT BUG FIXES:

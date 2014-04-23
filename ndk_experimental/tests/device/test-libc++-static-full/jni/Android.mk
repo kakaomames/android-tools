@@ -111,6 +111,8 @@ black_list_gcc4_8 := \
     utilities/utility/pairs/pairs.pair/rv_pair_U_V \
     utilities/utility/pairs/pairs.spec/make_pair
 
+black_list_gcc4_9 := # for now
+
 black_list_x86 := \
     language.support/support.types/max_align_t
 
@@ -126,6 +128,9 @@ black_list += $(black_list_clang3_3)
 else
 ifeq (4.8,$(NDK_TOOLCHAIN_VERSION))
 black_list += $(black_list_gcc4_8)
+endif
+ifeq (4.9,$(NDK_TOOLCHAIN_VERSION))
+black_list += $(black_list_gcc4_9)
 endif
 endif
 endif

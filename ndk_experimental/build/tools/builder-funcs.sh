@@ -496,9 +496,9 @@ builder_end ()
 builder_begin_android ()
 {
     local ABI BUILDDIR LLVM_VERSION MAKEFILE
-    local ARCH PLATFORM SYSROOT FLAGS
+    local ARCH SYSROOT FLAGS
     local CRTBEGIN_SO_O CRTEND_SO_O CRTBEGIN_EXE_SO CRTEND_SO_O
-    local BINPREFIX GCC_TOOLCHAIN LLVM_TRIPLE
+    local BINPREFIX GCC_TOOLCHAIN LLVM_TRIPLE GCC_VERSION
     if [ -z "$NDK_DIR" ]; then
         panic "NDK_DIR is not defined!"
     elif [ ! -d "$NDK_DIR/platforms" ]; then
@@ -510,8 +510,6 @@ builder_begin_android ()
     LLVM_VERSION=$4
     MAKEFILE=$5
     ARCH=$(convert_abi_to_arch $ABI)
-    PLATFORM=${2##android-}
-    SYSROOT=$NDK_DIR/platforms/android-$PLATFORM/arch-$ARCH
 
     if [ "$(arch_in_unknown_archs $ARCH)" = "yes" ]; then
         LLVM_VERSION=$DEFAULT_LLVM_VERSION
@@ -521,19 +519,20 @@ builder_begin_android ()
         BINPREFIX=$NDK_DIR/$(get_toolchain_binprefix_for_arch $ARCH $GCC_VERSION)
     else
         BINPREFIX=$NDK_DIR/$(get_llvm_toolchain_binprefix $LLVM_VERSION)
-        # override GCC_VERSION to pick 4.8 instead of the default
+        # override GCC_VERSION to pick $DEFAULT_LLVM_GCC_VERSION instead
         GCC_VERSION=$DEFAULT_LLVM_GCC_VERSION
         GCC_TOOLCHAIN=`dirname $NDK_DIR/$(get_toolchain_binprefix_for_arch $ARCH $GCC_VERSION)`
         GCC_TOOLCHAIN=`dirname $GCC_TOOLCHAIN`
     fi
 
     SYSROOT=$NDK_DIR/$(get_default_platform_sysroot_for_arch $ARCH)
+    LDIR=$SYSROOT"/usr/"$(get_default_libdir_for_arch $ARCH)
 
-    CRTBEGIN_EXE_O=$SYSROOT/usr/lib/crtbegin_dynamic.o
-    CRTEND_EXE_O=$SYSROOT/usr/lib/crtend_android.o
+    CRTBEGIN_EXE_O=$LDIR/crtbegin_dynamic.o
+    CRTEND_EXE_O=$LDIR/crtend_android.o
 
-    CRTBEGIN_SO_O=$SYSROOT/usr/lib/crtbegin_so.o
-    CRTEND_SO_O=$SYSROOT/usr/lib/crtend_so.o
+    CRTBEGIN_SO_O=$LDIR/crtbegin_so.o
+    CRTEND_SO_O=$LDIR/crtend_so.o
     if [ ! -f "$CRTBEGIN_SO_O" ]; then
         CRTBEGIN_SO_O=$CRTBEGIN_EXE_O
     fi
@@ -554,11 +553,20 @@ builder_begin_android ()
             armeabi-v7a|armeabi-v7a-hard)
                 LLVM_TRIPLE=armv7-none-linux-androideabi
                 ;;
+            arm64-v8a)
+                LLVM_TRIPLE=aarch64-none-linux-android
+                ;;
             x86)
                 LLVM_TRIPLE=i686-none-linux-android
                 ;;
+            x86_64)
+                LLVM_TRIPLE=x86_64-none-linux-android
+                ;;
             mips)
                 LLVM_TRIPLE=mipsel-none-linux-android
+                ;;
+            mips64)
+                LLVM_TRIPLE=mips64el-none-linux-android
                 ;;
             *)
                 LLVM_TRIPLE=le32-none-ndk

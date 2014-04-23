@@ -170,13 +170,14 @@ if [ -z "$PLATFORM" -a "$ARCH_INC" = "$ARCH" ] ; then
     case $ARCH in
         arm) PLATFORM=android-3
             ;;
-        x86)
+        x86|mips)
             PLATFORM=android-9
             ;;
-        mips)
-            # Set it to android-9
-            PLATFORM=android-9
+        arm64|x86_64|mips64)
+            PLATFORM=android-20
             ;;
+        *)
+            dump "ERROR: Unsupported NDK architecture $ARCH!"
     esac
     log "Auto-config: --platform=$PLATFORM"
 elif [ -z "$PLATFORM" ] ; then
@@ -373,7 +374,7 @@ if [ -n "$LLVM_VERSION" ]; then
           TOOLCHAIN_PREFIX=$DEFAULT_ARCH_TOOLCHAIN_PREFIX_mips
           ;;
       arm64)
-          LLVM_TARGET=aarch64-none-linux-androideabi
+          LLVM_TARGET=aarch64-linux-android
           TOOLCHAIN_PREFIX=$DEFAULT_ARCH_TOOLCHAIN_PREFIX_arm64
           ;;
       x86_64)
@@ -385,7 +386,7 @@ if [ -n "$LLVM_VERSION" ]; then
           TOOLCHAIN_PREFIX=$DEFAULT_ARCH_TOOLCHAIN_PREFIX_mips64
           ;;
       *)
-        dump "ERROR: Unsupported NDK architecture!"
+        dump "ERROR: Unsupported NDK architecture $ARCH!"
   esac
   # Need to remove '.' from LLVM_VERSION when constructing new clang name,
   # otherwise clang3.3++ may still compile *.c code as C, not C++, which
@@ -468,12 +469,17 @@ dump "Copying sysroot headers and libraries..."
 # expect the sysroot files to be placed there!
 run copy_directory_nolinks "$SRC_SYSROOT_INC" "$TMPDIR/sysroot/usr/include"
 run copy_directory_nolinks "$SRC_SYSROOT_LIB" "$TMPDIR/sysroot/usr/lib"
+# x86_64 toolchain is built multilib.
+if [ "$ARCH" = "x86_64" ]; then
+run copy_directory_nolinks "$SRC_SYSROOT_LIB/../lib64" "$TMPDIR/sysroot/usr/lib64"
+run copy_directory_nolinks "$SRC_SYSROOT_LIB/../libx32" "$TMPDIR/sysroot/usr/libx32"
+fi
 if [ "$ARCH_INC" != "$ARCH" ]; then
     cp -a $NDK_DIR/$GABIXX_SUBDIR/libs/$ABI/* $TMPDIR/sysroot/usr/lib
+    cp -a $NDK_DIR/$LIBPORTABLE_SUBDIR/libs/$ABI/* $TMPDIR/sysroot/usr/lib
+    cp -a $NDK_DIR/$GCCUNWIND_SUBDIR/libs/$ABI/* $TMPDIR/sysroot/usr/lib
     if [ "$ARCH" = "${ARCH%%64*}" ]; then
-        cp -a $NDK_DIR/$LIBPORTABLE_SUBDIR/libs/$ABI/* $TMPDIR/sysroot/usr/lib
         cp -a $NDK_DIR/$COMPILER_RT_SUBDIR/libs/$ABI/* $TMPDIR/sysroot/usr/lib
-        cp -a $NDK_DIR/$GCCUNWIND_SUBDIR/libs/$ABI/* $TMPDIR/sysroot/usr/lib
     fi
 fi
 
@@ -518,12 +524,12 @@ copy_stl_common_headers () {
             copy_directory "$LIBCXX_DIR/libcxx/include" "$ABI_STL_INCLUDE"
             copy_directory "$SUPPORT_DIR/include" "$ABI_STL_INCLUDE"
             copy_directory "$STLPORT_DIR/../gabi++/include" "$ABI_STL_INCLUDE/../../gabi++/include"
-            copy_gabixx_headers cxxabi.h unwind.h unwind-arm.h unwind-itanium.h
+            copy_gabixx_headers cxxabi.h unwind.h unwind-arm.h unwind-itanium.h gabixx_config.h
             ;;
         stlport)
             copy_directory "$STLPORT_DIR/stlport" "$ABI_STL_INCLUDE"
             copy_directory "$STLPORT_DIR/../gabi++/include" "$ABI_STL_INCLUDE/../../gabi++/include"
-            copy_gabixx_headers cxxabi.h unwind.h unwind-arm.h unwind-itanium.h
+            copy_gabixx_headers cxxabi.h unwind.h unwind-arm.h unwind-itanium.h gabixx_config.h
             ;;
     esac
 }

@@ -570,8 +570,8 @@ for SYSTEM in $SYSTEMS; do
 
     # Unpack renderscript headers/libs
     unpack_prebuilt renderscript "$DSTDIR" "$DSTDIR64"
-	
-    # Unpack misc 
+
+    # Unpack misc stuff
     if [ -f "$PREBUILT_DIR/misc.tar.bz2" ]; then
         unpack_prebuilt misc "$DSTDIR" "$DSTDIR64"
     fi
