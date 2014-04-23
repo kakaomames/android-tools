@@ -36,7 +36,6 @@ OPTION_BUILD_OUT=
 register_var_option "--build-out=<path>" OPTION_BUILD_OUT "Set temporary build directory"
 
 # Note: platform API level 9 or higher is needed for proper C++ support
-PLATFORM=$DEFAULT_PLATFORM
 register_var_option "--platform=<name>"  PLATFORM "Specify platform name"
 
 OPTION_SYSROOT=
@@ -151,6 +150,10 @@ esac
 prepare_target_build
 
 parse_toolchain_name $TOOLCHAIN
+
+if [ -z "$PLATFORM" ]; then
+   PLATFORM="android-"$(get_default_api_level_for_arch $ARCH)
+fi
 
 fix_sysroot "$OPTION_SYSROOT"
 
@@ -312,6 +315,11 @@ case "$TOOLCHAIN" in
     *) EXTRA_CONFIG_FLAGS=$EXTRA_CONFIG_FLAGS" --enable-libgomp" ;;
 esac
 
+# Disable libcilkrts which needs C++ for now, because libstdlibc++ in NDK is built separately...
+case "$TOOLCHAIN" in
+    x86*-4.9) EXTRA_CONFIG_FLAGS=$EXTRA_CONFIG_FLAGS" --disable-libcilkrts"
+esac
+
 # Disable libsanitizer (which depends on libstdc++ built separately) for now
 EXTRA_CONFIG_FLAGS=$EXTRA_CONFIG_FLAGS" --disable-libsanitizer"
 
@@ -433,7 +441,7 @@ unwind_library_for_abi ()
           pr-support.o \
           unwind-c.o"
     ;;
-    x86)
+    x86|mips)
     BASE_DIR="$BUILD_OUT/gcc-$GCC_VERSION/$ABI_CONFIGURE_TARGET/libgcc/"
     if [ "$GCC_VERSION" = "4.6" -o "$GCC_VERSION" = "4.4.3" ]; then
        OBJS="unwind-c.o \
@@ -445,17 +453,11 @@ unwind_library_for_abi ()
           unwind-dw2.o"
     fi
     ;;
-    mips)
+    arm64-v8a|x86_64|mips64)
     BASE_DIR="$BUILD_OUT/gcc-$GCC_VERSION/$ABI_CONFIGURE_TARGET/libgcc/"
-    if [ "$GCC_VERSION" = "4.6" -o "$GCC_VERSION" = "4.4.3" ]; then
-       OBJS="unwind-c.o \
-          unwind-dw2-fde-glibc.o \
-          unwind-dw2.o"
-    else
-       OBJS="unwind-c.o \
-          unwind-dw2-fde-dip.o \
-          unwind-dw2.o"
-    fi
+    OBJS="unwind-c.o \
+       unwind-dw2-fde-dip.o \
+       unwind-dw2.o"
     ;;
     esac
 
@@ -483,7 +485,8 @@ create_unwind_library ()
 }
 
 # Only create libgccunwind.a when building default version of gcc
-if [ "$HOST_OS" = "linux" -a "$GCC_VERSION" = "$DEFAULT_GCC_VERSION" ]; then # or latest gcc ie 4.8?
+DEFAULT_GCC_VERSION=$(get_default_gcc_version_for_arch $ARCH)
+if [ "$HOST_OS" = "linux" -a "$GCC_VERSION" = "$DEFAULT_GCC_VERSION" ]; then
     run create_unwind_library $ARCH $NDK_DIR
 fi
 
@@ -540,6 +543,10 @@ run rm -rf $TOOLCHAIN_PATH/$ABI_CONFIGURE_TARGET/lib/libiberty.a
 run rm -rf $TOOLCHAIN_PATH/$ABI_CONFIGURE_TARGET/lib/*/libiberty.a
 run rm -rf $TOOLCHAIN_PATH/$ABI_CONFIGURE_TARGET/lib/*/*/libiberty.a
 find $TOOLCHAIN_PATH -name "*.la" -exec rm -f {} \;
+# Remove host install in cross compilation
+if [ "$ABI_CONFIGURE_HOST" != "$ABI_CONFIGURE_TARGET" ]; then
+    run rm -rf "$TOOLCHAIN_PATH/$ABI_CONFIGURE_HOST"
+fi
 
 # Remove libstdc++ for now (will add it differently later)
 # We had to build it to get libsupc++ which we keep.

@@ -9,9 +9,9 @@
 
 /* Package name      : perl5
  * Source directory  : .
- * Configuration time: Fri Aug 30 02:48:55 PDT 2013
+ * Configuration time: Thu Apr 17 10:19:06 PDT 2014
  * Configured by     : andrewhsieh
- * Target system     : linux ahsieh.mtv.corp.google.com 3.2.5-gg1236 #1 smp tue may 21 02:35:06 pdt 2013 x86_64 x86_64 x86_64 gnulinux 
+ * Target system     : linux ahsieh.mtv.corp.google.com 3.2.5-gg1336 #1 smp thu aug 29 02:37:18 pdt 2013 x86_64 x86_64 x86_64 gnulinux 
  */
 
 #ifndef _config_h_
@@ -890,7 +890,7 @@
  *	feature tests from Configure are generally more reliable.
  */
 #define OSNAME "linux"		/**/
-#define OSVERS "3.2.5-gg1236"		/**/
+#define OSVERS "3.2.5-gg1336"		/**/
 
 /* USE_CROSS_COMPILE:
  *	This symbol, if defined, indicates that Perl is being cross-compiled.
@@ -1075,9 +1075,9 @@
  *	This symbol is intended to be used along with CPPRUN in the same manner
  *	symbol CPPMINUS is used with CPPSTDIN. It contains either "-" or "".
  */
-#define CPPSTDIN "/usr/local/google/home/andrewhsieh/mydroid/ndk/../prebuilts/tools/gcc-sdk/gcc -E"
+#define CPPSTDIN "/usr/local/google/home/andrewhsieh/mydroid/ndk/../prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.11-4.6/bin/x86_64-linux-gcc -E"
 #define CPPMINUS "-"
-#define CPPRUN "/usr/local/google/home/andrewhsieh/mydroid/ndk/../prebuilts/tools/gcc-sdk/gcc -E"
+#define CPPRUN "/usr/local/google/home/andrewhsieh/mydroid/ndk/../prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.11-4.6/bin/x86_64-linux-gcc -E"
 #define CPPLAST "-"
 
 /* HAS_ACCESS:
@@ -3773,7 +3773,7 @@
  *	available to exclusively create and open a uniquely named
  *	(with a suffix) temporary file.
  */
-/*#define HAS_MKSTEMPS		/ **/
+#define HAS_MKSTEMPS		/**/
 
 /* HAS_MODFL:
  *	This symbol, if defined, indicates that the modfl routine is

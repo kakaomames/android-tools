@@ -36,7 +36,6 @@ OPTION_BUILD_OUT=
 register_var_option "--build-out=<path>" OPTION_BUILD_OUT "Set temporary build directory"
 
 # Note: platform API level 9 or higher is needed for proper C++ support
-PLATFORM=$DEFAULT_PLATFORM
 register_var_option "--platform=<name>"  PLATFORM "Specify platform name"
 
 GMP_VERSION=$DEFAULT_GMP_VERSION
@@ -125,6 +124,10 @@ set_parameters ()
 }
 
 set_parameters $PARAMETERS
+
+if [ -z "$PLATFORM" ]; then
+   PLATFORM="android-"$(get_default_api_level_for_arch $ARCH)
+fi
 
 prepare_target_build
 
@@ -282,7 +285,7 @@ run $SRC_DIR/$TOOLCHAIN/llvm/configure \
     --host=$ABI_CONFIGURE_HOST \
     --build=$ABI_CONFIGURE_BUILD \
     --with-bug-report-url=$DEFAULT_ISSUE_TRACKER_URL \
-    --enable-targets=arm,mips,x86 \
+    --enable-targets=arm,mips,x86,aarch64 \
     --enable-optimized \
     --with-binutils-include=$SRC_DIR/binutils/binutils-$BINUTILS_VERSION/include \
     $EXTRA_CONFIG_FLAGS
@@ -413,6 +416,14 @@ find $TOOLCHAIN_BUILD_PREFIX/bin -maxdepth 1 -type f -exec $STRIP {} \;
 # "symbols referenced by indirect symbol table entries that can't be stripped "
 find $TOOLCHAIN_BUILD_PREFIX/lib -maxdepth 1 -type f \( -name "*.dll" -o -name "*.so" \) -exec $STRIP {} \;
 
+# For now, le64-tools is just like le32 ones
+run ln -s ndk-link $TOOLCHAIN_BUILD_PREFIX/bin/le32-none-ndk-link
+run ln -s ndk-link $TOOLCHAIN_BUILD_PREFIX/bin/le64-none-ndk-link
+run ln -s ndk-strip $TOOLCHAIN_BUILD_PREFIX/bin/le32-none-ndk-strip
+run ln -s ndk-strip $TOOLCHAIN_BUILD_PREFIX/bin/le64-none-ndk-strip
+run ln -s ndk-translate $TOOLCHAIN_BUILD_PREFIX/bin/le32-none-ndk-translate
+run ln -s ndk-translate $TOOLCHAIN_BUILD_PREFIX/bin/le64-none-ndk-translate
+
 # install script
 if [ "$USE_PYTHON" != "yes" ]; then
     # Remove those intermediate cpp
@@ -423,19 +434,17 @@ else
     cp -p "$SRC_DIR/$TOOLCHAIN/llvm/tools/ndk-bc2native/ndk-bc2native.py" "$TOOLCHAIN_BUILD_PREFIX/bin/"
 fi
 
-# create link
-if [ "$LLVM_VERSION" = "3.4" ]; then
-    cd $TOOLCHAIN_BUILD_PREFIX/bin
-    ln -s ndk-link${HOST_EXE} le32-none-ndk-link${HOST_EXE}
-    ln -s ndk-strip${HOST_EXE} le32-none-ndk-strip${HOST_EXE}
-    ln -s ndk-translate${HOST_EXE} le32-none-ndk-translate${HOST_EXE}
-fi
-
 # copy to toolchain path
 run copy_directory "$TOOLCHAIN_BUILD_PREFIX" "$TOOLCHAIN_PATH"
 
 # create analyzer/++ scripts
-for ABI in $PREBUILT_ABIS; do
+ABIS=$PREBUILT_ABIS
+# temp hack before 64-bit ABIs are part of PREBUILT_ABIS
+if [ "$ABIS" != "${ABIS%%64*}" ]; then
+    ABIS="$PREBUILT_ABIS arm64-v8a x86_64 mips64"
+fi
+ABIS=$ABIS
+for ABI in $ABIS; do
     ANALYZER_PATH="$TOOLCHAIN_PATH/bin/$ABI"
     ANALYZER="$ANALYZER_PATH/analyzer"
     mkdir -p "$ANALYZER_PATH"
@@ -446,11 +455,20 @@ for ABI in $PREBUILT_ABIS; do
       armeabi-v7a|armeabi-v7a-hard)
           LLVM_TARGET=armv7-none-linux-androideabi
           ;;
+      arm64-v8a)
+          LLVM_TARGET=aarch64-none-linux-android
+          ;;
       x86)
           LLVM_TARGET=i686-none-linux-android
           ;;
+      x86_64)
+          LLVM_TARGET=x86_64-none-linux-android
+          ;;
       mips)
           LLVM_TARGET=mipsel-none-linux-android
+          ;;
+      mips64)
+          LLVM_TARGET=mips64el-none-linux-android
           ;;
       *)
         dump "ERROR: Unsupported NDK ABI: $ABI"

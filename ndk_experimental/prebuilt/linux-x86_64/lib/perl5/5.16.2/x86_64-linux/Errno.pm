@@ -9,8 +9,8 @@ use Config;
 use strict;
 
 "$Config{'archname'}-$Config{'osvers'}" eq
-"x86_64-linux-3.2.5-gg1236" or
-	die "Errno architecture (x86_64-linux-3.2.5-gg1236) does not match executable architecture ($Config{'archname'}-$Config{'osvers'})";
+"x86_64-linux-3.2.5-gg1336" or
+	die "Errno architecture (x86_64-linux-3.2.5-gg1336) does not match executable architecture ($Config{'archname'}-$Config{'osvers'})";
 
 our $VERSION = "1.15";
 $VERSION = eval $VERSION;
@@ -152,6 +152,7 @@ BEGIN {
 	EKEYREJECTED => 129,
 	EOWNERDEAD => 130,
 	ENOTRECOVERABLE => 131,
+	ERFKILL => 132,
     );
     # Generate proxy constant subroutines for all the values.
     # Well, almost all the values. Unfortunately we can't assume that at this

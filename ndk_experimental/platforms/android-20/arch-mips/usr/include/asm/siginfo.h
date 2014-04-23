@@ -16,68 +16,73 @@
  ***
  ****************************************************************************
  ****************************************************************************/
-#ifndef _ASM_SIGINFO_H
-#define _ASM_SIGINFO_H
+#ifndef _UAPI_ASM_SIGINFO_H
+#define _UAPI_ASM_SIGINFO_H
 #define __ARCH_SIGEV_PREAMBLE_SIZE (sizeof(long) + 2*sizeof(int))
-#undef __ARCH_SI_TRAPNO  
+#undef __ARCH_SI_TRAPNO
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
 #define HAVE_ARCH_SIGINFO_T
 #define HAVE_ARCH_COPY_SIGINFO
 struct siginfo;
 #define __ARCH_SI_PREAMBLE_SIZE (3 * sizeof(int))
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
+#ifdef __LP64__
+#define __ARCH_SI_PREAMBLE_SIZE (4 * sizeof(int))
+#endif
 #include <asm-generic/siginfo.h>
+/* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
 typedef struct siginfo {
  int si_signo;
  int si_code;
-/* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
  int si_errno;
+/* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
  int __pad0[SI_MAX_SIZE / sizeof(int) - SI_PAD_SIZE - 3];
  union {
  int _pad[SI_PAD_SIZE];
-/* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
  struct {
+/* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
  pid_t _pid;
  __ARCH_SI_UID_T _uid;
  } _kill;
-/* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
  struct {
+/* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
  timer_t _tid;
  int _overrun;
  char _pad[sizeof( __ARCH_SI_UID_T) - sizeof(int)];
-/* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
  sigval_t _sigval;
+/* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
  int _sys_private;
  } _timer;
  struct {
-/* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
  pid_t _pid;
+/* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
  __ARCH_SI_UID_T _uid;
  sigval_t _sigval;
  } _rt;
-/* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
  struct {
+/* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
  pid_t _pid;
  __ARCH_SI_UID_T _uid;
  int _status;
-/* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
  clock_t _utime;
+/* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
  clock_t _stime;
  } _sigchld;
  struct {
-/* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
  pid_t _pid;
+/* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
  clock_t _utime;
  int _status;
  clock_t _stime;
-/* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
  } _irix_sigchld;
+/* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
  struct {
  void __user *_addr;
 #ifdef __ARCH_SI_TRAPNO
-/* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
  int _trapno;
+/* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
 #endif
+ short _addr_lsb;
  } _sigfault;
  struct {
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
@@ -91,8 +96,8 @@ typedef struct siginfo {
 #undef SI_TIMER
 #undef SI_MESGQ
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
-#define SI_ASYNCIO -2  
-#define SI_TIMER __SI_CODE(__SI_TIMER, -3)  
-#define SI_MESGQ __SI_CODE(__SI_MESGQ, -4)  
+#define SI_ASYNCIO -2
+#define SI_TIMER __SI_CODE(__SI_TIMER, -3)
+#define SI_MESGQ __SI_CODE(__SI_MESGQ, -4)
 #endif
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */

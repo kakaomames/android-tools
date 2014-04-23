@@ -18,16 +18,6 @@
  ****************************************************************************/
 #ifndef _ASM_BYTEORDER_H
 #define _ASM_BYTEORDER_H
-#include <linux/compiler.h>
-#include <asm/types.h>
-/* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
-#ifdef __GNUC__
-#ifndef __STRICT_ANSI__
-#define __BYTEORDER_HAS_U64__
-#define __SWAB_64_THRU_32__
-/* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
-#endif
-#endif
 #ifdef __MIPSEB__
 #include <linux/byteorder/big_endian.h>
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */

@@ -94,19 +94,33 @@ endif # APP_PROJECT_PATH == null
 # SPECIAL CASES:
 # 1) android-6 and android-7 are the same thing as android-5
 # 2) android-10 and 11 are the same thing as android-9
-# 3) android-19 and up are the same thing as android-19
-#
+# 3) android-20 and up are the same thing as android-20
+# ADDITIONAL CASES for remote server where total number of files is limited
+# 4) android-13 is the same thing as android-12
+# 5) android-15 is the same thing as android-14
+# 6) android-17 is the same thing as android-16
 APP_PLATFORM_LEVEL := $(strip $(subst android-,,$(APP_PLATFORM)))
 ifneq (,$(filter 6 7,$(APP_PLATFORM_LEVEL)))
-    APP_PLATFORM := android-5
-    $(call ndk_log,  Adjusting APP_PLATFORM android-$(APP_PLATFORM_LEVEL) to $(APP_PLATFORM))
+    override APP_PLATFORM := android-5
 endif
 ifneq (,$(filter 10 11,$(APP_PLATFORM_LEVEL)))
-    APP_PLATFORM := android-9
-    $(call ndk_log,  Adjusting APP_PLATFORM android-$(APP_PLATFORM_LEVEL) to $(APP_PLATFORM))
+    override APP_PLATFORM := android-9
 endif
-ifneq (,$(call gt,$(APP_PLATFORM_LEVEL),19))
-    APP_PLATFORM := android-19
+ifneq (,$(call gt,$(APP_PLATFORM_LEVEL),20))
+    override APP_PLATFORM := android-20
+endif
+
+#ifneq (,$(filter 13,$(APP_PLATFORM_LEVEL)))
+#    override APP_PLATFORM := android-12
+#endif
+#ifneq (,$(filter 15,$(APP_PLATFORM_LEVEL)))
+#    override APP_PLATFORM := android-14
+#endif
+#ifneq (,$(filter 17,$(APP_PLATFORM_LEVEL)))
+#    override APP_PLATFORM := android-16
+#endif
+
+ifneq ($(APP_PLATFORM),android-$(APP_PLATFORM_LEVEL))
     $(call ndk_log,  Adjusting APP_PLATFORM android-$(APP_PLATFORM_LEVEL) to $(APP_PLATFORM))
 endif
 
@@ -129,7 +143,7 @@ endif
 _bad_platform := $(strip $(filter-out $(NDK_ALL_PLATFORMS),$(APP_PLATFORM)))
 ifdef _bad_platform
     $(call ndk_log,Application $(_app) targets unknown platform '$(_bad_platform)')
-    APP_PLATFORM := android-$(NDK_MAX_PLATFORM_LEVEL)
+    override APP_PLATFORM := android-$(NDK_MAX_PLATFORM_LEVEL)
     $(call ndk_log,Switching to $(APP_PLATFORM))
 endif
 

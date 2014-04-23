@@ -16,8 +16,8 @@
  ***
  ****************************************************************************
  ****************************************************************************/
-#ifndef _ASM_X86_64_VSYSCALL_H_
-#define _ASM_X86_64_VSYSCALL_H_
+#ifndef _UAPI_ASM_X86_VSYSCALL_H
+#define _UAPI_ASM_X86_VSYSCALL_H
 enum vsyscall_num {
  __NR_vgettimeofday,
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
