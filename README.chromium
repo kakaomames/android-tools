@@ -11,6 +11,8 @@ build, test and debug for Android.
 Local Modifications:
 - Removed old android platforms in ndk/platforms
   (anything under android-14)
+- Included the Android support library (version 19.1)
+- Removed unused resources from the support library (see crbug.com/372481)
 - Added gyp files in ndk/
     android_tools_ndk.gyp
     crazy_linker.gyp
