@@ -92,10 +92,10 @@
         'R_package_relpath': ['android/support/v7/mediarouter'],
         'has_java_resources': 1,
         'res_v14_verify_only': 1,
-        'res_extra_dirs': ['<(android_sdk_root)/extras/android/support/v7/appcompat/res'],
       },
       'dependencies': [
         'android_support_v7_mediarouter_javalib_no_res',
+        'android_support_v7_appcompat_javalib',
       ],
       'includes': [ '../../build/java.gypi' ]
     },
