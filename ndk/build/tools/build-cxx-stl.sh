@@ -97,6 +97,7 @@ do_llvm_version() {
 }
 
 register_jobs_option
+register_try64_option
 
 extract_parameters "$@"
 
@@ -156,7 +157,7 @@ LIBCXX_SRCDIR=$BUILD_DIR/ndk/$LIBCXX_SUBDIR
 LIBCXX_INCLUDES="-I$LIBCXX_SRCDIR/libcxx/include -I$ANDROID_NDK_ROOT/sources/android/support/include -I$GABIXX_SRCDIR/include"
 
 COMMON_CFLAGS="-fPIC -O2 -ffunction-sections -fdata-sections"
-COMMON_CXXFLAGS="-fexceptions -frtti -fuse-cxa-atexit"
+COMMON_CXXFLAGS="-frtti -fuse-cxa-atexit"
 
 if [ "$WITH_DEBUG_INFO" ]; then
     COMMON_CFLAGS="$COMMON_CFLAGS -g"
@@ -174,7 +175,7 @@ else
   GABIXX_INCLUDES="-I$GABIXX_SRCDIR/include"
 fi
 GABIXX_CFLAGS="$COMMON_CFLAGS $GABIXX_INCLUDES"
-GABIXX_CXXFLAGS="$COMMON_CXXFLAGS"
+GABIXX_CXXFLAGS="-fexceptions $COMMON_CXXFLAGS"
 GABIXX_SOURCES=$(cd $ANDROID_NDK_ROOT/$GABIXX_SUBDIR && ls src/*.cc)
 GABIXX_LDFLAGS="-ldl"
 if [ "$CXX_STL" = "libc++" ]; then
@@ -183,7 +184,7 @@ fi
 
 # Determine STLport build parameters
 STLPORT_CFLAGS="$COMMON_CFLAGS -DGNU_SOURCE -I$STLPORT_SRCDIR/stlport $GABIXX_INCLUDES"
-STLPORT_CXXFLAGS="$COMMON_CXXFLAGS"
+STLPORT_CXXFLAGS="-fno-exceptions $COMMON_CXXFLAGS"
 STLPORT_SOURCES=\
 "src/dll_main.cpp \
 src/fstream.cpp \
@@ -220,7 +221,7 @@ src/cxa.c"
 
 # Determine Libc++ build parameters
 LIBCXX_CFLAGS="$COMMON_CFLAGS $LIBCXX_INCLUDES -Drestrict=__restrict__"
-LIBCXX_CXXFLAGS="$COMMON_CXXFLAGS -DLIBCXXABI=1 -std=c++11"
+LIBCXX_CXXFLAGS="-fno-exceptions $COMMON_CXXFLAGS -DLIBCXXABI=1 -std=c++11"
 LIBCXX_SOURCES=\
 "libcxx/src/algorithm.cpp \
 libcxx/src/bind.cpp \
