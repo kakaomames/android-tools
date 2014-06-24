@@ -6,10 +6,12 @@
 # Note: levels 6 and 7 are omitted since they have the same native
 # APIs as level 5. Same for levels 10, 11 and 12
 #
-API_LEVELS="3 4 5 8 9 12 13 14 15 16 17 18 19"
+API_LEVELS="3 4 5 8 9 12 13 14 15 16 17 18 19 L"
+
+FIRST_API64_LEVEL=L
 
 # Default ABIs for the target prebuilt binaries.
-PREBUILT_ABIS="armeabi armeabi-v7a x86 mips armeabi-v7a-hard"
+PREBUILT_ABIS="armeabi armeabi-v7a x86 mips armeabi-v7a-hard arm64-v8a x86_64 mips64"
 
 # Location of the STLport sources, relative to the NDK root directory
 STLPORT_SUBDIR=sources/cxx-stl/stlport
@@ -24,6 +26,9 @@ GNUSTL_SUBDIR=sources/cxx-stl/gnu-libstdc++
 # Location of the LLVM libc++ headers and libraries, relative to the NDK
 # root directory.
 LIBCXX_SUBDIR=sources/cxx-stl/llvm-libc++
+
+# Location of the LLVM libc++abi headers, relative to the NDK # root directory.
+LIBCXXABI_SUBDIR=sources/cxx-stl/llvm-libc++abi/libcxxabi
 
 # Location of the libportable sources, relative to the NDK root directory
 LIBPORTABLE_SUBDIR=sources/android/libportable
@@ -42,16 +47,12 @@ SUPPORT_SUBDIR=sources/android/support
 TOOLCHAIN_GIT_DATE=now
 
 # The space-separated list of all GCC versions we support in this NDK
-DEFAULT_GCC_VERSION_LIST="4.6 4.8"
+DEFAULT_GCC_VERSION_LIST="4.6 4.8 4.9"
 
-# The default GCC version for this NDK, i.e. the first item in
-# $DEFAULT_GCC_VERSION_LIST
-#
-DEFAULT_GCC_VERSION=$(echo "$DEFAULT_GCC_VERSION_LIST" | tr ' ' '\n' | head -n 1)
-# The default GCC version for "clang -gcc-toolchain", the latest item in
-# $DEFAULT_GCC_VERSION_LIST
-#
-DEFAULT_LLVM_GCC_VERSION=$(echo "$DEFAULT_GCC_VERSION_LIST" | tr ' ' '\n' | tail -n 1)
+DEFAULT_GCC32_VERSION=4.6
+DEFAULT_GCC64_VERSION=4.9
+DEFAULT_LLVM_GCC32_VERSION=4.8
+DEFAULT_LLVM_GCC64_VERSION=4.9
 
 DEFAULT_BINUTILS_VERSION=2.21
 DEFAULT_GDB_VERSION=7.3.x
@@ -64,13 +65,13 @@ DEFAULT_PPL_VERSION=1.0
 DEFAULT_PYTHON_VERSION=2.7.5
 DEFAULT_PERL_VERSION=5.16.2
 
-RECENT_BINUTILS_VERSION=2.23
+RECENT_BINUTILS_VERSION=2.24
 
 # Default platform to build target binaries against.
 DEFAULT_PLATFORM=android-9
 
 # The list of default CPU architectures we support
-DEFAULT_ARCHS="arm x86 mips"
+DEFAULT_ARCHS="arm x86 mips arm64 x86_64 mips64"
 
 # Default toolchain names and prefix
 #
@@ -109,6 +110,17 @@ DEFAULT_SYSTEMS="linux-x86 windows darwin-x86"
 # The default issue tracker URL
 DEFAULT_ISSUE_TRACKER_URL="http://source.android.com/source/report-bugs.html"
 
+# Return the default gcc version for a given architecture
+# $1: Architecture name (e.g. 'arm')
+# Out: default arch-specific gcc version
+get_default_gcc_version_for_arch ()
+{
+    case $1 in
+       *64) echo $DEFAULT_GCC64_VERSION ;;
+       *) echo $DEFAULT_GCC32_VERSION ;;
+    esac
+}
+
 # Return default NDK ABI for a given architecture name
 # $1: Architecture name
 # Out: ABI name
@@ -119,11 +131,14 @@ get_default_abi_for_arch ()
         arm)
             RET="armeabi"
             ;;
-        x86|x86_64|mips)
+        arm64)
+            RET="arm64-v8a"
+            ;;
+        x86|x86_64|mips|mips64)
             RET="$1"
             ;;
         *)
-            2> echo "ERROR: Unsupported architecture name: $1, use one of: arm x86 x86_64 mips"
+            2> echo "ERROR: Unsupported architecture name: $1, use one of: arm arm64 x86 x86_64 mips mips64"
             exit 1
             ;;
     esac
@@ -141,11 +156,14 @@ get_default_abis_for_arch ()
         arm)
             RET="armeabi armeabi-v7a armeabi-v7a-hard"
             ;;
-        x86|x86_64|mips)
+        arm64)
+            RET="arm64-v8a"
+            ;;
+        x86|x86_64|mips|mips64)
             RET="$1"
             ;;
         *)
-            2> echo "ERROR: Unsupported architecture name: $1, use one of: arm x86 x86_64 mips"
+            2> echo "ERROR: Unsupported architecture name: $1, use one of: arm arm64 x86 x86_64 mips mips64"
             exit 1
             ;;
     esac
@@ -168,11 +186,12 @@ get_toolchain_name_for_arch ()
 
 # Return the default toolchain name for a given architecture
 # $1: Architecture name (e.g. 'arm')
-# Out: default arch-specific toolchain name (e.g. 'arm-linux-androideabi-$DEFAULT_GCC_VERSION')
+# Out: default arch-specific toolchain name (e.g. 'arm-linux-androideabi-$GCCVER')
 # Return empty for unknown arch
 get_default_toolchain_name_for_arch ()
 {
-    eval echo \"\${DEFAULT_ARCH_TOOLCHAIN_NAME_$1}-$DEFAULT_GCC_VERSION\"
+    local GCCVER=$(get_default_gcc_version_for_arch $1)
+    eval echo \"\${DEFAULT_ARCH_TOOLCHAIN_NAME_$1}-$GCCVER\"
 }
 
 # Return the default toolchain program prefix for a given architecture
@@ -190,13 +209,21 @@ get_default_toolchain_prefix_for_arch ()
 # Return empty for unknown arch
 get_toolchain_name_list_for_arch ()
 {
-    local PREFIX VERSION RET
+    local PREFIX VERSION RET ADD DEFAULT_GCC_VERSION
     PREFIX=$(eval echo \"\$DEFAULT_ARCH_TOOLCHAIN_NAME_$1\")
     if [ -z "$PREFIX" ]; then
         return 0
     fi
     RET=""
+    DEFAULT_GCC_VERSION=$(get_default_gcc_version_for_arch $1)
+    ADD=""
     for VERSION in $DEFAULT_GCC_VERSION_LIST; do
+        if [ -z "$ADD" -a "$VERSION" = "$DEFAULT_GCC_VERSION" ]; then
+            ADD="yes"
+        fi
+        if [ -z "$ADD" ]; then
+            continue
+        fi
         RET=$RET" $PREFIX-$VERSION"
     done
     RET=${RET## }
@@ -220,10 +247,11 @@ get_default_binutils_version_for_gcc ()
 {
     case $1 in
         mipsel-*-4.4.3|*-4.6) echo "$DEFAULT_BINUTILS_VERSION";;
+        mipsel-*-4.8|mipsel-*-4.9) echo "2.25";;
         *-4.4.3) echo "2.19";;
         x86*-4.7) echo "2.23";;  # Use 2.23 to get x32 support in ld.gold
         *-4.7) echo "2.22";;
-        *) echo "2.23";;
+        *) echo "2.24";;
     esac
 }
 
@@ -251,7 +279,17 @@ get_default_binutils_version_for_llvm ()
 get_default_gdb_version_for_gcc ()
 {
     case $1 in
-        x86*|aarch64-*) echo "7.6";;
+        x86*|aarch64-*|mips64el-*|*-4.8|*-4.8l|*-4.9|*-4.9l) echo "7.6";;
         *) echo "$DEFAULT_GDB_VERSION";;
     esac
+}
+
+# Return the gdbserver version to be used by default when building a given
+# version of GCC.
+#
+# $1: toolchain with version numer (e.g. 'arm-linux-androideabi-4.6')
+#
+get_default_gdbserver_version_for_gcc ()
+{
+    echo "7.6"
 }

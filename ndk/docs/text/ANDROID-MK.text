@@ -249,11 +249,20 @@ TARGET_ARCH_ABI
        armeabi-v7a
             For ARMv7
 
+       arm64-v8a
+            For ARMv8 AArch64
+
        x86
             For i686
 
+       x86_64
+            For x86-64
+
        mips
             For mips32 (r1)
+
+       mips64
+            For mips64 (r6)
 
 >    NOTE: Up to Android NDK 1.6_r1, this variable was simply defined
 >          as '`arm`'. However, the value has been redefined to better
@@ -637,10 +646,10 @@ LOCAL_ALLOW_UNDEFINED_SYMBOLS
 
 - - - -
 LOCAL_ARM_MODE
->    By default, ARM target binaries will be generated in 'thumb' mode, where
->    each instruction are 16-bit wide. You can define this variable to '`arm`'
->    if you want to force the generation of the module's object files in
->    'arm' (32-bit instructions) mode. E.g.:
+>    By default, ARM target binaries will be generated in 'thumb' mode
+>    and link with /thumb STL libraries, where each instruction are 16-bit wide.
+>    You can define this variable to '`arm`' if you want to force the generation
+>    of the module's object files in 'arm' (32-bit instructions) mode. E.g.:
 
             LOCAL_ARM_MODE := arm
 

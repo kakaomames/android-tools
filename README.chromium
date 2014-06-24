@@ -1,7 +1,7 @@
 Name: Android Tools (SDK/NDK)
 URL: http://developer.android.com/sdk/index.html
 Versions:
-  NDK r9d
+  NDK r10/RC3
   Android SDK Platform API 20
   Android SDK Tools 23.0.2
   Android SDK Platform-tools 20
@@ -20,12 +20,11 @@ Local Modifications:
 -In ndk/
 - Removed old android platforms in ndk/platforms
   (anything under android-14)
-- Included the Android support library (version 19.1)
-- Edited platforms/android-<version>/arch-arm/usr/include/math.h
-  and platforms/android-<version>/arch-arm/usr/include/sys/cdefs.h
-  to work around issues with clang 3.5
+- Removed gcc 4.6-based compilers
+- Took platforms/android-L/*64/usr/lib/libc.so from rc2 due to the removal of
+  __system_properties_get (which we currently require) from libc.so in rc3.
 - Edited stlport to force GCC to do "proper" inlining decisions
-  (see crbug/com/377433)
+  (see crbug.com/377433)
     ndk/sources/cxx-stl/stlport/stlport/stl/_construct.h
     ndk/sources/cxx-stl/stlport/stlport/stl/_vector.c
 - Added gyp files in ndk/
@@ -39,10 +38,5 @@ Local Modifications:
     cd chromium-trace
     ./update.py
     cp script.js style.css $ANDROID_SDK_ROOT/tools/systrace
--In ndk_experimental/
-- A beta version (rc3) of the r10 NDK toolchain has been added in
-  ndk_experimental.
-    - libc.so has been taken from rc2 due to the removal of
-      __system_properties_get (which we currently require) from libc.so in rc3.
 
 No other modifications has been made to the public Android SDK/NDK.

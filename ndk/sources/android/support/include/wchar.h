@@ -25,6 +25,8 @@
 #ifndef NDK_ANDROID_SUPPORT_WCHAR_H
 #define NDK_ANDROID_SUPPORT_WCHAR_H
 
+// __LP64__
+
 /* IMPORTANT NOTE: Unlike other headers in the support library, this
  * one doesn't try to include the Bionic header through #include_next.
  *
@@ -65,6 +67,13 @@
 extern "C" {
 #endif
 
+#if defined(__LP64__)
+
+# include_next <wchar.h>
+#include <xlocale.h> // for locale_t
+
+#else
+
 #include <stdarg.h>  // for va_list
 #include <stdio.h>   // for FILE
 #include <stddef.h>  // for size_t
@@ -74,32 +83,14 @@ extern "C" {
 #define __need___wchar_t
 #include <stddef.h>
 
-// See http://b.android.com/This is tricky: <stdio.h> indirectly includes <stdint.h>, which will
-// already have defined WCHAR_MIN / WCHAR_MAX in the following cases:
-// - When compiling C sources
-// - When compiling C++ sources AND having __STDC_LIMIT_MACROS defined.
-//
-// The conditional block below is only entered when compiling
-// C++ sources without __STDC_LIMIT_MACROS.
-//
-// The constants here ensure that they match the INT32_MIN / INT32_MAX
-// definitions.
 #ifndef WCHAR_MAX
-#  ifndef __WCHAR_MAX__
-#    error "__WCHAR_MAX__ undefined. Check your toolchain."
-#  endif
-// Clang doesn't define __WCHAR_MIN__, only __WCHAR_MAX__
-#  ifndef __WCHAR_MIN__
-#    if __WCHAR_MAX__ == 0xffffffff
-#      define __WCHAR_MIN__   0U
-#    elif __WCHAR_MAX__ == 0x7fffffff
-#      define __WCHAR_MIN__   0x80000000
-#    else
-#      error "Invalid __WCHAR_MAX__ value. Check your toolchain."
-#    endif
-#  endif  // !__WCHAR_MIN
 #define WCHAR_MAX __WCHAR_MAX__
-#define WCHAR_MIN __WCHAR_MIN__
+/* Clang does not define __WCHAR_MIN__ */
+#if defined(__WCHAR_UNSIGNED__)
+#define WCHAR_MIN L'\0'
+#else
+#define WCHAR_MIN (-(WCHAR_MAX) - 1)
+#endif
 #endif
 
 #define WEOF ((wint_t)(-1))
@@ -212,9 +203,6 @@ int wcscasecmp(const wchar_t *, const wchar_t *);
 int wcscasecmp_l(const wchar_t *, const wchar_t *, locale_t);
 int wcsncasecmp(const wchar_t *, const wchar_t *, size_t);
 int wcsncasecmp_l(const wchar_t *, const wchar_t *, size_t, locale_t);
-int wcscoll_l(const wchar_t *, const wchar_t *, locale_t);
-size_t wcsxfrm_l(wchar_t *__restrict__, const wchar_t *__restrict__, size_t n, locale_t);
-
 int wcwidth (wchar_t);
 int wcswidth (const wchar_t *, size_t);
 int       iswalnum(wint_t);
@@ -233,6 +221,11 @@ int       iswctype(wint_t, wctype_t);
 wint_t    towlower(wint_t);
 wint_t    towupper(wint_t);
 wctype_t  wctype(const char *);
+
+#endif // !__LP64__
+
+int wcscoll_l(const wchar_t *, const wchar_t *, locale_t);
+size_t wcsxfrm_l(wchar_t *__restrict__, const wchar_t *__restrict__, size_t n, locale_t);
 
 #ifdef __cplusplus
 }  // extern "C"

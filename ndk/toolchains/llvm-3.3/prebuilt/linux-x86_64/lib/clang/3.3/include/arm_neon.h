@@ -24,6 +24,10 @@
 #ifndef __ARM_NEON_H
 #define __ARM_NEON_H
 
+#if defined(__i386__)
+#include "arm_neon_x86.h"
+#else
+
 #ifndef __ARM_NEON__
 #error "NEON support not enabled"
 #endif
@@ -5006,5 +5010,7 @@ __ai poly16x8x2_t vzipq_p16(poly16x8_t __a, poly16x8_t __b) {
   poly16x8x2_t r; __builtin_neon_vzipq_v(&r, (int8x16_t)__a, (int8x16_t)__b, 37); return r; }
 
 #undef __ai
+
+#endif // __i386__
 
 #endif /* __ARM_NEON_H */

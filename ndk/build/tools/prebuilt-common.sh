@@ -27,6 +27,11 @@ NDK_BUILDTOOLS_ABSPATH=$(cd $NDK_BUILDTOOLS_PATH && pwd)
 . $NDK_BUILDTOOLS_PATH/ndk-common.sh
 . $NDK_BUILDTOOLS_PATH/dev-defaults.sh
 
+# Binaries built by new linux host toolchain "prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.11-4.6"
+# may contain functions missing from server runs very old libc.so.  Define __USE_OLD_LINUX_HOST_GCC=yes
+# to use the original "prebuilts/tools/gcc-sdk" with glibc2.7 sysroot
+__USE_OLD_LINUX_HOST_GCC=yes
+
 #====================================================
 #
 #  UTILITY FUNCTIONS
@@ -770,19 +775,35 @@ EOF
     # generate wrappers for BUILD toolchain
     # this is required for mingw/darwin build to avoid tools canadian cross configuration issues
     # 32-bit BUILD toolchain
-    LEGACY_TOOLCHAIN_DIR="$ANDROID_NDK_ROOT/../prebuilts/gcc/linux-x86/host/i686-linux-glibc2.7-4.6"
-    $NDK_BUILDTOOLS_PATH/gen-toolchain-wrapper.sh --src-prefix=i386-linux-gnu- \
-            --dst-prefix="$LEGACY_TOOLCHAIN_DIR/bin/i686-linux-" "$CROSS_WRAP_DIR"
-    $NDK_BUILDTOOLS_PATH/gen-toolchain-wrapper.sh --src-prefix=i386-pc-linux-gnu- \
-            --dst-prefix="$LEGACY_TOOLCHAIN_DIR/bin/i686-linux-" "$CROSS_WRAP_DIR"
-    # 64-bit BUILD toolchain.  libbfd is still built in 32-bit.  Use gcc-sdk instead
-    # of x86_64-linux-glibc2.7-4.6 which is a 64-bit-only tool
-    LEGACY_TOOLCHAIN_DIR="$ANDROID_NDK_ROOT/../prebuilts/tools/gcc-sdk"
-    $NDK_BUILDTOOLS_PATH/gen-toolchain-wrapper.sh --src-prefix=x86_64-linux-gnu- \
-            --dst-prefix="$LEGACY_TOOLCHAIN_DIR/" "$CROSS_WRAP_DIR"
-    $NDK_BUILDTOOLS_PATH/gen-toolchain-wrapper.sh --src-prefix=x86_64-pc-linux-gnu- \
-            --dst-prefix="$LEGACY_TOOLCHAIN_DIR/" "$CROSS_WRAP_DIR"
-    fail_panic "Could not create $DEBIAN_NAME wrapper toolchain in $CROSS_WRAP_DIR"
+    if [ "$__USE_OLD_LINUX_HOST_GCC" = "yes" ]; then
+        LEGACY_TOOLCHAIN_DIR="$ANDROID_NDK_ROOT/../prebuilts/gcc/linux-x86/host/i686-linux-glibc2.7-4.6"
+        $NDK_BUILDTOOLS_PATH/gen-toolchain-wrapper.sh --src-prefix=i386-linux-gnu- \
+                --dst-prefix="$LEGACY_TOOLCHAIN_DIR/bin/i686-linux-" "$CROSS_WRAP_DIR"
+        $NDK_BUILDTOOLS_PATH/gen-toolchain-wrapper.sh --src-prefix=i386-pc-linux-gnu- \
+                --dst-prefix="$LEGACY_TOOLCHAIN_DIR/bin/i686-linux-" "$CROSS_WRAP_DIR"
+        # 64-bit BUILD toolchain.  libbfd is still built in 32-bit.  Use gcc-sdk instead
+        # of x86_64-linux-glibc2.7-4.6 which is a 64-bit-only tool
+        LEGACY_TOOLCHAIN_DIR="$ANDROID_NDK_ROOT/../prebuilts/tools/gcc-sdk"
+        $NDK_BUILDTOOLS_PATH/gen-toolchain-wrapper.sh --src-prefix=x86_64-linux-gnu- \
+                --dst-prefix="$LEGACY_TOOLCHAIN_DIR/" "$CROSS_WRAP_DIR"
+        $NDK_BUILDTOOLS_PATH/gen-toolchain-wrapper.sh --src-prefix=x86_64-pc-linux-gnu- \
+                --dst-prefix="$LEGACY_TOOLCHAIN_DIR/" "$CROSS_WRAP_DIR"
+        fail_panic "Could not create $DEBIAN_NAME wrapper toolchain in $CROSS_WRAP_DIR"
+    else
+        LEGACY_TOOLCHAIN_DIR="$ANDROID_NDK_ROOT/../prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.11-4.6"
+        $NDK_BUILDTOOLS_PATH/gen-toolchain-wrapper.sh --src-prefix=i386-linux-gnu- \
+                --cflags="-m32" --cxxflags="-m32" --ldflags="-m elf_i386" --asflags="--32" \
+                --dst-prefix="$LEGACY_TOOLCHAIN_DIR/bin/x86_64-linux-" "$CROSS_WRAP_DIR"
+        $NDK_BUILDTOOLS_PATH/gen-toolchain-wrapper.sh --src-prefix=i386-pc-linux-gnu- \
+                --cflags="-m32" --cxxflags="-m32" --ldflags="-m elf_i386" --asflags="--32" \
+                --dst-prefix="$LEGACY_TOOLCHAIN_DIR/bin/x86_64-linux-" "$CROSS_WRAP_DIR"
+        # 64-bit BUILD toolchain.  libbfd is still built in 32-bit.
+        $NDK_BUILDTOOLS_PATH/gen-toolchain-wrapper.sh --src-prefix=x86_64-linux-gnu- \
+                --dst-prefix="$LEGACY_TOOLCHAIN_DIR/bin/x86_64-linux-" "$CROSS_WRAP_DIR"
+        $NDK_BUILDTOOLS_PATH/gen-toolchain-wrapper.sh --src-prefix=x86_64-pc-linux-gnu- \
+                --dst-prefix="$LEGACY_TOOLCHAIN_DIR/bin/x86_64-linux-" "$CROSS_WRAP_DIR"
+        fail_panic "Could not create $DEBIAN_NAME wrapper toolchain in $CROSS_WRAP_DIR"
+    fi
 
     export PATH=$CROSS_WRAP_DIR:$PATH
     dump "Using $DEBIAN_NAME wrapper: $CROSS_WRAP_DIR/${BINPREFIX}gcc"
@@ -849,8 +870,13 @@ prepare_common_build ()
     if [ -z "$CC" ]; then
         LEGACY_TOOLCHAIN_DIR=
         if [ "$HOST_OS" = "linux" ]; then
-            LEGACY_TOOLCHAIN_DIR="$ANDROID_NDK_ROOT/../prebuilts/tools/gcc-sdk"
-            LEGACY_TOOLCHAIN_PREFIX="$LEGACY_TOOLCHAIN_DIR/"
+            if [ "$__USE_OLD_LINUX_HOST_GCC" = "yes" ]; then
+                LEGACY_TOOLCHAIN_DIR="$ANDROID_NDK_ROOT/../prebuilts/tools/gcc-sdk"
+                LEGACY_TOOLCHAIN_PREFIX="$LEGACY_TOOLCHAIN_DIR/"
+            else
+                LEGACY_TOOLCHAIN_DIR="$ANDROID_NDK_ROOT/../prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.11-4.6/bin"
+                LEGACY_TOOLCHAIN_PREFIX="$LEGACY_TOOLCHAIN_DIR/x86_64-linux-"
+            fi
         elif [ "$HOST_OS" = "darwin" ]; then
             LEGACY_TOOLCHAIN_DIR="$ANDROID_NDK_ROOT/../prebuilts/gcc/darwin-x86/host/i686-apple-darwin-4.2.1/bin"
             LEGACY_TOOLCHAIN_PREFIX="$LEGACY_TOOLCHAIN_DIR/i686-apple-darwin10-"
@@ -1016,13 +1042,10 @@ parse_toolchain_name ()
         ;;
     aarch64-linux-android-*)
         ARCH="arm64"
-        ABI="aarch64-v8a"
+        ABI="arm64-v8a"
         ABI_CONFIGURE_TARGET="aarch64-linux-android"
-        # Note:
-        # --disable-libgomp because libgomp/configure tries to link when we don't have crt*.o for aarch64 yet.
-        # --disable-gold because gold doesn't support aarch64 yet
-        #
-        ABI_CONFIGURE_EXTRA_FLAGS="--disable-gold --disable-libgomp"
+        # Note: --disable-gold because gold doesn't support aarch64 yet
+        ABI_CONFIGURE_EXTRA_FLAGS="--disable-gold"
         ;;
     x86-*)
         ARCH="x86"
@@ -1070,7 +1093,7 @@ parse_toolchain_name ()
         ABI_CFLAGS_FOR_TARGET="-fexceptions -fpic"
         ABI_CXXFLAGS_FOR_TARGET="-frtti -fpic"
         # Add --disable-fixed-point to disable fixed-point support
-        ABI_CONFIGURE_EXTRA_FLAGS="$ABI_CONFIGURE_EXTRA_FLAGS --disable-fixed-point --disable-libgomp --disable-libatomic"
+        ABI_CONFIGURE_EXTRA_FLAGS="$ABI_CONFIGURE_EXTRA_FLAGS --disable-fixed-point"
         ;;
     * )
         echo "Invalid toolchain specified. Expected (arm-linux-androideabi-*|arm-eabi-*|x86-*|mipsel*|mips64el*)"
@@ -1086,10 +1109,16 @@ parse_toolchain_name ()
     log "Using GCC version: $GCC_VERSION"
 
     # Determine --host value when building gdbserver
+
     case "$TOOLCHAIN" in
     arm-*)
         GDBSERVER_HOST=arm-eabi-linux
         GDBSERVER_CFLAGS="-fno-short-enums"
+        GDBSERVER_LDFLAGS=
+        ;;
+    aarch64-*)
+        GDBSERVER_HOST=aarch64-eabi-linux
+        GDBSERVER_CFLAGS="-fno-short-enums -DUAPI_HEADERS"
         GDBSERVER_LDFLAGS=
         ;;
     x86-*)
@@ -1099,16 +1128,23 @@ parse_toolchain_name ()
         ;;
     x86_64-*)
         GDBSERVER_HOST=x86_64-linux-android
-        GDBSERVER_CFLAGS=
+        GDBSERVER_CFLAGS=-DUAPI_HEADERS
         GDBSERVER_LDFLAGS=
         ;;
-    mips*)
+    mipsel-*)
         GDBSERVER_HOST=mipsel-linux-android
         GDBSERVER_CFLAGS=
         GDBSERVER_LDFLAGS=
         ;;
+    mips64el-*)
+        GDBSERVER_HOST=mips64el-linux-android
+        GDBSERVER_CFLAGS=-DUAPI_HEADERS
+        GDBSERVER_LDFLAGS=
+        ;;
+    *)
+        echo "Unknown TOOLCHAIN=$TOOLCHAIN"
+        exit
     esac
-
 }
 
 # Return the host "tag" used to identify prebuilt host binaries.
@@ -1240,23 +1276,17 @@ convert_abi_to_arch ()
         armeabi|armeabi-v7a|armeabi-v7a-hard)
             RET=arm
             ;;
-        x86)
-            RET=x86
-            ;;
-        mips)
-            RET=mips
-            ;;
-        arm64|x86_64|mips64)
+        x86|mips|x86_64|mips64)
             RET=$ABI
             ;;
-        aarch64)
+        arm64-v8a)
             RET=arm64
             ;;
         *)
             if [ "$(arch_in_unknown_archs $ABI)" = "yes" ]; then
                 RET=$ABI
             else
-                >&2 echo "ERROR: Unsupported ABI name: $ABI, use one of: armeabi, armeabi-v7a, x86, mips or armeabi-v7a-hard"
+                >&2 echo "ERROR: Unsupported ABI name: $ABI, use one of: armeabi, armeabi-v7a, x86, mips, armeabi-v7a-hard, arm64-v8a, x86_64 or mips64"
                 exit 1
             fi
             ;;
@@ -1276,8 +1306,11 @@ convert_arch_to_abi ()
         arm)
             RET=armeabi,armeabi-v7a,armeabi-v7a-hard
             ;;
-        x86|x86_64|mips|mips64|arm64)
+        x86|x86_64|mips|mips64)
             RET=$ARCH
+            ;;
+        arm64)
+            RET=arm64-v8a
             ;;
         *)
             if [ "$(arch_in_unknown_archs $ARCH)" = "yes" ]; then
@@ -1347,7 +1380,8 @@ get_llvm_toolchain_binprefix ()
 # $2: optional, system name, defaults to $HOST_TAG
 get_default_toolchain_binprefix_for_arch ()
 {
-    get_toolchain_binprefix_for_arch $1 $DEFAULT_GCC_VERSION $2
+    local GCCVER=$(get_default_gcc_version_for_arch $ARCH)
+    get_toolchain_binprefix_for_arch $1 $GCCVER $2
 }
 
 # Return default API level for a given arch
@@ -1356,11 +1390,12 @@ get_default_toolchain_binprefix_for_arch ()
 # $1: Architecture name
 get_default_api_level_for_arch ()
 {
-    # For now, always build the toolchain against API level 9
-    # (We have local toolchain patches under build/tools/toolchain-patches
-    # to ensure that the result works on previous platforms properly).
-    local LEVEL=9
-    echo $LEVEL
+    # For now, always build the toolchain against API level 9 for 32-bit arch
+    # and API level $FIRST_API64_LEVEL for 64-bit arch
+    case $1 in
+       *64) echo $FIRST_API64_LEVEL ;;
+       *) echo 9 ;;
+    esac
 }
 
 # Return the default platform sysroot corresponding to a given architecture
@@ -1372,14 +1407,21 @@ get_default_platform_sysroot_for_arch ()
     local ARCH=$1
     local LEVEL=$(get_default_api_level_for_arch $ARCH)
 
-    if [ "$ARCH" = "aarch64" ]; then
-        ARCH=arm64
-    fi
-    if [ "$ARCH" != "${ARCH%%64}" ] ; then
-        # Hack to use new 64-bit headers only available at, say LEVEL 20
-        LEVEL=20
+    if [ "$ARCH" != "${ARCH%%64*}" ] ; then
+        LEVEL=$FIRST_API64_LEVEL
     fi
     echo "platforms/android-$LEVEL/arch-$ARCH"
+}
+
+# Return the default libs dir corresponding to a given architecture
+# $1: Architecture name
+get_default_libdir_for_arch ()
+{
+    case $1 in
+      x86_64|mips64) echo "lib64" ;;
+      arm64) echo "lib" ;; # return "lib" until aarch64 is built to look for sysroot/usr/lib64
+      *) echo "lib" ;;
+    esac
 }
 
 # Guess what?

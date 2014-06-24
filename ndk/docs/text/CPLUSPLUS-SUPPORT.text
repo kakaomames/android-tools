@@ -269,24 +269,24 @@ as/ld/headers/libraries so they get -latomic too.  The version of libatomic in g
 *may* work for gcc4.6, although it's not tested and you have to copy them manually.
 
 This NDK provides prebuilt static and shared libraries for libc++
-compiled by clang, but you can force it to be rebuilt from sources by defining
+compiled by clang3.4, but you can force it to be rebuilt from sources by defining
 the following in your environment or your Application.mk before building:
 
         LIBCXX_FORCE_REBUILD := true
 
-Around 98% of current 4645 tests passes when compiling libc++ with
-clang for all supported ABIs. The remaining fails are mostly in the areas
+Around 99% of current 4640 tests passes when compiling libc++ with
+clang3.4 for all supported ABIs. The remaining fails are mostly in the areas
 of wchar_t and locale Android bionic don't support.  Switching locale
 from the default produces the following warning in logcat
 
         newlocale() WARNING: Trying to set locale to en_US.UTF-8 other than "", "C" or "POSIX"
 
-Using gabi++ as run-time also causes some issues in the nested exception and propagation too,
-which will be addressed when libc++ switches to use libc++abi in the future.
+Initial support at r9d uses gabi++ as run-time also causes some issues in the nested exception
+and propagation too.  Almost all are fixed after switching to libc++abi.
 
-More fails when compiling libc++ with gcc4.8 mostly because the lack of support
-in _Atomic (ETA: gcc 4.9).  See platform/ndk.git 
-29d9f88ef5a33cd65b4b9977aed628bc195facf3 for details
+Header include/atomic is fixed for gcc which doesn't support _Atomic in c++
+mode.  A dozen more fails when compiling libc++ with gcc4.8/gcc4.9 mostly in
+is_trivially_* tests.
 
 Using libc++ with gcc4.6 is not recommended (at least not tested at
 this moment) because its c++11 support isn't great

@@ -1,4 +1,203 @@
-<p>Android NDK ChangeLog:</p>
+<hr />
+<h1>android-ndk-r10</h1>
+<h2>IMPORTANT CHANGES:</h2>
+<ul>
+<li>Added 3 new ABIs: arm64-v8a, x86_64, mips64.</li>
+</ul>
+<p>Note that </p>
+<blockquote>
+<ol>
+<li>GCC 4.9 is the default compiler for 64-bit ABIs.  <code>NDK_TOOLCHAIN_VERSION=clang</code>
+      (currently at clang3.4) may not work for arm64-v8a and mips64 supports.</li>
+<li>API L is the first level with 64-bit support.  Note tha this is intermediate for
+      lmp-preview only, and will be replaced by actual API level in number at L-release</li>
+<li>Added <code>APP_ABI=all32</code> and all64:
+     <code>APP_ABI=all32</code> is equivalent to <code>APP_ABI=armeabi,armeabi-v7a,x86,mips</code>
+     <code>APP_ABI=all64</code> is equivalent to <code>APP_ABI=arm64-v8a,x86_64,mips64</code>
+     <code>APP_ABI=all</code> selects all ABIs</li>
+<li>the new GNU libstdc++ in andorid-L contain all <tr1/cmath>.
+      Check _GLIBCXX_USE_C99_MATH_TR1 before defining your own</li>
+<li>cpu-features have been updated for ARMv8 kernel.  The existing 
+      cpu-features may fail to detect the presence of NEON on ARMv8
+      platform.  Please recompile your code with the new cpu-features</li>
+</ol>
+</blockquote>
+<ul>
+<li>
+<p>About platforms/android-L API directory </p>
+<blockquote>
+<ol>
+<li>Updated Bionic headers/libs in android-L are synced to AOSP/bionic around release
+     time, which is different from the bionic headers in android-3 .. <code>-20</code> since
+     froyo/gingerbread with only bug-fixes.</li>
+<li>Added media APIs and sample native-codec</li>
+<li>Updated SLES/OpenSLES_Android.h to support single-precision audio
+     format in AudioPlayer</li>
+<li>Added GLES 3.1 and AEP extensions to libGLESv3.so</li>
+<li>Updated existing GLES2 and GLES3 headers to latest official Khronos versions.</li>
+</ol>
+</blockquote>
+</li>
+<li>
+<p>Added GCC 4.9 compilers to 32-/64-bit ABIs.  GCC 4.9 is the default for 64-bit ABIs
+  as previously mentioned.  Since GCC 4.6 is still the default for 32-bit you need to
+  explicitly enable it: </p>
+<blockquote>
+<ol>
+<li>For ndk-build: Either export <code>NDK_TOOLCHAIN_VERSION=4.9</code> or add it
+     in Application.mk.</li>
+<li>For standalone: Use "--toolchain=" option in <code>make-standalone-toolchain.sh</code>.
+     eg. "--toolchain=arm-linux-androideabi-4.9"</li>
+</ol>
+</blockquote>
+</li>
+<li>
+<p>Upgraded GDB in GCC4.8/4.9 and x86* to 7.6.  Since GDB in the default
+  GCC4.6 for arm and mips is still GDB-7.3.x, You need to set <code>NDK_TOOLCHAIN_VERSION=4.8</code>
+  (or 4.9) for ndk-gdb to select gdb 7.6</p>
+</li>
+<li>
+<p>Added SSSE3 (ie. <code>-mssse3,</code> triple-s) to be the default of ABI x86 (upgraded from SSE3).
+  This breaks the existing x86 ABI, but all shipped x86 Android devies has SSSE3 support.
+  Emulator-x86 and SDK x86 images are built w/o SSE3 support, though.  Please upgrade your
+  machine with SSSE3 to run emulator-x86 in KVM/HAXM</p>
+</li>
+<li>
+<p>Upgrade gcc4.8 to 4.8.3</p>
+</li>
+<li>
+<p>Improved libc++ EH support by switching to libc++abi (from gabi++).
+  Note:</p>
+<blockquote>
+<ol>
+<li>Almost all tests except for locale now passs for clang3.4 and gcc4.8
+      See <a href="CPLUSPLUS-SUPPORT.html">CPLUSPLUS-SUPPORT</a></li>
+<li>gcc &gt;= 4.7 can now use <atomic></li>
+<li>gcc4.6 can no longer rebuild libc++ (via LIBCXX_FORCE_REBUILD:=true).
+      clang3.3 isn't tested.</li>
+</ol>
+</blockquote>
+</li>
+<li>
+<p>Updated mclinker to 2.7 with aarch64linux support</p>
+</li>
+</ul>
+<h2>IMPORTANT BUG FIXES:</h2>
+<ul>
+<li>
+<p>Fixed libc++ fails to compile std::feof, etc.
+  See <a href="http://b.android.com/66668">b/66668</a></p>
+</li>
+<li>
+<p>Fixed Clang3.3/3.4 atomic libcall which crashes some libc++ tests in ABI armeabi</p>
+</li>
+<li>
+<p>Fixed Clang3.4 crashes on reading precompiled headers
+  See <a href="http://b.android.com/66657">b/66657</a></p>
+</li>
+<li>
+<p>Fixed Clang3.3/3.4 <code>-O3</code> assert on </p>
+<blockquote>
+<p>llvm-3.2/llvm/include/llvm/MDBuilder.h:64: llvm::MDNode* llvm::MDBuilder::createBranchWeights(llvm::ArrayRef<unsigned int>):
+       Assertion Weights.size() &gt;= 2 &amp;&amp; "Need at least two branch weights!"' 
+ See <a href="http://b.android.com/57381">b/57381</a></p>
+</blockquote>
+</li>
+<li>
+<p>Fixed Clang3.3/3.4 crash:</p>
+<blockquote>
+<p>Assertion failed: (!Fn &amp;&amp; "cast failed but able to resolve overload expression!!"), function CheckCXXCStyleCast, file
+ /Volumes/data/ndk-toolchain/src/llvm-3.3/llvm/tools/clang/lib/Sema/SemaCast.cpp, line 2018.
+ See <a href="http://b.android.com/66950">b/66950</a></p>
+</blockquote>
+</li>
+</ul>
+<h2>OTHER BUG FIXES:</h2>
+<ul>
+<li>Fixed headers<blockquote>
+<ol>
+<li>Fixed 32-bit ssize_t to be int instead of "long int"</li>
+<li>Fixed WCHAR_MIN and WCHAR_MAX to <ol>
+<li>respond to <code>__WCHAR_UNSIGNED__</code></li>
+<li>work for both signed (X86/MIPS) and unsigned (ARM) wchar_t, and</li>
+<li>work for <code>-fshort-wchar</code> too</li>
+</ol>
+</li>
+</ol>
+</blockquote>
+</li>
+<li>
+<ol>
+<li>Removed non-existance symbols from 32-bit libc.so.  Added pread64, pwrite64,
+     ftruncate64 for API &gt;= 12.  See b.android.com/69319 and commit message of
+     <a href="https://android-review.googlesource.com/#/c/94137">r/94137</a> for list</li>
+</ol>
+</li>
+<li>
+<p>Fixed gcc warning about redefinition of putchar. Warning message reads:</p>
+<blockquote>
+<p>include/stdio.h:236:5: warning: conflicts with previous declaration here [-Wattributes]
+     int  putchar(int);
+See <a href="https://android-review.googlesource.com/#/c/91185">r/91185</a></p>
+</blockquote>
+</li>
+<li>
+<p>Fixed <code>make-standalone-toolchain.sh</code> --stl=libc++ to</p>
+<blockquote>
+<ol>
+<li>copy cxxabi.h.  See <a href="http://b.android.com/68001">b/68001</a></li>
+<li>run on non-ndk directory.  See <a href="http://b.android.com/67690">b/67690</a> and <a href="http://b.android.com/68647">b/68647</a></li>
+</ol>
+</blockquote>
+</li>
+<li>
+<p>Fixed GCC/Windows to quote argument only necessary (vs. always) when
+  spwan process for external programs, which makes its less likely to
+  exceed the 32K length limit</p>
+</li>
+<li>
+<p>Fixed an issue where <code>APP_PLATFORM</code> specified in env. var can't be
+  adjusted</p>
+</li>
+<li>
+<p>Fixed crazy_linker IsSystemLibrary() implementation to use strrchr()
+  instead of strchr() to really find the basename of the library path.</p>
+</li>
+<li>
+<p>Fixed native-audio fail to build in debug mode</p>
+</li>
+<li>
+<p>Fixed gdb print extrem fp number. 
+  See b.android.com/69203</p>
+</li>
+<li>
+<p>Fixed clang3.4 compilation with "-Wl,-shared" (vs. "-shared" which
+  works fine).  The issue was clang target for Android adds "-pie" if
+  neither "-shared" nor "-static" exist, which was wrong, and cause
+  linker to complain "-shared" and "-pie" don't co-exist</p>
+</li>
+</ul>
+<h2>OTHER CHANGES:</h2>
+<ul>
+<li>
+<p>Add arm_neon.h in x86 toolchain which now emulates ~47% of NEON in arm_neon.h.
+  64-bit type isn't supported at this moment.  See <a href="CPU-X86.html">CPU-X86</a> ARM NEON intrinsics support.</p>
+</li>
+<li>
+<p>Port ARM/GOT_PREL optimization (present in GCC 4.6 built from GCC google branch)
+  to ARM GCC 4.8/4.9.  This optimization reduce instruction count to access global
+  variable in some cases.  See <code>$NDK/tests/build/b14811006-GOT_PREL-optimization/build.sh</code>
+  for an example.</p>
+</li>
+<li>
+<p>STL gabi++/stlport/libc++ now contains both arm and thumb version of
+  libraries (vs. previously thumb-only)</p>
+</li>
+<li>
+<p>It's possible to call <code>make-standalone-toolchain.sh</code> with --toolchain=x86_64-linux-android-4.9
+  which is equivalent to --toolchain=x86_64-4.9</p>
+</li>
+</ul>
 <hr />
 <h1>android-ndk-r9d</h1>
 <h2>IMPORTANT CHANGES:</h2>
@@ -12,7 +211,7 @@
   additional multilib option <code>-mfloat-abi=hard.</code>  With "APP_ABI=armeabi-v7a-hard",</p>
 <blockquote>
 <ol>
-<li>ndk-build add "TARGET_CFLAGS += <code>-mhard-float</code> <code>-D_NDK_MATH_NO_SOFTFP=1"</code> and 
+<li>ndk-build add "TARGET_CFLAGS += <code>-mhard-float</code> <code>-D_NDK_MATH_NO_SOFTFP=1"</code> and
       "TARGET_LDFLAGS += <code>-Wl,--no-warn-mismatch</code> <code>-lm_hard"</code> on top of the existing
       flags for armeabi-v7a.  The final library is installed at libs/armeabi-v7a,
       (ie. can't coexist with armeabi-v7a in the same <code>APP_ABI</code>). Also note that <code>APP_ABI=all</code>
@@ -26,7 +225,7 @@
 <li>
 <p>For X86: Added yasm and <code>LOCAL_ASMFLAGS</code>/EXPORT_ASMFLAGS.
   ndk-build use prebuilts/<em>/bin/yasm</em> to compile source specified in <code>LOCAL_SRC_FILES</code>
-  with .asm extension </p>
+  with .asm extension</p>
 </li>
 <li>
 <p>Updated mclinker to 2.6.0 with <code>-gc-sections</code> support</p>
@@ -39,7 +238,7 @@
       You may rebuild from source via "LIBCXX_FORCE_REBUILD := true"</li>
 <li><code>"make-standalone-toolchain.sh</code> --stl=libc++" to create standalone
       toolchain with libc++ headers/lib
-  See b.android.com/36496 and <a href="CPLUSPLUS-SUPPORT.html">CPLUSPLUS-SUPPORT</a></li>
+      See <a href="http://b.android.com/36496">b/36496</a> and <a href="CPLUSPLUS-SUPPORT.html">CPLUSPLUS-SUPPORT</a></li>
 </ol>
 </blockquote>
 </li>
@@ -62,7 +261,7 @@
 <ol>
 <li>linux: zlib, nis, crypt, _curses and _curses_panel</li>
 <li>darwin: zlib, bz2, _curses, _curses_panel, _hashlib, _ssl
-See b.android.com/59902</li>
+See <a href="http://b.android.com/59902">b/59902</a></li>
 </ol>
 </blockquote>
 </li>
@@ -80,7 +279,7 @@ See b.android.com/59902</li>
 <p>Fixed headers</p>
 <blockquote>
 <ol>
-<li>Fixed typo in sources/android/support/include/iconv.h.<br />
+<li>Fixed typo in sources/android/support/include/iconv.h.
      See <a href="http://b.android.com/63806">b/63806</a></li>
 <li>Fixed missing #include <sys/types.h> in android/asset_manager.h for API &gt;= 13
      See <a href="http://b.android.com/64988">b/64988</a></li>
@@ -124,7 +323,7 @@ See b.android.com/59902</li>
 </li>
 <li>
 <p>Fixed ndk-build to add <code>-rpath-link=$SYSROOT/usr/lib</code> and <code>-rpath-link=$TARGET_OUT</code>
-  for linking executable with ld.bfd.  See b.android.com/64266</p>
+  for linking executable with ld.bfd.  See <a href="http://b.android.com/64266">b/64266</a></p>
 </li>
 <li>
 <p>Removed <code>-Bsymbolic</code> from all STL build</p>
@@ -132,7 +331,7 @@ See b.android.com/59902</li>
 <li>
 <p>Fixed ndk-gdb-py.cmd by setting SHELL as env. var. instead of passing it to
   python.exe which can't understand it.
-  See b.android.com/63054</p>
+  See <a href="http://b.android.com/63054">b/63054</a></p>
 </li>
 <li>
 <p>Fixed <code>"make-standalone-toolchain.sh</code> --stl=stlport" to copy instead of symlink
@@ -2463,7 +2662,7 @@ EGL_NV_system_time
   This allows you to generate machine code that runs on future x86-based
   Android devices.</p>
 <p>Note that by default, code is still generated for ARM-based devices.
-  You can however add 'x86' to your <code>APP_PLATFORM</code> definition in your
+  You can however add 'x86' to your <code>APP_ABI</code> definition in your
   Application.mk. For example, the following line instructs ndk-build
   to build your code for three distinct ABIs:</p>
 <pre><code>`APP_ABI` := armeabi armeabi-v7a x86
