@@ -36,14 +36,38 @@ it supports.</p>
 <p>Two functions are provided for now:</p>
 <pre><code>    AndroidCpuFamily android_getCpuFamily();
 </code></pre>
-<p>Returns the target device's CPU Family as an enum. For now, the only
-supported family is ANDROID_CPU_FAMILY_ARM.</p>
+<p>Returns a value matching the CPU family/architecture supported by the
+current process as an enum. Currently, the following families are defined:</p>
+<ul>
+<li>
+<p><code>ANDROID_CPU_FAMILY_ARM</code></p>
+</li>
+<li>
+<p><code>ANDROID_CPU_FAMILY_X86</code></p>
+</li>
+<li>
+<p><code>ANDROID_CPU_FAMILY_MIPS</code></p>
+</li>
+<li>
+<p><code>ANDROID_CPU_FAMILY_ARM64</code></p>
+</li>
+<li>
+<p><code>ANDROID_CPU_FAMILY_X86_64</code></p>
+</li>
+<li>
+<p><code>ANDROID_CPU_FAMILY_MIPS64</code></p>
+</li>
+</ul>
+<p>Note that when running a 32-bit executable on a 64-bit system, this function
+will return the 32-bit family value only.</p>
+<p>Secondly:</p>
 <pre><code>    uint64_t android_getCpuFeatures();
 </code></pre>
 <p>Returns the set of optional features supported by the device's CPU.
 The result is a set of bit-flags, each corresponding to one CPU
 Family-specific optional feature.</p>
-<p>Currently, only the following flags are defined, for the ARM CPU Family:</p>
+<p>Currently, only the following flags are defined, for the 32-bit ARM CPU
+Family:</p>
 <ul>
 <li>
 <p><code>ANDROID_CPU_ARM_FEATURE_VFPv2</code></p>
@@ -141,7 +165,7 @@ Family-specific optional feature.</p>
 </blockquote>
 </li>
 </ul>
-<p>And the following flags for the x86 CPU Family:</p>
+<p>And the following flags for the 32-bit x86 CPU Family:</p>
 <ul>
 <li>
 <p><code>ANDROID_CPU_X86_FEATURE_SSSE3</code></p>
@@ -165,6 +189,8 @@ Family-specific optional feature.</p>
 </blockquote>
 </li>
 </ul>
+<p>Other CPU families do not have extensions listed at the moment, which
+means that android_getCpuFeatures() will return 0 for them.</p>
 <p>The following function is also defined to return the max number of
 CPU cores on the target device:</p>
 <pre><code>    int  android_getCpuCount(void);
