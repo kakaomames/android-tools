@@ -84,9 +84,10 @@ if [ ! -d "$SRC_DIR" ]; then
     exit 1
 fi
 
-if [ ! -f "$SRC_DIR/build/configure" -o ! -d "$SRC_DIR/gcc/gcc-$DEFAULT_GCC_VERSION" ]; then
+if [ ! -f "$SRC_DIR/build/configure" -o ! -d "$SRC_DIR/gcc/gcc-$DEFAULT_GCC32_VERSION" -o ! -d "$SRC_DIR/gcc/gcc-$DEFAULT_GCC64_VERSION" ]; then
     echo "ERROR: The file $SRC_DIR/build/configure or"
-    echo "       the directory $SRC_DIR/gcc/gcc-$DEFAULT_GCC_VERSION does not exist"
+    echo "       the directory $SRC_DIR/gcc/gcc-$DEFAULT_GCC32_VERSION or"
+    echo "       $SRC_DIR/gcc/gcc-$DEFAULT_GCC64_VERSION does not exist"
     echo "This is not the top of a toolchain tree: $SRC_DIR"
     echo "You must give the path to a copy of the toolchain source directories"
     echo "created by 'download-toolchain-sources.sh."
@@ -325,7 +326,7 @@ for SYSTEM in $SYSTEMS; do
 
         for TOOLCHAIN_NAME in $TOOLCHAIN_NAMES; do
             echo "Building $SYSNAME toolchain for $ARCH architecture: $TOOLCHAIN_NAME"
-            run $BUILDTOOLS/build-gcc.sh "$SRC_DIR" "$NDK_DIR" $TOOLCHAIN_NAME $TOOLCHAIN_FLAGS --with-python=prebuilt
+            run $BUILDTOOLS/build-gcc.sh "$SRC_DIR" "$NDK_DIR" $TOOLCHAIN_NAME $TOOLCHAIN_FLAGS --with-python=prebuilt -j$BUILD_NUM_CPUS
             fail_panic "Could not build $TOOLCHAIN_NAME-$SYSNAME!"
         done
     done
@@ -337,7 +338,7 @@ for SYSTEM in $SYSTEMS; do
     fi
     for LLVM_VERSION in $LLVM_VERSION_LIST; do
         echo "Building $SYSNAME clang/llvm-$LLVM_VERSION"
-        run $BUILDTOOLS/build-llvm.sh "$SRC_DIR" "$NDK_DIR" "llvm-$LLVM_VERSION" $TOOLCHAIN_FLAGS $POLLY_FLAGS $CHECK_FLAG
+        run $BUILDTOOLS/build-llvm.sh "$SRC_DIR" "$NDK_DIR" "llvm-$LLVM_VERSION" $TOOLCHAIN_FLAGS $POLLY_FLAGS $CHECK_FLAG -j$BUILD_NUM_CPUS
         fail_panic "Could not build llvm for $SYSNAME"
     done
 

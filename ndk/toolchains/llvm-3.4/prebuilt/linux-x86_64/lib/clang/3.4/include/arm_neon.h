@@ -24,6 +24,9 @@
 #ifndef __ARM_NEON_H
 #define __ARM_NEON_H
 
+#if defined(__i386__)
+#include "arm_neon_x86.h"
+#else
 #if !defined(__ARM_NEON__) && !defined(__ARM_NEON)
 #error "NEON support not enabled"
 #endif
@@ -9591,5 +9594,7 @@ __ai uint32x4_t vsha256su1q_u32(uint32x4_t __a, uint32x4_t __b, uint32x4_t __c) 
 #endif
 
 #undef __ai
+
+#endif // __i386__
 
 #endif /* __ARM_NEON_H */

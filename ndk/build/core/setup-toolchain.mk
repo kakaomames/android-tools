@@ -33,8 +33,14 @@ ifndef NDK_TOOLCHAIN
     $(foreach _ver,$(LLVM_VERSION_LIST), \
         $(eval TARGET_TOOLCHAIN_LIST := \
             $(filter-out %-clang$(_ver),$(TARGET_TOOLCHAIN_LIST))))
-    # Filter out 4.7 and 4.8 which is considered experimental at this moment
-    TARGET_TOOLCHAIN_LIST := $(filter-out %4.7 %4.8,$(TARGET_TOOLCHAIN_LIST))
+
+    ifeq (,$(findstring 64,$(TARGET_ARCH_ABI)))
+      # Filter out 4.7, 4.8 and 4.9 which are newer than the defaultat this moment
+      TARGET_TOOLCHAIN_LIST := $(filter-out %4.7 %4.8 %4.8l %4.9 %4.9l,$(TARGET_TOOLCHAIN_LIST))
+    else
+      # Filter out 4.6, 4.7 and 4.8 which don't have good 64-bit support in all supported arch
+      TARGET_TOOLCHAIN_LIST := $(filter-out %4.6 %4.7 %4.8 %4.8l,$(TARGET_TOOLCHAIN_LIST))
+    endif
 
     ifndef TARGET_TOOLCHAIN_LIST
         $(call __ndk_info,There is no toolchain that supports the $(TARGET_ARCH_ABI) ABI.)
@@ -43,8 +49,13 @@ ifndef NDK_TOOLCHAIN
         $(call __ndk_error,Aborting)
     endif
     # Select the last toolchain from the sorted list.
-    # For now, this is enough to select armeabi-4.6 by default for ARM
-    TARGET_TOOLCHAIN := $(lastword $(TARGET_TOOLCHAIN_LIST))
+    # For now, this is enough to select by default gcc4.6 for 32-bit, and 4.9 for 64-bit, the the
+    # latest llvm if no gcc
+    ifneq (,$(filter-out llvm-%,$(TARGET_TOOLCHAIN_LIST)))
+        TARGET_TOOLCHAIN := $(firstword $(TARGET_TOOLCHAIN_LIST))
+    else
+        TARGET_TOOLCHAIN := $(lastword $(TARGET_TOOLCHAIN_LIST))
+    endif
 
     # If NDK_TOOLCHAIN_VERSION is defined, we replace the toolchain version
     # suffix with it.
@@ -125,8 +136,9 @@ TARGET_GDBSERVER := $(NDK_ROOT)/prebuilt/android-$(TARGET_ARCH)/gdbserver/gdbser
 
 # compute NDK_APP_DST_DIR as the destination directory for the generated files
 NDK_APP_DST_DIR := $(NDK_APP_LIBS_OUT)/$(TARGET_ARCH_ABI)
-# install armeabi-v7a-hard to lib/armeabi-v7a, unless under testing where env. var. _NDK_TESTING_ALL_=yes
-ifneq ($(_NDK_TESTING_ALL_),yes)
+# install armeabi-v7a-hard to lib/armeabi-v7a, unless under testing where env. var. _NDK_TESTING_ALL_
+# is set to one of yes, all, all32, or all64
+ifeq (,$(filter yes all all32 all64,$(_NDK_TESTING_ALL_)))
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a-hard)
 NDK_APP_DST_DIR := $(NDK_APP_LIBS_OUT)/armeabi-v7a
 endif
