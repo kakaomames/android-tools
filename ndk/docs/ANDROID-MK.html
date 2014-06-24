@@ -235,11 +235,20 @@ including this file. Example usage:</p>
    armeabi-v7a
         For ARMv7
 
+   arm64-v8a
+        For ARMv8 AArch64
+
    x86
         For i686
 
+   x86_64
+        For x86-64
+
    mips
         For mips32 (r1)
+
+   mips64
+        For mips64 (r6)
 </code></pre>
 <blockquote>
 <p>NOTE: Up to Android NDK 1.6_r1, this variable was simply defined
@@ -630,10 +639,10 @@ noted in their description.</p>
 <hr />
 <p><code>LOCAL_ARM_MODE</code></p>
 <blockquote>
-<p>By default, ARM target binaries will be generated in 'thumb' mode, where
-   each instruction are 16-bit wide. You can define this variable to '<code>arm</code>'
-   if you want to force the generation of the module's object files in
-   'arm' (32-bit instructions) mode. E.g.:</p>
+<p>By default, ARM target binaries will be generated in 'thumb' mode
+   and link with /thumb STL libraries, where each instruction are 16-bit wide.
+   You can define this variable to '<code>arm</code>' if you want to force the generation
+   of the module's object files in 'arm' (32-bit instructions) mode. E.g.:</p>
 </blockquote>
 <pre><code>        LOCAL_ARM_MODE := arm
 </code></pre>

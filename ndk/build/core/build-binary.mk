@@ -78,6 +78,7 @@ system_libs := \
     RS \
     ui \
     utils \
+    mediandk \
     atomic
 
 libs_in_ldflags := $(filter-out $(addprefix -l,$(system_libs)), $(libs_in_ldflags))
@@ -145,14 +146,6 @@ LOCAL_RS_OBJECTS :=
 #
 LOCAL_CFLAGS := -DANDROID $(LOCAL_CFLAGS)
 
-# enable PIE for executable beyond certain API level
-ifeq ($(NDK_APP_PIE),true)
-  ifeq ($(call module-get-class,$(LOCAL_MODULE)),EXECUTABLE)
-    LOCAL_CFLAGS += -fPIE
-    LOCAL_LDFLAGS += -fPIE -pie
-  endif
-endif
-
 #
 # Add the default system shared libraries to the build
 #
@@ -213,6 +206,16 @@ else
   LOCAL_CFLAGS += $($(my)FORMAT_STRING_CFLAGS)
 endif
 
+# enable PIE for executable beyond certain API level, unless "-static"
+ifneq (,$(filter true,$(NDK_APP_PIE) $(TARGET_PIE)))
+  ifeq ($(call module-get-class,$(LOCAL_MODULE)),EXECUTABLE)
+    ifeq (,$(filter -static,$(TARGET_LDFLAGS) $(LOCAL_LDFLAGS) $(NDK_APP_LDFLAGS)))
+      LOCAL_CFLAGS += -fPIE
+      LOCAL_LDFLAGS += -fPIE -pie
+    endif
+  endif
+endif
+
 #
 # The original Android build system allows you to use the .arm prefix
 # to a source file name to indicate that it should be defined in either
@@ -270,8 +273,8 @@ endif
 
 neon_sources := $(strip $(neon_sources))
 ifdef neon_sources
-  ifeq ($(filter $(TARGET_ARCH_ABI), armeabi-v7a armeabi-v7a-hard),)
-    $(call __ndk_info,NEON support is only possible for armeabi-v7a ABI and its variant armeabi-v7a-hard)
+  ifeq ($(filter $(TARGET_ARCH_ABI), armeabi-v7a armeabi-v7a-hard x86),)
+    $(call __ndk_info,NEON support is only possible for armeabi-v7a ABI, its variant armeabi-v7a-hard and x86 ABI)
     $(call __ndk_info,Please add checks against TARGET_ARCH_ABI in $(LOCAL_MAKEFILE))
     $(call __ndk_error,Aborting)
   endif
@@ -418,6 +421,9 @@ CLEAN_OBJS_DIRS     += $(LOCAL_OBJS_DIR)
 #
 ifneq ($(filter -l%,$(LOCAL_LDLIBS)),)
     LOCAL_LDLIBS := -L$(call host-path,$(SYSROOT_LINK)/usr/lib) $(LOCAL_LDLIBS)
+    ifneq ($(filter x86_64 mips64,$(TARGET_ARCH_ABI)),)
+        LOCAL_LDLIBS := -L$(call host-path,$(SYSROOT_LINK)/usr/lib64) $(LOCAL_LDLIBS)
+    endif
 endif
 
 # When LOCAL_SHORT_COMMANDS is defined to 'true' we are going to write the

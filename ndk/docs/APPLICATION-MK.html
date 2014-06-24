@@ -154,19 +154,34 @@ define a few variables:</p>
 <pre><code>          APP_ABI := armeabi-v7a
 </code></pre>
 <blockquote>
+<p>Or to support ARMv8 AArch64 instruction set, use:</p>
+</blockquote>
+<pre><code>          APP_ABI := arm64-v8a
+</code></pre>
+<blockquote>
 <p>Or to support the IA-32 instruction set, use:</p>
 </blockquote>
 <pre><code>          APP_ABI := x86
 </code></pre>
 <blockquote>
-<p>Or to support the MIPS instruction set, use:</p>
+<p>Or to support the Intel64 instruction set, use:</p>
+</blockquote>
+<pre><code>          APP_ABI := x86_64
+</code></pre>
+<blockquote>
+<p>Or to support the MIPS32 instruction set (r1), use:</p>
 </blockquote>
 <pre><code>          APP_ABI := mips
 </code></pre>
 <blockquote>
+<p>Or to support the MIPS64 instruction set (r6), use:</p>
+</blockquote>
+<pre><code>          APP_ABI := mips64
+</code></pre>
+<blockquote>
 <p>Or to support all at the same time, use:</p>
 </blockquote>
-<pre><code>          APP_ABI := armeabi armeabi-v7a x86 mips
+<pre><code>          APP_ABI := armeabi armeabi-v7a x86 mips arm64-v8a x86_64 mips64
 </code></pre>
 <blockquote>
 <p>Or even better, since NDK r7, you can also use the special value
