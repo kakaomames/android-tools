@@ -82,8 +82,7 @@ private:
     float down_x_;
     float down_y_;
 public:
-    TapDetector() :
-            down_x_( 0 ), down_y_( 0 )
+    TapDetector()
     {
     }
     virtual ~TapDetector()
@@ -106,8 +105,7 @@ private:
     float last_tap_y_;
 
 public:
-    DoubletapDetector() :
-            last_tap_x_( 0 ), last_tap_y_( 0 ), last_tap_time_( 0 )
+    DoubletapDetector()
     {
     }
     virtual ~DoubletapDetector()
@@ -127,22 +125,19 @@ public:
 class PinchDetector: public GestureDetector
 {
 private:
-    int32_t FindIndex( const AInputEvent* event,
-            int32_t id );
+    int32_t FindIndex( const AInputEvent* event, int32_t id );
     const AInputEvent* event_;
     std::vector<int32_t> vec_pointers_;
 
 public:
-    PinchDetector() :
-            event_( NULL )
+    PinchDetector()
     {
     }
     virtual ~PinchDetector()
     {
     }
     virtual GESTURE_STATE Detect( const AInputEvent* event );
-    bool GetPointers( Vec2& v1,
-            Vec2& v2 );
+    bool GetPointers( Vec2& v1, Vec2& v2 );
 };
 
 /******************************************************************
@@ -153,13 +148,11 @@ public:
 class DragDetector: public GestureDetector
 {
 private:
-    int32_t FindIndex( const AInputEvent* event,
-            int32_t id );
+    int32_t FindIndex( const AInputEvent* event, int32_t id );
     const AInputEvent* event_;
     std::vector<int32_t> vec_pointers_;
 public:
-    DragDetector() :
-            event_( NULL )
+    DragDetector()
     {
     }
     virtual ~DragDetector()

@@ -30,22 +30,19 @@ namespace ndk_helper
 //--------------------------------------------------------------------------------
 // eGLContext
 //--------------------------------------------------------------------------------
-const int32_t SWAPINTERVAL_DEFAULT = 1;
 
 //--------------------------------------------------------------------------------
 // Ctor
 //--------------------------------------------------------------------------------
 GLContext::GLContext() :
                 display_( EGL_NO_DISPLAY ),
-                    surface_( EGL_NO_SURFACE ),
-                    context_( EGL_NO_CONTEXT ),
-                    screen_width_( 0 ),
-                    screen_height_( 0 ),
-                    es3_supported_( false ),
-                    egl_context_initialized_( false ),
-                    gles_initialized_( false ),
-                    restoreInterval_( false ),
-                    swapInterval_( SWAPINTERVAL_DEFAULT )
+                surface_( EGL_NO_SURFACE ),
+                context_( EGL_NO_CONTEXT ),
+                screen_width_( 0 ),
+                screen_height_( 0 ),
+                es3_supported_( false ),
+                egl_context_initialized_( false ),
+                gles_initialized_( false )
 {
 }
 
@@ -106,11 +103,10 @@ bool GLContext::InitEGLSurface()
      * Below, we select an EGLConfig with at least 8 bits per color
      * component compatible with on-screen windows
      */
-    const EGLint attribs[] =
-    { EGL_RENDERABLE_TYPE,
+    const EGLint attribs[] = { EGL_RENDERABLE_TYPE,
             EGL_OPENGL_ES2_BIT, //Request opengl ES2.0
-            EGL_SURFACE_TYPE, EGL_WINDOW_BIT, EGL_BLUE_SIZE, 8, EGL_GREEN_SIZE, 8, EGL_RED_SIZE, 8, EGL_DEPTH_SIZE, 24,
-            EGL_NONE };
+            EGL_SURFACE_TYPE, EGL_WINDOW_BIT, EGL_BLUE_SIZE, 8, EGL_GREEN_SIZE, 8,
+            EGL_RED_SIZE, 8, EGL_DEPTH_SIZE, 24, EGL_NONE };
     color_size_ = 8;
     depth_size_ = 24;
 
@@ -120,11 +116,10 @@ bool GLContext::InitEGLSurface()
     if( !num_configs )
     {
         //Fall back to 16bit depth buffer
-        const EGLint attribs[] =
-        { EGL_RENDERABLE_TYPE,
+        const EGLint attribs[] = { EGL_RENDERABLE_TYPE,
                 EGL_OPENGL_ES2_BIT, //Request opengl ES2.0
-                EGL_SURFACE_TYPE, EGL_WINDOW_BIT, EGL_BLUE_SIZE, 8, EGL_GREEN_SIZE, 8, EGL_RED_SIZE, 8, EGL_DEPTH_SIZE,
-                16, EGL_NONE };
+                EGL_SURFACE_TYPE, EGL_WINDOW_BIT, EGL_BLUE_SIZE, 8, EGL_GREEN_SIZE, 8,
+                EGL_RED_SIZE, 8, EGL_DEPTH_SIZE, 16, EGL_NONE };
         eglChooseConfig( display_, attribs, &config_, 1, &num_configs );
         depth_size_ = 16;
     }
@@ -152,8 +147,7 @@ bool GLContext::InitEGLSurface()
 
 bool GLContext::InitEGLContext()
 {
-    const EGLint context_attribs[] =
-    { EGL_CONTEXT_CLIENT_VERSION, 2, //Request opengl ES2.0
+    const EGLint context_attribs[] = { EGL_CONTEXT_CLIENT_VERSION, 2, //Request opengl ES2.0
             EGL_NONE };
     context_ = eglCreateContext( display_, config_, NULL, context_attribs );
 
@@ -177,7 +171,7 @@ EGLint GLContext::Swap()
         {
             //Recreate surface
             InitEGLSurface();
-            err = EGL_SUCCESS; //Still consider glContext is valid
+            return EGL_SUCCESS; //Still consider glContext is valid
         }
         else if( err == EGL_CONTEXT_LOST || err == EGL_BAD_CONTEXT )
         {
@@ -186,12 +180,7 @@ EGLint GLContext::Swap()
             Terminate();
             InitEGLContext();
         }
-
         return err;
-    }
-    if( restoreInterval_ && swapInterval_ != SWAPINTERVAL_DEFAULT )
-    {
-        eglSwapInterval( display_, swapInterval_ );	//Restore Swap interval
     }
     return EGL_SUCCESS;
 }
@@ -264,6 +253,7 @@ EGLint GLContext::Resume( ANativeWindow* window )
     }
 
     return err;
+
 }
 
 void GLContext::Suspend()
@@ -273,7 +263,6 @@ void GLContext::Suspend()
         eglDestroySurface( display_, surface_ );
         surface_ = EGL_NO_SURFACE;
     }
-    restoreInterval_ = true;
 }
 
 bool GLContext::Invalidate()

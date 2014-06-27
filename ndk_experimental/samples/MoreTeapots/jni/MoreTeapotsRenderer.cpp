@@ -54,7 +54,7 @@ void MoreTeapotsRenderer::Init( const int32_t numX,
 {
     if( ndk_helper::GLContext::GetInstance()->GetGLVersion() >= 3.0 )
     {
-//        geometry_instancing_support_ = true;
+        geometry_instancing_support_ = true;
     }
     else if( ndk_helper::GLContext::GetInstance()->CheckExtension( "GL_NV_draw_instanced" )
             && ndk_helper::GLContext::GetInstance()->CheckExtension(
@@ -248,7 +248,7 @@ void MoreTeapotsRenderer::Unload()
 //--------------------------------------------------------------------------------
 // Update
 //--------------------------------------------------------------------------------
-void MoreTeapotsRenderer::Update( const double time )
+void MoreTeapotsRenderer::Update( float fTime )
 {
     const float CAM_X = 0.f;
     const float CAM_Y = 0.f;
@@ -259,7 +259,7 @@ void MoreTeapotsRenderer::Update( const double time )
 
     if( camera_ )
     {
-        camera_->Update( time );
+        camera_->Update();
         mat_view_ = camera_->GetTransformMatrix() * mat_view_ * camera_->GetRotationMatrix();
     }
 }

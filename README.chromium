@@ -33,6 +33,9 @@ Local Modifications:
     ./update.py
     cp script.js style.css $ANDROID_SDK_ROOT/tools/systrace
 -In ndk_experimental/
-- An alpha version of the r9e NDK toolchain has been added in ndk_experimental.
+- A beta version (rc3) of the r10 NDK toolchain has been added in
+  ndk_experimental.
+    - libc.so has been taken from rc2 due to the removal of
+      __system_properties_get (which we currently require) from libc.so in rc3.
 
 No other modifications has been made to the public Android SDK/NDK.

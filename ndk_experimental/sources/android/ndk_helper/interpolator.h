@@ -80,8 +80,7 @@ public:
             const INTERPOLATOR_TYPE type,
             const double duration );
 
-    bool Update( const double currentTime,
-            float& p );
+    bool Update( const double currentTime, float& p );
 
     void Clear();
 };

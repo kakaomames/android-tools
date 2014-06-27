@@ -136,8 +136,7 @@ void DoubletapDetector::SetConfiguration( AConfiguration* config )
 // PinchDetector
 //--------------------------------------------------------------------------------
 
-int32_t PinchDetector::FindIndex( const AInputEvent* event,
-        int32_t id )
+int32_t PinchDetector::FindIndex( const AInputEvent* event, int32_t id )
 {
     int32_t count = AMotionEvent_getPointerCount( event );
     for( uint32_t i = 0; i < count; ++i )
@@ -163,7 +162,8 @@ GESTURE_STATE PinchDetector::Detect( const AInputEvent* event )
         break;
     case AMOTION_EVENT_ACTION_POINTER_DOWN:
     {
-        int32_t iIndex = (action & AMOTION_EVENT_ACTION_POINTER_INDEX_MASK) >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
+        int32_t iIndex = (action & AMOTION_EVENT_ACTION_POINTER_INDEX_MASK)
+                >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
         vec_pointers_.push_back( AMotionEvent_getPointerId( event, iIndex ) );
         if( count == 2 )
         {
@@ -177,7 +177,8 @@ GESTURE_STATE PinchDetector::Detect( const AInputEvent* event )
         break;
     case AMOTION_EVENT_ACTION_POINTER_UP:
     {
-        int32_t index = (action & AMOTION_EVENT_ACTION_POINTER_INDEX_MASK) >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
+        int32_t index = (action & AMOTION_EVENT_ACTION_POINTER_INDEX_MASK)
+                >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
         int32_t released_pointer_id = AMotionEvent_getPointerId( event, index );
 
         std::vector<int32_t>::iterator it = vec_pointers_.begin();
@@ -221,20 +222,19 @@ GESTURE_STATE PinchDetector::Detect( const AInputEvent* event )
     return ret;
 }
 
-bool PinchDetector::GetPointers( Vec2& v1,
-        Vec2& v2 )
+bool PinchDetector::GetPointers( Vec2& v1, Vec2& v2 )
 {
     if( vec_pointers_.size() < 2 )
         return false;
 
-    int32_t index = FindIndex( event_, vec_pointers_[ 0 ] );
+    int32_t index = FindIndex( event_, vec_pointers_[0] );
     if( index == -1 )
         return false;
 
     float x = AMotionEvent_getX( event_, index );
     float y = AMotionEvent_getY( event_, index );
 
-    index = FindIndex( event_, vec_pointers_[ 1 ] );
+    index = FindIndex( event_, vec_pointers_[1] );
     if( index == -1 )
         return false;
 
@@ -251,8 +251,7 @@ bool PinchDetector::GetPointers( Vec2& v1,
 // DragDetector
 //--------------------------------------------------------------------------------
 
-int32_t DragDetector::FindIndex( const AInputEvent* event,
-        int32_t id )
+int32_t DragDetector::FindIndex( const AInputEvent* event, int32_t id )
 {
     int32_t count = AMotionEvent_getPointerCount( event );
     for( uint32_t i = 0; i < count; ++i )
@@ -267,7 +266,8 @@ GESTURE_STATE DragDetector::Detect( const AInputEvent* event )
 {
     GESTURE_STATE ret = GESTURE_STATE_NONE;
     int32_t action = AMotionEvent_getAction( event );
-    int32_t index = (action & AMOTION_EVENT_ACTION_POINTER_INDEX_MASK) >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
+    int32_t index = (action & AMOTION_EVENT_ACTION_POINTER_INDEX_MASK)
+            >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
     uint32_t flags = action & AMOTION_EVENT_ACTION_MASK;
     event_ = event;
 
@@ -334,7 +334,7 @@ bool DragDetector::GetPointer( Vec2& v )
     if( vec_pointers_.size() < 1 )
         return false;
 
-    int32_t iIndex = FindIndex( event_, vec_pointers_[ 0 ] );
+    int32_t iIndex = FindIndex( event_, vec_pointers_[0] );
     if( iIndex == -1 )
         return false;
 

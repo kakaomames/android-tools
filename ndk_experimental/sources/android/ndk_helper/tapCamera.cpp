@@ -38,15 +38,15 @@ const float MOMENTUM_FACTOR_THRESHOLD = 0.001f;
 //----------------------------------------------------------
 TapCamera::TapCamera() :
                 dragging_( false ),
-                    pinching_( false ),
-                    momentum_( false ),
-                    ball_radius_( 0.75f ),
-                    pinch_start_distance_SQ_( 0.f ),
-                    camera_rotation_( 0.f ),
-                    camera_rotation_start_( 0.f ),
-                    camera_rotation_now_( 0.f ),
-                    momemtum_steps_( 0.f ),
-                    flip_z_( 0.f )
+                pinching_( false ),
+                momentum_( false ),
+                ball_radius_( 0.75f ),
+                pinch_start_distance_SQ_( 0.f ),
+                camera_rotation_( 0.f ),
+                camera_rotation_start_( 0.f ),
+                camera_rotation_now_( 0.f ),
+                momemtum_steps_( 0.f ),
+                flip_z_( 0.f )
 {
     //Init offset
     InitParameters();
@@ -91,38 +91,32 @@ TapCamera::~TapCamera()
 
 }
 
-void TapCamera::Update( const double time )
+void TapCamera::Update()
 {
     if( momentum_ )
     {
-        const float MOMENTAM_UNIT = 0.0166f;
-        //Activate every 16.6msec
-        if( time - time_stamp_ >= MOMENTAM_UNIT )
+        float momenttum_steps = momemtum_steps_;
+
+        //Momentum rotation
+        Vec2 v = vec_drag_delta_;
+        BeginDrag( Vec2() ); //NOTE:This call reset _VDragDelta
+        Drag( v * vec_flip_ );
+
+        //Momentum shift
+        vec_offset_ += vec_offset_delta_;
+
+        BallUpdate();
+        EndDrag();
+
+        //Decrease deltas
+        vec_drag_delta_ = v * MOMENTUM_FACTOR_DECREASE;
+        vec_offset_delta_ = vec_offset_delta_ * MOMENTUM_FACTOR_DECREASE_SHIFT;
+
+        //Count steps
+        momemtum_steps_ = momenttum_steps * MOMENTUM_FACTOR_DECREASE;
+        if( momemtum_steps_ < MOMENTUM_FACTOR_THRESHOLD )
         {
-            float momenttum_steps = momemtum_steps_;
-
-            //Momentum rotation
-            Vec2 v = vec_drag_delta_;
-            BeginDrag( Vec2() ); //NOTE:This call reset _VDragDelta
-            Drag( v * vec_flip_ );
-
-            //Momentum shift
-            vec_offset_ += vec_offset_delta_;
-
-            BallUpdate();
-            EndDrag();
-
-            //Decrease deltas
-            vec_drag_delta_ = v * MOMENTUM_FACTOR_DECREASE;
-            vec_offset_delta_ = vec_offset_delta_ * MOMENTUM_FACTOR_DECREASE_SHIFT;
-
-            //Count steps
-            momemtum_steps_ = momenttum_steps * MOMENTUM_FACTOR_DECREASE;
-            if( momemtum_steps_ < MOMENTUM_FACTOR_THRESHOLD )
-            {
-                momentum_ = false;
-            }
-            time_stamp_ = time;
+            momentum_ = false;
         }
     }
     else
@@ -130,7 +124,6 @@ void TapCamera::Update( const double time )
         vec_drag_delta_ *= MOMENTUM_FACTOR;
         vec_offset_delta_ = vec_offset_delta_ * MOMENTUM_FACTOR;
         BallUpdate();
-        time_stamp_ = time;
     }
 
     Vec3 vec = vec_offset_ + vec_offset_now_;
@@ -154,7 +147,7 @@ Mat4& TapCamera::GetTransformMatrix()
 void TapCamera::Reset( const bool bAnimate )
 {
     InitParameters();
-    Update( 0.f );
+    Update();
 
 }
 
@@ -204,8 +197,7 @@ void TapCamera::Drag( const Vec2& v )
 //----------------------------------------------------------
 //Pinch controll
 //----------------------------------------------------------
-void TapCamera::BeginPinch( const Vec2& v1,
-        const Vec2& v2 )
+void TapCamera::BeginPinch( const Vec2& v1, const Vec2& v2 )
 {
     if( dragging_ )
         EndDrag();
@@ -247,8 +239,7 @@ void TapCamera::EndPinch()
     EndDrag();
 }
 
-void TapCamera::Pinch( const Vec2& v1,
-        const Vec2& v2 )
+void TapCamera::Pinch( const Vec2& v1, const Vec2& v2 )
 {
     if( !pinching_ )
         return;
@@ -274,7 +265,8 @@ void TapCamera::Pinch( const Vec2& v1,
     vec_offset_now_ = Vec3( vec, flip_z_ * f );
 
     //Update momentum factor
-    vec_offset_delta_ = vec_offset_delta_ * MOMENTUM_FACTOR + (vec_offset_now_ - vec_offset_last_);
+    vec_offset_delta_ = vec_offset_delta_ * MOMENTUM_FACTOR
+            + (vec_offset_now_ - vec_offset_last_);
 
     //
     //Update ration quaternion
@@ -282,7 +274,8 @@ void TapCamera::Pinch( const Vec2& v1,
     camera_rotation_now_ = fRotation - camera_rotation_start_;
 
     //Trackball rotation
-    quat_ball_rot_ = Quaternion( 0.f, 0.f, sinf( -camera_rotation_now_ * 0.5f ), cosf( -camera_rotation_now_ * 0.5f ) );
+    quat_ball_rot_ = Quaternion( 0.f, 0.f, sinf( -camera_rotation_now_ * 0.5f ),
+            cosf( -camera_rotation_now_ * 0.5f ) );
 }
 
 //----------------------------------------------------------

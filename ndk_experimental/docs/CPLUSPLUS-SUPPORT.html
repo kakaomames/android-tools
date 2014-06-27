@@ -194,21 +194,21 @@ Note that <code>-latomic</code> is only available in gcc4.8, not gcc4.6.  Clang3
 as/ld/headers/libraries so they get <code>-latomic</code> too.  The version of libatomic in gcc4.8
 <em>may</em> work for gcc4.6, although it's not tested and you have to copy them manually.</p>
 <p>This NDK provides prebuilt static and shared libraries for libc++
-compiled by clang, but you can force it to be rebuilt from sources by defining
+compiled by clang3.4, but you can force it to be rebuilt from sources by defining
 the following in your environment or your Application.mk before building:</p>
 <pre><code>    LIBCXX_FORCE_REBUILD := true
 </code></pre>
-<p>Around 98% of current 4645 tests passes when compiling libc++ with
-clang for all supported ABIs. The remaining fails are mostly in the areas
+<p>Around 99% of current 4640 tests passes when compiling libc++ with
+clang3.4 for all supported ABIs. The remaining fails are mostly in the areas
 of wchar_t and locale Android bionic don't support.  Switching locale
 from the default produces the following warning in logcat</p>
 <pre><code>    newlocale() WARNING: Trying to set locale to en_US.UTF-8 other than "", "C" or "POSIX"
 </code></pre>
-<p>Using gabi++ as run-time also causes some issues in the nested exception and propagation too,
-which will be addressed when libc++ switches to use libc++abi in the future.</p>
-<p>More fails when compiling libc++ with gcc4.8 mostly because the lack of support
-in _Atomic (ETA: gcc 4.9).  See platform/ndk.git
-29d9f88ef5a33cd65b4b9977aed628bc195facf3 for details</p>
+<p>Initial support at r9d uses gabi++ as run-time also causes some issues in the nested exception
+and propagation too.  Almost all are fixed after switching to libc++abi.</p>
+<p>Header include/atomic is fixed for gcc which doesn't support <em>Atomic in c++
+mode.  A dozen more fails when compiling libc++ with gcc4.8/gcc4.9 mostly in
+is_trivially</em>* tests.</p>
 <p>Using libc++ with gcc4.6 is not recommended (at least not tested at
 this moment) because its c++11 support isn't great</p>
 <p>See "black_list*" in

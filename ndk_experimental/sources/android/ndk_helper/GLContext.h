@@ -64,10 +64,6 @@ private:
     int32_t color_size_;
     int32_t depth_size_;
 
-    //EGL Swap interval
-    bool restoreInterval_;
-    int32_t swapInterval_;
-
     //Flags
     bool gles_initialized_;
     bool egl_context_initialized_;
@@ -122,18 +118,6 @@ public:
         return gl_version_;
     }
     bool CheckExtension( const char* extension );
-
-    /*
-     * Set SwapInterval to EGL context
-     * SwapInterval:1 indicates that frame rate is synchronous to vblank interval which is usually 59.94hz.
-     * In API 17 (JellyBeans)~, the API accepts value of 0, which does not sync to vblank.
-     * This mode is useful while performance tuning.
-     */
-    void SetSwapInterval( const int32_t interval )
-    {
-        eglSwapInterval( display_, interval );
-        swapInterval_ = interval;
-    }
 };
 
 }   //namespace ndkHelper

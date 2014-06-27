@@ -245,7 +245,7 @@ TOOLCHAIN_LICENSES=$ANDROID_NDK_ROOT/build/tools/toolchain-licenses
 TOOLCHAIN_BUILD_PREFIX=$BUILD_OUT/prefix
 TOOLCHAIN_BUILD_SYSROOT=$TOOLCHAIN_BUILD_PREFIX/sysroot
 dump "Sysroot  : Copying: $SYSROOT --> $TOOLCHAIN_BUILD_SYSROOT"
-mkdir -p $TOOLCHAIN_BUILD_SYSROOT && (cd $SYSROOT && tar ch *) | (cd $TOOLCHAIN_BUILD_SYSROOT && tar x)
+mkdir -p $TOOLCHAIN_BUILD_SYSROOT && (cd $SYSROOT && tar chf - *) | (cd $TOOLCHAIN_BUILD_SYSROOT && tar xf -)
 if [ $? != 0 ] ; then
     echo "Error while copying sysroot files. See $TMPLOG"
     exit 1
@@ -349,6 +349,31 @@ esac
 # Enable linker option -eh-frame-hdr also for static executable
 EXTRA_CONFIG_FLAGS=$EXTRA_CONFIG_FLAGS" --enable-eh-frame-hdr-for-static"
 
+MAY_FAIL_DUE_TO_RACE_CONDITION=
+if [ "$MINGW" = "yes" -o "$DARWIN" = "yes" ]; then
+   MAY_FAIL_DUE_TO_RACE_CONDITION=yes
+fi
+
+# hack to use different set of sources
+CONFIGURE_GCC_VERSION=$GCC_VERSION
+CONFIGURE_GDB_VERSION=$GDB_VERSION
+CONFIGURE_BINUTILS_VERSION=$BINUTILS_VERSION
+case "$TOOLCHAIN" in
+  mips64el-linux-android-4.9)
+    CONFIGURE_GCC_VERSION=4.9-mipsr6
+    CONFIGURE_GDB_VERSION=7.6-mipsr6
+    CONFIGURE_BINUTILS_VERSION=2.24-mipsr6
+    # The new source in "alpha" may fail highly parallel build due to race condition
+    MAY_FAIL_DUE_TO_RACE_CONDITION=yes
+    ;;
+  *4.9l)
+    CONFIGURE_GCC_VERSION=4.9l
+    ;;
+  *4.8l)
+    CONFIGURE_GCC_VERSION=4.8l
+    ;;
+esac
+
 cd $BUILD_OUT && run \
 $BUILD_SRCDIR/configure --target=$ABI_CONFIGURE_TARGET \
                         --enable-initfini-array \
@@ -357,12 +382,12 @@ $BUILD_SRCDIR/configure --target=$ABI_CONFIGURE_TARGET \
                         --disable-nls \
                         --prefix=$TOOLCHAIN_BUILD_PREFIX \
                         --with-sysroot=$TOOLCHAIN_BUILD_SYSROOT \
-                        --with-binutils-version=$BINUTILS_VERSION \
+                        --with-binutils-version=$CONFIGURE_BINUTILS_VERSION \
                         --with-mpfr-version=$MPFR_VERSION \
                         --with-mpc-version=$MPC_VERSION \
                         --with-gmp-version=$GMP_VERSION \
-                        --with-gcc-version=$GCC_VERSION \
-                        --with-gdb-version=$GDB_VERSION \
+                        --with-gcc-version=$CONFIGURE_GCC_VERSION \
+                        --with-gdb-version=$CONFIGURE_GDB_VERSION \
                         $WITH_PYTHON \
                         --with-gxx-include-dir=$TOOLCHAIN_BUILD_PREFIX/include/c++/$GCC_VERSION \
                         --with-bugurl=$DEFAULT_ISSUE_TRACKER_URL \
@@ -386,12 +411,13 @@ while [ -n "1" ]; do
     if [ $? = 0 ] ; then
         break
     else
-        if [ "$MINGW" = "yes" -o "$DARWIN" = "yes" ] ; then
+        if [ "$MAY_FAIL_DUE_TO_RACE_CONDITION" = "yes" ] ; then
             # Unfortunately, there is a bug in the GCC build scripts that prevent
             # parallel mingw/darwin canadian cross builds to work properly on some
             # multi-core machines (but not all, sounds like a race condition). Detect
             # this and restart in less parallelism, until -j1 also fail
             NUM_JOBS=$((NUM_JOBS/2))
+            export NUM_JOBS
             if [ $NUM_JOBS -lt 1 ] ; then
                 echo "Error while building mingw/darwin toolchain. See $TMPLOG"
                 exit 1
@@ -406,12 +432,18 @@ done
 
 ABI="$OLD_ABI"
 
-# install the toolchain to its final location
+# install the toolchain to its final location.
 dump "Install  : $TOOLCHAIN toolchain binaries."
 cd $BUILD_OUT && run make install
 if [ $? != 0 ] ; then
-    echo "Error while installing toolchain. See $TMPLOG"
-    exit 1
+    # try "-j1", eg.  for aarch64-linux-android-4.8 with libatomic may fail to install due to race condition (missing prefix/lib/../lib64/./libiberty.an)
+    NUM_JOBS=1
+    export NUM_JOBS
+    run make install -j$NUM_JOBS
+    if [ $? != 0 ] ; then
+        echo "Error while installing toolchain. See $TMPLOG"
+        exit 1
+    fi
 fi
 
 unwind_library_for_abi ()
@@ -421,28 +453,28 @@ unwind_library_for_abi ()
 
     case $ABI in
     armeabi)
-    BASE_DIR="$BUILD_OUT/gcc-$GCC_VERSION/$ABI_CONFIGURE_TARGET/libgcc/"
+    BASE_DIR="$BUILD_OUT/gcc-$CONFIGURE_GCC_VERSION/$ABI_CONFIGURE_TARGET/libgcc/"
     OBJS="unwind-arm.o \
           libunwind.o \
           pr-support.o \
           unwind-c.o"
     ;;
     armeabi-v7a)
-    BASE_DIR="$BUILD_OUT/gcc-$GCC_VERSION/$ABI_CONFIGURE_TARGET/armv7-a/libgcc/"
+    BASE_DIR="$BUILD_OUT/gcc-$CONFIGURE_GCC_VERSION/$ABI_CONFIGURE_TARGET/armv7-a/libgcc/"
     OBJS="unwind-arm.o \
           libunwind.o \
           pr-support.o \
           unwind-c.o"
     ;;
     armeabi-v7a-hard)
-    BASE_DIR="$BUILD_OUT/gcc-$GCC_VERSION/$ABI_CONFIGURE_TARGET/armv7-a/hard/libgcc/"
+    BASE_DIR="$BUILD_OUT/gcc-$CONFIGURE_GCC_VERSION/$ABI_CONFIGURE_TARGET/armv7-a/hard/libgcc/"
     OBJS="unwind-arm.o \
           libunwind.o \
           pr-support.o \
           unwind-c.o"
     ;;
     x86|mips)
-    BASE_DIR="$BUILD_OUT/gcc-$GCC_VERSION/$ABI_CONFIGURE_TARGET/libgcc/"
+    BASE_DIR="$BUILD_OUT/gcc-$CONFIGURE_GCC_VERSION/$ABI_CONFIGURE_TARGET/libgcc/"
     if [ "$GCC_VERSION" = "4.6" -o "$GCC_VERSION" = "4.4.3" ]; then
        OBJS="unwind-c.o \
           unwind-dw2-fde-glibc.o \
@@ -454,7 +486,7 @@ unwind_library_for_abi ()
     fi
     ;;
     arm64-v8a|x86_64|mips64)
-    BASE_DIR="$BUILD_OUT/gcc-$GCC_VERSION/$ABI_CONFIGURE_TARGET/libgcc/"
+    BASE_DIR="$BUILD_OUT/gcc-$CONFIGURE_GCC_VERSION/$ABI_CONFIGURE_TARGET/libgcc/"
     OBJS="unwind-c.o \
        unwind-dw2-fde-dip.o \
        unwind-dw2.o"
@@ -474,7 +506,7 @@ create_unwind_library ()
 {
     local ARCH="$1"
     local NDK_DIR="$2"
-    local ABIS=$(commas_to_spaces $(convert_archs_to_abis $ARCH))
+    local ABIS="$(commas_to_spaces $(convert_archs_to_abis $ARCH))"
     local ABI UNWIND_OBJS UNWIND_LIB
     for ABI in $ABIS; do
         UNWIND_OBJS=$(unwind_library_for_abi $ABI)
@@ -505,7 +537,7 @@ fi
 
 # build the gdb stub and replace gdb with it. This is done post-install
 # so files are in the correct place when determining the relative path.
-if [ "$MINGW" = "yes" ] ; then
+if [ -n "$WITH_PYTHON" -a "$MINGW" = "yes" ] ; then
     WITH_PYTHON_PREFIX=$(dirname $(dirname "$WITH_PYTHON_SCRIPT"))
     dump "Building : $TOOLCHAIN GDB stub. "$TOOLCHAIN_PATH/bin/${ABI_CONFIGURE_TARGET}-gdb.exe", "$WITH_PYTHON_PREFIX", $ABI_CONFIGURE_HOST-gcc"
     GCC_FOR_STUB=$ABI_CONFIGURE_HOST-gcc
@@ -547,6 +579,8 @@ find $TOOLCHAIN_PATH -name "*.la" -exec rm -f {} \;
 if [ "$ABI_CONFIGURE_HOST" != "$ABI_CONFIGURE_TARGET" ]; then
     run rm -rf "$TOOLCHAIN_PATH/$ABI_CONFIGURE_HOST"
 fi
+# remove sysroot
+run rm -rf "$TOOLCHAIN_PATH/sysroot"
 
 # Remove libstdc++ for now (will add it differently later)
 # We had to build it to get libsupc++ which we keep.

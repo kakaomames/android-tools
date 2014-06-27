@@ -873,10 +873,10 @@ prepare_common_build ()
             if [ "$__USE_OLD_LINUX_HOST_GCC" = "yes" ]; then
                 LEGACY_TOOLCHAIN_DIR="$ANDROID_NDK_ROOT/../prebuilts/tools/gcc-sdk"
                 LEGACY_TOOLCHAIN_PREFIX="$LEGACY_TOOLCHAIN_DIR/"
-	    else
+            else
                 LEGACY_TOOLCHAIN_DIR="$ANDROID_NDK_ROOT/../prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.11-4.6/bin"
                 LEGACY_TOOLCHAIN_PREFIX="$LEGACY_TOOLCHAIN_DIR/x86_64-linux-"
-	    fi
+            fi
         elif [ "$HOST_OS" = "darwin" ]; then
             LEGACY_TOOLCHAIN_DIR="$ANDROID_NDK_ROOT/../prebuilts/gcc/darwin-x86/host/i686-apple-darwin-4.2.1/bin"
             LEGACY_TOOLCHAIN_PREFIX="$LEGACY_TOOLCHAIN_DIR/i686-apple-darwin10-"
@@ -1044,11 +1044,8 @@ parse_toolchain_name ()
         ARCH="arm64"
         ABI="arm64-v8a"
         ABI_CONFIGURE_TARGET="aarch64-linux-android"
-        # Note:
-        # --disable-libgomp because libgomp/configure tries to link when we don't have crt*.o for aarch64 yet.
-        # --disable-gold because gold doesn't support aarch64 yet
-        #
-        ABI_CONFIGURE_EXTRA_FLAGS="--disable-gold --disable-libgomp"
+        # Note: --disable-gold because gold doesn't support aarch64 yet
+        ABI_CONFIGURE_EXTRA_FLAGS="--disable-gold"
         ;;
     x86-*)
         ARCH="x86"
@@ -1096,7 +1093,7 @@ parse_toolchain_name ()
         ABI_CFLAGS_FOR_TARGET="-fexceptions -fpic"
         ABI_CXXFLAGS_FOR_TARGET="-frtti -fpic"
         # Add --disable-fixed-point to disable fixed-point support
-        ABI_CONFIGURE_EXTRA_FLAGS="$ABI_CONFIGURE_EXTRA_FLAGS --disable-fixed-point --disable-libgomp --disable-libatomic"
+        ABI_CONFIGURE_EXTRA_FLAGS="$ABI_CONFIGURE_EXTRA_FLAGS --disable-fixed-point"
         ;;
     * )
         echo "Invalid toolchain specified. Expected (arm-linux-androideabi-*|arm-eabi-*|x86-*|mipsel*|mips64el*)"
@@ -1394,9 +1391,9 @@ get_default_toolchain_binprefix_for_arch ()
 get_default_api_level_for_arch ()
 {
     # For now, always build the toolchain against API level 9 for 32-bit arch
-    # and API level 20 for 64-bit arch
+    # and API level $FIRST_API64_LEVEL for 64-bit arch
     case $1 in
-       *64) echo 20 ;;
+       *64) echo $FIRST_API64_LEVEL ;;
        *) echo 9 ;;
     esac
 }
@@ -1411,8 +1408,7 @@ get_default_platform_sysroot_for_arch ()
     local LEVEL=$(get_default_api_level_for_arch $ARCH)
 
     if [ "$ARCH" != "${ARCH%%64*}" ] ; then
-        # Hack to use new 64-bit headers only available at, say LEVEL 20
-        LEVEL=20
+        LEVEL=$FIRST_API64_LEVEL
     fi
     echo "platforms/android-$LEVEL/arch-$ARCH"
 }
@@ -1422,8 +1418,8 @@ get_default_platform_sysroot_for_arch ()
 get_default_libdir_for_arch ()
 {
     case $1 in
-      x86_64) echo "lib64" ;;
-      arm64|mips64) echo "lib" ;; # return "lib" until aarch64 and mips64 compilers are built to look for sysroot/usr/lib64
+      x86_64|mips64) echo "lib64" ;;
+      arm64) echo "lib" ;; # return "lib" until aarch64 is built to look for sysroot/usr/lib64
       *) echo "lib" ;;
     esac
 }

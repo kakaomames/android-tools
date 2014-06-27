@@ -60,8 +60,11 @@ bool FindElfDynamicSection(const char* path,
   // Sanity check.
   if (header->e_ident[0] != 127 || header->e_ident[1] != 'E' ||
       header->e_ident[2] != 'L' || header->e_ident[3] != 'F' ||
-      header->e_ident[4] != 1) {
-    LOG("%s: Not a 32-bit ELF binary: %s\n", __FUNCTION__, path);
+      header->e_ident[4] != ELF::kElfClass) {
+    LOG("%s: Not a %d-bit ELF binary: %s\n",
+        __FUNCTION__,
+        ELF::kElfBits,
+        path);
     return false;
   }
 
@@ -98,11 +101,11 @@ bool FindElfDynamicSection(const char* path,
   }
 
   if (!found_load0) {
-    LOG("%s: Could not find loadable segment!?", __FUNCTION__);
+    LOG("%s: Could not find loadable segment!?\n", __FUNCTION__);
     return false;
   }
   if (!found_dyn) {
-    LOG("%s: Could not find dynamic segment!?", __FUNCTION__);
+    LOG("%s: Could not find dynamic segment!?\n", __FUNCTION__);
     return false;
   }
 
@@ -261,8 +264,63 @@ bool RDebug::Init() {
   return false;
 }
 
-void RDebug::AddEntry(link_map_t* entry) {
-  LOG("%s\n", __FUNCTION__);
+namespace {
+
+// Helper runnable class. Handler is one of the two static functions
+// AddEntryInternal() or DelEntryInternal(). Calling these invokes
+// AddEntryImpl() or DelEntryImpl() respectively on rdebug.
+class RDebugRunnable {
+ public:
+  RDebugRunnable(rdebug_callback_handler_t handler,
+                 RDebug* rdebug,
+                 link_map_t* entry)
+      : handler_(handler), rdebug_(rdebug), entry_(entry) { }
+
+  static void Run(void* opaque);
+
+ private:
+  rdebug_callback_handler_t handler_;
+  RDebug* rdebug_;
+  link_map_t* entry_;
+};
+
+// Callback entry point.
+void RDebugRunnable::Run(void* opaque) {
+  RDebugRunnable* runnable = static_cast<RDebugRunnable*>(opaque);
+
+  LOG("%s: Callback received, runnable=%p\n", __FUNCTION__, runnable);
+  (*runnable->handler_)(runnable->rdebug_, runnable->entry_);
+  delete runnable;
+}
+
+}  // namespace
+
+// Helper function to schedule AddEntry() and DelEntry() calls onto another
+// thread where possible. Running them there avoids races with the system
+// linker, which expects to be able to set r_map pages readonly when it
+// is not using them and which may run simultaneously on the main thread.
+bool RDebug::PostCallback(rdebug_callback_handler_t handler,
+                          link_map_t* entry) {
+  if (!post_for_later_execution_) {
+    LOG("%s: Deferred execution disabled\n", __FUNCTION__);
+    return false;
+  }
+
+  RDebugRunnable* runnable = new RDebugRunnable(handler, this, entry);
+  void* context = post_for_later_execution_context_;
+
+  if (!(*post_for_later_execution_)(context, &RDebugRunnable::Run, runnable)) {
+    LOG("%s: Deferred execution enabled, but posting failed\n", __FUNCTION__);
+    delete runnable;
+    return false;
+  }
+
+  LOG("%s: Posted for later execution, runnable=%p\n", __FUNCTION__, runnable);
+  return true;
+}
+
+void RDebug::AddEntryImpl(link_map_t* entry) {
+  LOG("%s: Adding: %s\n", __FUNCTION__, entry->l_name);
   if (!init_)
     Init();
 
@@ -331,7 +389,8 @@ void RDebug::AddEntry(link_map_t* entry) {
   r_debug_->r_brk();
 }
 
-void RDebug::DelEntry(link_map_t* entry) {
+void RDebug::DelEntryImpl(link_map_t* entry) {
+  LOG("%s: Deleting: %s\n", __FUNCTION__, entry->l_name);
   if (!r_debug_)
     return;
 

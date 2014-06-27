@@ -30,7 +30,7 @@ bool shader::CompileShader( GLuint *shader,
         const char *str_file_name,
         const std::map<std::string, std::string>& map_parameters )
 {
-    std::vector < uint8_t > data;
+    std::vector<uint8_t> data;
     if( !JNIHelper::GetInstance()->ReadFile( str_file_name, &data ) )
     {
         LOGI( "Can not open a file:%s", str_file_name );
@@ -56,7 +56,8 @@ bool shader::CompileShader( GLuint *shader,
             {
 
                 str.replace( pos, it->first.length(), it->second );
-                str_replacement_map.replace( pos, it->first.length(), it->first.length(), REPLACEMENT_TAG );
+                str_replacement_map.replace( pos, it->first.length(), it->first.length(),
+                        REPLACEMENT_TAG );
                 pos += it->second.length();
             }
             else
@@ -70,7 +71,7 @@ bool shader::CompileShader( GLuint *shader,
 
     LOGI( "Patched Shdader:\n%s", str.c_str() );
 
-    std::vector < uint8_t > v( str.begin(), str.end() );
+    std::vector<uint8_t> v( str.begin(), str.end() );
     str.clear();
     return shader::CompileShader( shader, type, v );
 }
@@ -118,7 +119,7 @@ bool shader::CompileShader( GLuint *shader,
     if( !data.size() )
         return false;
 
-    const GLchar *source = (GLchar *) &data[ 0 ];
+    const GLchar *source = (GLchar *) &data[0];
     int32_t iSize = data.size();
     return shader::CompileShader( shader, type, source, iSize );
 }
@@ -127,7 +128,7 @@ bool shader::CompileShader( GLuint *shader,
         const GLenum type,
         const char *strFileName )
 {
-    std::vector < uint8_t > data;
+    std::vector<uint8_t> data;
     bool b = JNIHelper::GetInstance()->ReadFile( strFileName, &data );
     if( !b )
     {

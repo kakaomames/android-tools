@@ -125,7 +125,7 @@ void TeapotRenderer::Unload()
     }
 }
 
-void TeapotRenderer::Update( const double time )
+void TeapotRenderer::Update( float fTime )
 {
     const float CAM_X = 0.f;
     const float CAM_Y = 0.f;
@@ -136,7 +136,7 @@ void TeapotRenderer::Update( const double time )
 
     if( camera_ )
     {
-        camera_->Update( time );
+        camera_->Update();
         mat_view_ = camera_->GetTransformMatrix() * mat_view_
                 * camera_->GetRotationMatrix() * mat_model_;
     }

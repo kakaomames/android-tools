@@ -26,6 +26,67 @@ application's private data directory.</p>
 <p>Similarly, the Google Play server is capable of filtering applications
 based on the native libraries they embed and your device's target CPU.</p>
 <p>Debugging with ndk-gdb should work exactly as described under <a href="NDK-GDB.html">NDK-GDB</a>.</p>
+<h2>ARM NEON intrinsics support:</h2>
+<p>The solution is shaped as C/C++ language header with the same name as standard
+arm neon intrinsics header "arm_neon.h" which is also available in all NDK x86
+toolchains. It translates neon intrinsics to native x86 SSE ones.</p>
+<p>By default SSE up to SSE3 is used for porting ARM NEON to Intel SSE.</p>
+<p>Current solution covers by default ~41% NEON functions (889 of total 1884) and
+47% when <code>-mssse3</code> is enabled. It is highly recommended to use the <code>-mssse3</code> compiler
+flag for more coverage and performance.</p>
+<p>If currently provided coverage is not enough to port application please look
+into next version preview (up to 98% NEON instrinsics covered) at</p>
+<blockquote>
+<p><a href="http://software.intel.com/en-us/blogs/2012/12/12/from-arm-neon-to-intel-mmxsse-automatic-porting-solution-tips-and-tricks">http://software.intel.com/en-us/blogs/2012/12/12/from-arm-neon-to-intel-mmxsse-automatic-porting-solution-tips-and-tricks</a></p>
+</blockquote>
+<p>The solution</p>
+<ul>
+<li>
+<p>Redefines ARM NEON 128 bit vectors as the corresponding x86 SIMD data.</p>
+</li>
+<li>
+<p>Redefines some functions from ARM NEON to Intel SSE if 1:1 correspondence
+    exists.</p>
+</li>
+<li>
+<p>Implements some ARM NEON functions using Intel SIMD if the performance
+    effective implementation is possible.</p>
+</li>
+<li>
+<p>Implements some of the remaining NEON functions using the serial solution
+    and issuing the corresponding "low performance" compiler warning.</p>
+</li>
+</ul>
+<h3>Performance:</h3>
+<p>For the major number of cases it is expected to obtain the similar to ARM NEON
+native perfomance gain for vectorized vs. serial code.</p>
+<h3>Porting considerations and best known methods are:</h3>
+<ul>
+<li>
+<p>Use 16-byte data alignment for faster load and store</p>
+</li>
+<li>
+<p>Avoid NEON functions working with constants. It produces performance
+    penalty for constants load\propagation.
+    If constants usage is necessary try to move constants initialization out of
+    hotspot loops and if applicable replace it with logical and compare
+    operations.</p>
+</li>
+<li>
+<p>Try to avoid functions marked as "serialy implemented" because they need to
+    store data from registers to memory, process them serialy and load them again.
+    Probably you could change the data type or algorithm used to make the whole
+    port vectorized not a serial one.</p>
+</li>
+</ul>
+<p>To learn more about it, see</p>
+<blockquote>
+<p><a href="http://software.intel.com/en-us/blogs/2012/12/12/from-arm-neon-to-intel-mmxsse-automatic-porting-solution-tips-and-tricks">http://software.intel.com/en-us/blogs/2012/12/12/from-arm-neon-to-intel-mmxsse-automatic-porting-solution-tips-and-tricks</a></p>
+</blockquote>
+<h3>Sample code:</h3>
+<p>In your project add 'x86' to <code>APP_ABI</code> definition and make sure "arm_neon.h"
+header is included.
+Your code will be ported to x86 without any other changes necessary.</p>
 <h2>Standalone-toolchain:</h2>
 <p>It is possible to use the x86 toolchain with NDK r6 in stand-alone mode.
 See <a href="STANDALONE-TOOLCHAIN.html">STANDALONE-TOOLCHAIN</a> for more details. Briefly speaking,

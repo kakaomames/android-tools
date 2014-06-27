@@ -57,8 +57,7 @@ public:
         x_ = y_ = 0.f;
     }
 
-    Vec2( const float fX,
-            const float fY )
+    Vec2( const float fX, const float fY )
     {
         x_ = fX;
         y_ = fY;
@@ -143,8 +142,7 @@ public:
         return Vec2( rhs ) *= -1;
     }
 
-    friend Vec2 operator*( const float lhs,
-            const Vec2& rhs )
+    friend Vec2 operator*( const float lhs, const Vec2& rhs )
     {
         Vec2 ret;
         ret.x_ = lhs * rhs.x_;
@@ -152,8 +150,7 @@ public:
         return ret;
     }
 
-    friend Vec2 operator/( const float lhs,
-            const Vec2& rhs )
+    friend Vec2 operator/( const float lhs, const Vec2& rhs )
     {
         Vec2 ret;
         ret.x_ = lhs / rhs.x_;
@@ -233,8 +230,7 @@ public:
         return true;
     }
 
-    void Value( float& fX,
-            float& fY )
+    void Value( float& fX, float& fY )
     {
         fX = x_;
         fY = y_;
@@ -265,9 +261,7 @@ public:
         x_ = y_ = z_ = 0.f;
     }
 
-    Vec3( const float fX,
-            const float fY,
-            const float fZ )
+    Vec3( const float fX, const float fY, const float fZ )
     {
         x_ = fX;
         y_ = fY;
@@ -288,8 +282,7 @@ public:
         z_ = *pVec;
     }
 
-    Vec3( const Vec2& vec,
-            float f )
+    Vec3( const Vec2& vec, float f )
     {
         x_ = vec.x_;
         y_ = vec.y_;
@@ -373,8 +366,7 @@ public:
         return Vec3( rhs ) *= -1;
     }
 
-    friend Vec3 operator*( const float lhs,
-            const Vec3& rhs )
+    friend Vec3 operator*( const float lhs, const Vec3& rhs )
     {
         Vec3 ret;
         ret.x_ = lhs * rhs.x_;
@@ -383,8 +375,7 @@ public:
         return ret;
     }
 
-    friend Vec3 operator/( const float lhs,
-            const Vec3& rhs )
+    friend Vec3 operator/( const float lhs, const Vec3& rhs )
     {
         Vec3 ret;
         ret.x_ = lhs / rhs.x_;
@@ -479,9 +470,7 @@ public:
         return true;
     }
 
-    void Value( float& fX,
-            float& fY,
-            float& fZ )
+    void Value( float& fX, float& fY, float& fZ )
     {
         fX = x_;
         fY = y_;
@@ -513,10 +502,7 @@ public:
         x_ = y_ = z_ = w_ = 0.f;
     }
 
-    Vec4( const float fX,
-            const float fY,
-            const float fZ,
-            const float fW )
+    Vec4( const float fX, const float fY, const float fZ, const float fW )
     {
         x_ = fX;
         y_ = fY;
@@ -532,8 +518,7 @@ public:
         w_ = vec.w_;
     }
 
-    Vec4( const Vec3& vec,
-            const float fW )
+    Vec4( const Vec3& vec, const float fW )
     {
         x_ = vec.x_;
         y_ = vec.y_;
@@ -632,8 +617,7 @@ public:
         return Vec4( rhs ) *= -1;
     }
 
-    friend Vec4 operator*( const float lhs,
-            const Vec4& rhs )
+    friend Vec4 operator*( const float lhs, const Vec4& rhs )
     {
         Vec4 ret;
         ret.x_ = lhs * rhs.x_;
@@ -643,8 +627,7 @@ public:
         return ret;
     }
 
-    friend Vec4 operator/( const float lhs,
-            const Vec4& rhs )
+    friend Vec4 operator/( const float lhs, const Vec4& rhs )
     {
         Vec4 ret;
         ret.x_ = lhs / rhs.x_;
@@ -747,10 +730,7 @@ public:
         return true;
     }
 
-    void Value( float& fX,
-            float& fY,
-            float& fZ,
-            float& fW )
+    void Value( float& fX, float& fY, float& fZ, float& fW )
     {
         fX = x_;
         fY = y_;
@@ -766,7 +746,7 @@ public:
 class Mat4
 {
 private:
-    float f_[ 16 ];
+    float f_[16];
 
 public:
     friend class Vec3;
@@ -784,7 +764,7 @@ public:
         Mat4 ret;
         for( int32_t i = 0; i < 16; ++i )
         {
-            ret.f_[ i ] = f_[ i ] + rhs.f_[ i ];
+            ret.f_[i] = f_[i] + rhs.f_[i];
         }
         return ret;
     }
@@ -794,7 +774,7 @@ public:
         Mat4 ret;
         for( int32_t i = 0; i < 16; ++i )
         {
-            ret.f_[ i ] = f_[ i ] - rhs.f_[ i ];
+            ret.f_[i] = f_[i] - rhs.f_[i];
         }
         return ret;
     }
@@ -803,7 +783,7 @@ public:
     {
         for( int32_t i = 0; i < 16; ++i )
         {
-            f_[ i ] += rhs.f_[ i ];
+            f_[i] += rhs.f_[i];
         }
         return *this;
     }
@@ -812,7 +792,7 @@ public:
     {
         for( int32_t i = 0; i < 16; ++i )
         {
-            f_[ i ] -= rhs.f_[ i ];
+            f_[i] -= rhs.f_[i];
         }
         return *this;
     }
@@ -820,31 +800,41 @@ public:
     Mat4& operator*=( const Mat4& rhs )
     {
         Mat4 ret;
-        ret.f_[ 0 ] = f_[ 0 ] * rhs.f_[ 0 ] + f_[ 4 ] * rhs.f_[ 1 ] + f_[ 8 ] * rhs.f_[ 2 ] + f_[ 12 ] * rhs.f_[ 3 ];
-        ret.f_[ 1 ] = f_[ 1 ] * rhs.f_[ 0 ] + f_[ 5 ] * rhs.f_[ 1 ] + f_[ 9 ] * rhs.f_[ 2 ] + f_[ 13 ] * rhs.f_[ 3 ];
-        ret.f_[ 2 ] = f_[ 2 ] * rhs.f_[ 0 ] + f_[ 6 ] * rhs.f_[ 1 ] + f_[ 10 ] * rhs.f_[ 2 ] + f_[ 14 ] * rhs.f_[ 3 ];
-        ret.f_[ 3 ] = f_[ 3 ] * rhs.f_[ 0 ] + f_[ 7 ] * rhs.f_[ 1 ] + f_[ 11 ] * rhs.f_[ 2 ] + f_[ 15 ] * rhs.f_[ 3 ];
+        ret.f_[0] = f_[0] * rhs.f_[0] + f_[4] * rhs.f_[1] + f_[8] * rhs.f_[2]
+                + f_[12] * rhs.f_[3];
+        ret.f_[1] = f_[1] * rhs.f_[0] + f_[5] * rhs.f_[1] + f_[9] * rhs.f_[2]
+                + f_[13] * rhs.f_[3];
+        ret.f_[2] = f_[2] * rhs.f_[0] + f_[6] * rhs.f_[1] + f_[10] * rhs.f_[2]
+                + f_[14] * rhs.f_[3];
+        ret.f_[3] = f_[3] * rhs.f_[0] + f_[7] * rhs.f_[1] + f_[11] * rhs.f_[2]
+                + f_[15] * rhs.f_[3];
 
-        ret.f_[ 4 ] = f_[ 0 ] * rhs.f_[ 4 ] + f_[ 4 ] * rhs.f_[ 5 ] + f_[ 8 ] * rhs.f_[ 6 ] + f_[ 12 ] * rhs.f_[ 7 ];
-        ret.f_[ 5 ] = f_[ 1 ] * rhs.f_[ 4 ] + f_[ 5 ] * rhs.f_[ 5 ] + f_[ 9 ] * rhs.f_[ 6 ] + f_[ 13 ] * rhs.f_[ 7 ];
-        ret.f_[ 6 ] = f_[ 2 ] * rhs.f_[ 4 ] + f_[ 6 ] * rhs.f_[ 5 ] + f_[ 10 ] * rhs.f_[ 6 ] + f_[ 14 ] * rhs.f_[ 7 ];
-        ret.f_[ 7 ] = f_[ 3 ] * rhs.f_[ 4 ] + f_[ 7 ] * rhs.f_[ 5 ] + f_[ 11 ] * rhs.f_[ 6 ] + f_[ 15 ] * rhs.f_[ 7 ];
+        ret.f_[4] = f_[0] * rhs.f_[4] + f_[4] * rhs.f_[5] + f_[8] * rhs.f_[6]
+                + f_[12] * rhs.f_[7];
+        ret.f_[5] = f_[1] * rhs.f_[4] + f_[5] * rhs.f_[5] + f_[9] * rhs.f_[6]
+                + f_[13] * rhs.f_[7];
+        ret.f_[6] = f_[2] * rhs.f_[4] + f_[6] * rhs.f_[5] + f_[10] * rhs.f_[6]
+                + f_[14] * rhs.f_[7];
+        ret.f_[7] = f_[3] * rhs.f_[4] + f_[7] * rhs.f_[5] + f_[11] * rhs.f_[6]
+                + f_[15] * rhs.f_[7];
 
-        ret.f_[ 8 ] = f_[ 0 ] * rhs.f_[ 8 ] + f_[ 4 ] * rhs.f_[ 9 ] + f_[ 8 ] * rhs.f_[ 10 ] + f_[ 12 ] * rhs.f_[ 11 ];
-        ret.f_[ 9 ] = f_[ 1 ] * rhs.f_[ 8 ] + f_[ 5 ] * rhs.f_[ 9 ] + f_[ 9 ] * rhs.f_[ 10 ] + f_[ 13 ] * rhs.f_[ 11 ];
-        ret.f_[ 10 ] = f_[ 2 ] * rhs.f_[ 8 ] + f_[ 6 ] * rhs.f_[ 9 ] + f_[ 10 ] * rhs.f_[ 10 ]
-                + f_[ 14 ] * rhs.f_[ 11 ];
-        ret.f_[ 11 ] = f_[ 3 ] * rhs.f_[ 8 ] + f_[ 7 ] * rhs.f_[ 9 ] + f_[ 11 ] * rhs.f_[ 10 ]
-                + f_[ 15 ] * rhs.f_[ 11 ];
+        ret.f_[8] = f_[0] * rhs.f_[8] + f_[4] * rhs.f_[9] + f_[8] * rhs.f_[10]
+                + f_[12] * rhs.f_[11];
+        ret.f_[9] = f_[1] * rhs.f_[8] + f_[5] * rhs.f_[9] + f_[9] * rhs.f_[10]
+                + f_[13] * rhs.f_[11];
+        ret.f_[10] = f_[2] * rhs.f_[8] + f_[6] * rhs.f_[9] + f_[10] * rhs.f_[10]
+                + f_[14] * rhs.f_[11];
+        ret.f_[11] = f_[3] * rhs.f_[8] + f_[7] * rhs.f_[9] + f_[11] * rhs.f_[10]
+                + f_[15] * rhs.f_[11];
 
-        ret.f_[ 12 ] = f_[ 0 ] * rhs.f_[ 12 ] + f_[ 4 ] * rhs.f_[ 13 ] + f_[ 8 ] * rhs.f_[ 14 ]
-                + f_[ 12 ] * rhs.f_[ 15 ];
-        ret.f_[ 13 ] = f_[ 1 ] * rhs.f_[ 12 ] + f_[ 5 ] * rhs.f_[ 13 ] + f_[ 9 ] * rhs.f_[ 14 ]
-                + f_[ 13 ] * rhs.f_[ 15 ];
-        ret.f_[ 14 ] = f_[ 2 ] * rhs.f_[ 12 ] + f_[ 6 ] * rhs.f_[ 13 ] + f_[ 10 ] * rhs.f_[ 14 ]
-                + f_[ 14 ] * rhs.f_[ 15 ];
-        ret.f_[ 15 ] = f_[ 3 ] * rhs.f_[ 12 ] + f_[ 7 ] * rhs.f_[ 13 ] + f_[ 11 ] * rhs.f_[ 14 ]
-                + f_[ 15 ] * rhs.f_[ 15 ];
+        ret.f_[12] = f_[0] * rhs.f_[12] + f_[4] * rhs.f_[13] + f_[8] * rhs.f_[14]
+                + f_[12] * rhs.f_[15];
+        ret.f_[13] = f_[1] * rhs.f_[12] + f_[5] * rhs.f_[13] + f_[9] * rhs.f_[14]
+                + f_[13] * rhs.f_[15];
+        ret.f_[14] = f_[2] * rhs.f_[12] + f_[6] * rhs.f_[13] + f_[10] * rhs.f_[14]
+                + f_[14] * rhs.f_[15];
+        ret.f_[15] = f_[3] * rhs.f_[12] + f_[7] * rhs.f_[13] + f_[11] * rhs.f_[14]
+                + f_[15] * rhs.f_[15];
 
         *this = ret;
         return *this;
@@ -855,7 +845,7 @@ public:
         Mat4 ret;
         for( int32_t i = 0; i < 16; ++i )
         {
-            ret.f_[ i ] = f_[ i ] * rhs;
+            ret.f_[i] = f_[i] * rhs;
         }
         return ret;
     }
@@ -864,7 +854,7 @@ public:
     {
         for( int32_t i = 0; i < 16; ++i )
         {
-            f_[ i ] *= rhs;
+            f_[i] *= rhs;
         }
         return *this;
     }
@@ -873,7 +863,7 @@ public:
     {
         for( int32_t i = 0; i < 16; ++i )
         {
-            f_[ i ] = rhs.f_[ i ];
+            f_[i] = rhs.f_[i];
         }
         return *this;
     }
@@ -883,34 +873,32 @@ public:
     Mat4 Transpose()
     {
         Mat4 ret;
-        ret.f_[ 0 ] = f_[ 0 ];
-        ret.f_[ 1 ] = f_[ 4 ];
-        ret.f_[ 2 ] = f_[ 8 ];
-        ret.f_[ 3 ] = f_[ 12 ];
-        ret.f_[ 4 ] = f_[ 1 ];
-        ret.f_[ 5 ] = f_[ 5 ];
-        ret.f_[ 6 ] = f_[ 9 ];
-        ret.f_[ 7 ] = f_[ 13 ];
-        ret.f_[ 8 ] = f_[ 2 ];
-        ret.f_[ 9 ] = f_[ 6 ];
-        ret.f_[ 10 ] = f_[ 10 ];
-        ret.f_[ 11 ] = f_[ 14 ];
-        ret.f_[ 12 ] = f_[ 3 ];
-        ret.f_[ 13 ] = f_[ 7 ];
-        ret.f_[ 14 ] = f_[ 11 ];
-        ret.f_[ 15 ] = f_[ 15 ];
+        ret.f_[0] = f_[0];
+        ret.f_[1] = f_[4];
+        ret.f_[2] = f_[8];
+        ret.f_[3] = f_[12];
+        ret.f_[4] = f_[1];
+        ret.f_[5] = f_[5];
+        ret.f_[6] = f_[9];
+        ret.f_[7] = f_[13];
+        ret.f_[8] = f_[2];
+        ret.f_[9] = f_[6];
+        ret.f_[10] = f_[10];
+        ret.f_[11] = f_[14];
+        ret.f_[12] = f_[3];
+        ret.f_[13] = f_[7];
+        ret.f_[14] = f_[11];
+        ret.f_[15] = f_[15];
         *this = ret;
         return *this;
     }
 
-    Mat4& PostTranslate( float tx,
-            float ty,
-            float tz )
+    Mat4& PostTranslate( float tx, float ty, float tz )
     {
-        f_[ 12 ] += (tx * f_[ 0 ]) + (ty * f_[ 4 ]) + (tz * f_[ 8 ]);
-        f_[ 13 ] += (tx * f_[ 1 ]) + (ty * f_[ 5 ]) + (tz * f_[ 9 ]);
-        f_[ 14 ] += (tx * f_[ 2 ]) + (ty * f_[ 6 ]) + (tz * f_[ 10 ]);
-        f_[ 15 ] += (tx * f_[ 3 ]) + (ty * f_[ 7 ]) + (tz * f_[ 11 ]);
+        f_[12] += (tx * f_[0]) + (ty * f_[4]) + (tz * f_[8]);
+        f_[13] += (tx * f_[1]) + (ty * f_[5]) + (tz * f_[9]);
+        f_[14] += (tx * f_[2]) + (ty * f_[6]) + (tz * f_[10]);
+        f_[15] += (tx * f_[3]) + (ty * f_[7]) + (tz * f_[11]);
         return *this;
     }
 
@@ -922,18 +910,11 @@ public:
     //--------------------------------------------------------------------------------
     // Misc
     //--------------------------------------------------------------------------------
-    static Mat4 Perspective( float width,
-            float height,
-            float nearPlane,
-            float farPlane );
+    static Mat4 Perspective( float width, float height, float nearPlane, float farPlane );
 
-    static Mat4 LookAt( const Vec3& vEye,
-            const Vec3& vAt,
-            const Vec3& vUp );
+    static Mat4 LookAt( const Vec3& vEye, const Vec3& vAt, const Vec3& vUp );
 
-    static Mat4 Translation( const float fX,
-            const float fY,
-            const float fZ );
+    static Mat4 Translation( const float fX, const float fY, const float fZ );
     static Mat4 Translation( const Vec3 vec );
 
     static Mat4 RotationX( const float angle );
@@ -945,31 +926,31 @@ public:
     static Mat4 Identity()
     {
         Mat4 ret;
-        ret.f_[ 0 ] = 1.f;
-        ret.f_[ 1 ] = 0;
-        ret.f_[ 2 ] = 0;
-        ret.f_[ 3 ] = 0;
-        ret.f_[ 4 ] = 0;
-        ret.f_[ 5 ] = 1.f;
-        ret.f_[ 6 ] = 0;
-        ret.f_[ 7 ] = 0;
-        ret.f_[ 8 ] = 0;
-        ret.f_[ 9 ] = 0;
-        ret.f_[ 10 ] = 1.f;
-        ret.f_[ 11 ] = 0;
-        ret.f_[ 12 ] = 0;
-        ret.f_[ 13 ] = 0;
-        ret.f_[ 14 ] = 0;
-        ret.f_[ 15 ] = 1.f;
+        ret.f_[0] = 1.f;
+        ret.f_[1] = 0;
+        ret.f_[2] = 0;
+        ret.f_[3] = 0;
+        ret.f_[4] = 0;
+        ret.f_[5] = 1.f;
+        ret.f_[6] = 0;
+        ret.f_[7] = 0;
+        ret.f_[8] = 0;
+        ret.f_[9] = 0;
+        ret.f_[10] = 1.f;
+        ret.f_[11] = 0;
+        ret.f_[12] = 0;
+        ret.f_[13] = 0;
+        ret.f_[14] = 0;
+        ret.f_[15] = 1.f;
         return ret;
     }
 
     void Dump()
     {
-        LOGI( "%f %f %f %f", f_[ 0 ], f_[ 1 ], f_[ 2 ], f_[ 3 ] );
-        LOGI( "%f %f %f %f", f_[ 4 ], f_[ 5 ], f_[ 6 ], f_[ 7 ] );
-        LOGI( "%f %f %f %f", f_[ 8 ], f_[ 9 ], f_[ 10 ], f_[ 11 ] );
-        LOGI( "%f %f %f %f", f_[ 12 ], f_[ 13 ], f_[ 14 ], f_[ 15 ] );
+        LOGI( "%f %f %f %f", f_[0], f_[1], f_[2], f_[3] );
+        LOGI( "%f %f %f %f", f_[4], f_[5], f_[6], f_[7] );
+        LOGI( "%f %f %f %f", f_[8], f_[9], f_[10], f_[11] );
+        LOGI( "%f %f %f %f", f_[12], f_[13], f_[14], f_[15] );
     }
 };
 
@@ -995,10 +976,7 @@ public:
         w_ = 1.f;
     }
 
-    Quaternion( const float fX,
-            const float fY,
-            const float fZ,
-            const float fW )
+    Quaternion( const float fX, const float fY, const float fZ, const float fW )
     {
         x_ = fX;
         y_ = fY;
@@ -1006,8 +984,7 @@ public:
         w_ = fW;
     }
 
-    Quaternion( const Vec3 vec,
-            const float fW )
+    Quaternion( const Vec3 vec, const float fW )
     {
         x_ = vec.x_;
         y_ = vec.y_;
@@ -1075,18 +1052,18 @@ public:
         float yw = y_ * w_ * 2.0f;
         float zw = z_ * w_ * 2.0f;
 
-        mat.f_[ 0 ] = 1.0f - y2 - z2;
-        mat.f_[ 1 ] = xy + zw;
-        mat.f_[ 2 ] = zx - yw;
-        mat.f_[ 4 ] = xy - zw;
-        mat.f_[ 5 ] = 1.0f - z2 - x2;
-        mat.f_[ 6 ] = yz + xw;
-        mat.f_[ 8 ] = zx + yw;
-        mat.f_[ 9 ] = yz - xw;
-        mat.f_[ 10 ] = 1.0f - x2 - y2;
+        mat.f_[0] = 1.0f - y2 - z2;
+        mat.f_[1] = xy + zw;
+        mat.f_[2] = zx - yw;
+        mat.f_[4] = xy - zw;
+        mat.f_[5] = 1.0f - z2 - x2;
+        mat.f_[6] = yz + xw;
+        mat.f_[8] = zx + yw;
+        mat.f_[9] = yz - xw;
+        mat.f_[10] = 1.0f - x2 - y2;
 
-        mat.f_[ 3 ] = mat.f_[ 7 ] = mat.f_[ 11 ] = mat.f_[ 12 ] = mat.f_[ 13 ] = mat.f_[ 14 ] = 0.0f;
-        mat.f_[ 15 ] = 1.0f;
+        mat.f_[3] = mat.f_[7] = mat.f_[11] = mat.f_[12] = mat.f_[13] = mat.f_[14] = 0.0f;
+        mat.f_[15] = 1.0f;
     }
 
     void ToMatrixPreserveTranslate( Mat4& mat )
@@ -1101,22 +1078,21 @@ public:
         float yw = y_ * w_ * 2.0f;
         float zw = z_ * w_ * 2.0f;
 
-        mat.f_[ 0 ] = 1.0f - y2 - z2;
-        mat.f_[ 1 ] = xy + zw;
-        mat.f_[ 2 ] = zx - yw;
-        mat.f_[ 4 ] = xy - zw;
-        mat.f_[ 5 ] = 1.0f - z2 - x2;
-        mat.f_[ 6 ] = yz + xw;
-        mat.f_[ 8 ] = zx + yw;
-        mat.f_[ 9 ] = yz - xw;
-        mat.f_[ 10 ] = 1.0f - x2 - y2;
+        mat.f_[0] = 1.0f - y2 - z2;
+        mat.f_[1] = xy + zw;
+        mat.f_[2] = zx - yw;
+        mat.f_[4] = xy - zw;
+        mat.f_[5] = 1.0f - z2 - x2;
+        mat.f_[6] = yz + xw;
+        mat.f_[8] = zx + yw;
+        mat.f_[9] = yz - xw;
+        mat.f_[10] = 1.0f - x2 - y2;
 
-        mat.f_[ 3 ] = mat.f_[ 7 ] = mat.f_[ 11 ] = 0.0f;
-        mat.f_[ 15 ] = 1.0f;
+        mat.f_[3] = mat.f_[7] = mat.f_[11] = 0.0f;
+        mat.f_[15] = 1.0f;
     }
 
-    static Quaternion RotationAxis( const Vec3 axis,
-            const float angle )
+    static Quaternion RotationAxis( const Vec3 axis, const float angle )
     {
         Quaternion ret;
         float s = sinf( angle / 2 );
@@ -1127,10 +1103,7 @@ public:
         return ret;
     }
 
-    void Value( float& fX,
-            float& fY,
-            float& fZ,
-            float& fW )
+    void Value( float& fX, float& fY, float& fZ, float& fW )
     {
         fX = x_;
         fY = y_;

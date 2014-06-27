@@ -95,6 +95,9 @@ if [ -z "$OPTION_BUILD_DIR" ]; then
 else
     BUILD_DIR=$OPTION_BUILD_DIR
 fi
+
+HOST_TAG_LIST="$HOST_TAG $HOST_TAG32"
+
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 fail_panic "Could not create build directory: $BUILD_DIR"
@@ -124,8 +127,12 @@ build_gnustl_for_abi ()
     mkdir -p $DSTDIR
 
     ARCH=$(convert_abi_to_arch $ABI)
-    BINPREFIX=$NDK_DIR/$(get_toolchain_binprefix_for_arch $ARCH $GCC_VERSION)
-
+    for TAG in $HOST_TAG_LIST; do
+        BINPREFIX=$NDK_DIR/$(get_toolchain_binprefix_for_arch $ARCH $GCC_VERSION $TAG)
+        if [ -f ${BINPREFIX}gcc ]; then
+            break;
+        fi
+    done
     GNUSTL_SRCDIR=$SRCDIR/gcc/gcc-$GCC_VERSION/libstdc++-v3
     # Sanity check
     if [ ! -d "$GNUSTL_SRCDIR" ]; then
@@ -196,7 +203,7 @@ build_gnustl_for_abi ()
 
     setup_ccache
 
-    export LDFLAGS="-L$LDIR -lc $EXTRA_FLAGS"
+    export LDFLAGS="-lc $EXTRA_FLAGS"
 
     if [ "$ABI" = "armeabi-v7a" -o "$ABI" = "armeabi-v7a-hard" ]; then
         CXXFLAGS=$CXXFLAGS" -march=armv7-a -mfpu=vfpv3-d16"
@@ -227,6 +234,12 @@ build_gnustl_for_abi ()
         #LDFLAGS=$LDFLAGS" -lsupc++"
     fi
 
+    if [ "$ARCH" == "x86_64" -o "$ARCH" == "mips64" ]; then
+        MULTILIB_FLAGS=  # Both x86_64 and mips64el toolchains are built with multilib options
+    else
+        MULTILIB_FLAGS=--disable-multilib
+    fi
+
     PROJECT="gnustl_$LIBTYPE gcc-$GCC_VERSION $ABI $THUMB"
     echo "$PROJECT: configuring"
     mkdir -p $BUILDDIR && rm -rf $BUILDDIR/* &&
@@ -237,7 +250,7 @@ build_gnustl_for_abi ()
         $LIBTYPE_FLAGS \
         --enable-libstdcxx-time \
         --disable-symvers \
-        --disable-multilib \
+        $MULTILIB_FLAGS \
         --disable-nls \
         --disable-sjlj-exceptions \
         --disable-tls \
@@ -286,6 +299,14 @@ copy_gnustl_libs ()
 
     # Copy the ABI-specific headers
     copy_directory "$SDIR/include/c++/$GCC_VERSION/$PREFIX/bits" "$DDIR/libs/$ABI/include/bits"
+    if [ "$ARCH" = "x86_64" -o "$ARCH" = "mips64" ]; then
+        copy_directory "$SDIR/include/c++/$GCC_VERSION/$PREFIX/32/bits" "$DDIR/libs/$ABI/include/32/bits"
+        if [ "$ARCH" = "x86_64" ]; then
+            copy_directory "$SDIR/include/c++/$GCC_VERSION/$PREFIX/x32/bits" "$DDIR/libs/$ABI/include/x32/bits"
+        else
+            copy_directory "$SDIR/include/c++/$GCC_VERSION/$PREFIX/n32/bits" "$DDIR/libs/$ABI/include/n32/bits"
+        fi
+    fi
 
     LDIR=lib
     if [ "$ARCH" != "${ARCH%%64*}" ]; then
@@ -298,6 +319,21 @@ copy_gnustl_libs ()
     copy_file_list "$SDIR/$LDIR" "$DDIR/libs/$ABI" libsupc++.a libgnustl_shared.so
     # Note: we need to rename libgnustl_shared.a to libgnustl_static.a
     cp "$SDIR/$LDIR/libgnustl_shared.a" "$DDIR/libs/$ABI/libgnustl_static.a"
+    if [ "$ARCH" = "x86_64" -o "$ARCH" = "mips64" ]; then
+       # for multilib we copy full set. Keep native libs in $ABI dir for compatibility.
+       # TODO: remove it in $ABI top directory
+       copy_file_list "$SDIR/lib" "$DDIR/libs/$ABI/lib" libsupc++.a libgnustl_shared.so
+       copy_file_list "$SDIR/lib64" "$DDIR/libs/$ABI/lib64" libsupc++.a libgnustl_shared.so
+       cp "$SDIR/lib/libgnustl_shared.a" "$DDIR/libs/$ABI/lib/libgnustl_static.a"
+       cp "$SDIR/lib64/libgnustl_shared.a" "$DDIR/libs/$ABI/lib64/libgnustl_static.a"
+       if [ "$ARCH" = "x86_64" ]; then
+         copy_file_list "$SDIR/libx32" "$DDIR/libs/$ABI/libx32" libsupc++.a libgnustl_shared.so
+         cp "$SDIR/libx32/libgnustl_shared.a" "$DDIR/libs/$ABI/libx32/libgnustl_static.a"
+       else
+         copy_file_list "$SDIR/lib32" "$DDIR/libs/$ABI/lib32" libsupc++.a libgnustl_shared.so
+         cp "$SDIR/lib32/libgnustl_shared.a" "$DDIR/libs/$ABI/lib32/libgnustl_static.a"
+       fi
+    fi
     if [ -d "$SDIR/thumb" ] ; then
         copy_file_list "$SDIR/thumb/$LDIR" "$DDIR/libs/$ABI/thumb" libsupc++.a libgnustl_shared.so
         cp "$SDIR/thumb/$LDIR/libgnustl_shared.a" "$DDIR/libs/$ABI/thumb/libgnustl_static.a"
@@ -308,15 +344,11 @@ GCC_VERSION_LIST=$(commas_to_spaces $GCC_VERSION_LIST)
 for ABI in $ABIS; do
     ARCH=$(convert_abi_to_arch $ABI)
     DEFAULT_GCC_VERSION=$(get_default_gcc_version_for_arch $ARCH)
-    BUILD_IT=
     for VERSION in $GCC_VERSION_LIST; do
         # Only build for this GCC version if it on or after DEFAULT_GCC_VERSION
-        if [ -z "$BUILD_IT" -a "$VERSION" = "$DEFAULT_GCC_VERSION" ]; then
-	    BUILD_IT=yes
-	fi
-	if [ -z "$BUILD_IT" ]; then
+        if [ "${VERSION%%l}" \< "$DEFAULT_GCC_VERSION" ]; then
             continue
-	fi
+        fi
 
         build_gnustl_for_abi $ABI "$BUILD_DIR" static $VERSION
         build_gnustl_for_abi $ABI "$BUILD_DIR" shared $VERSION
@@ -343,7 +375,24 @@ if [ -n "$PACKAGE_DIR" ] ; then
                 continue
             fi
             FILES=""
-            for LIB in include/bits libsupc++.a libgnustl_static.a libgnustl_shared.so; do
+            case "$ABI" in
+                x86_64)
+                    MULTILIB="include/32/bits include/x32/bits
+                              lib/libsupc++.a lib/libgnustl_static.a lib/libgnustl_shared.so
+                              libx32/libsupc++.a libx32/libgnustl_static.a libx32/libgnustl_shared.so
+                              lib64/libsupc++.a lib64/libgnustl_static.a lib64/libgnustl_shared.so"
+                    ;;
+                mips64)
+                    MULTILIB="include/32/bits include/n32/bits
+                              lib/libsupc++.a lib/libgnustl_static.a lib/libgnustl_shared.so
+                              lib32/libsupc++.a lib32/libgnustl_static.a lib32/libgnustl_shared.so
+                              lib64/libsupc++.a lib64/libgnustl_static.a lib64/libgnustl_shared.so"
+                    ;;
+                *)
+                    MULTILIB=
+                    ;;
+            esac
+            for LIB in include/bits $MULTILIB libsupc++.a libgnustl_static.a libgnustl_shared.so; do
                 FILES="$FILES $GNUSTL_SUBDIR/$VERSION/libs/$ABI/$LIB"
                 THUMB_FILE="$GNUSTL_SUBDIR/$VERSION/libs/$ABI/thumb/$LIB"
                 if [ -f "$NDK_DIR/$THUMB_FILE" ] ; then
@@ -357,7 +406,7 @@ if [ -n "$PACKAGE_DIR" ] ; then
             PACKAGE="${PACKAGE}.tar.bz2"
             dump "Packaging: $PACKAGE"
             pack_archive "$PACKAGE" "$NDK_DIR" "$FILES"
-            fail_panic "Could not package $ABI STLport binaries!"
+            fail_panic "Could not package $ABI GNU libstdc++ binaries!"
         done
     done
 fi

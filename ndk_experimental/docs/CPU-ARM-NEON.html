@@ -55,17 +55,18 @@ specify the 32-bit ARM instruction set for non-NEON instructions), but must
 appear after it.</p>
 <p>In other words, 'foo.c.arm.neon' works, but 'foo.c.neon.arm' does NOT.</p>
 <h2>Build Requirements:</h2>
-<p>Neon support only works when targeting the 'armeabi-v7a' ABI, otherwise the
-NDK build scripts will complain and abort. It is important to use checks like
-the following in your Android.mk:</p>
+<p>Neon support only works when targeting the 'armeabi-v7a' or 'x86' ABI, otherwise
+the NDK build scripts will complain and abort. Neon is partially supported on
+x86 via translation header (To learn more about it, see <a href="CPU-X86.html">CPU-X86</a>).
+It is important to use checks like the following in your Android.mk:</p>
 <pre><code>    # define a static library containing our NEON code
-    ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
+    ifeq ($(TARGET_ARCH_ABI),$(filter $(TARGET_ARCH_ABI), armeabi-v7a x86))
         include $(CLEAR_VARS)
         LOCAL_MODULE    := mylib-neon
         LOCAL_SRC_FILES := mylib-neon.c
         LOCAL_ARM_NEON  := true
         include $(BUILD_STATIC_LIBRARY)
-    endif # TARGET_ARCH_ABI == armeabi-v7a
+    endif # TARGET_ARCH_ABI == armeabi-v7a || x86
 </code></pre>
 <h2>Runtime Detection:</h2>
 <p>As said previously, NOT ALL ARMv7-BASED ANDROID DEVICES WILL SUPPORT NEON !

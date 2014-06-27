@@ -30,6 +30,8 @@
 
 #include_next <math.h>
 
+#if !defined(__LP64__)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -39,7 +41,7 @@ typedef double      double_t;
 typedef float       float_t;
 
 // Missing long double functions. Note that 'long double' is the same
-// than 'double' on Android, so this will define stubs.
+// as 'double' on 32-bit Android, so this will define stubs.
 #define LLVM_LIBCXX_LONG_DOUBLE_FUNCTIONS
 
 long double     acosl(long double);
@@ -91,5 +93,7 @@ double          log2(double);
 #ifdef __cplusplus
 }  // extern "C"
 #endif
+
+#endif // !__LP64__
 
 #endif  /* NDK_ANDROID_SUPPORT_MATH_H */

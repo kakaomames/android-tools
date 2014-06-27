@@ -19,8 +19,6 @@
 #include <jni.h>
 #include <vector>
 #include <string>
-#include <functional>
-#include <assert.h>
 
 #include <android/log.h>
 #include <android_native_app_glue.h>
@@ -29,12 +27,8 @@
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, ndk_helper::JNIHelper::GetInstance()->GetAppName(), __VA_ARGS__))
 #define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, ndk_helper::JNIHelper::GetInstance()->GetAppName(), __VA_ARGS__))
 
-//#define DEBUG_LOCK (1)
-
 namespace ndk_helper
 {
-
-class JUIView;
 
 /******************************************************************
  * Helper functions for JNI calls
@@ -50,8 +44,7 @@ class JUIView;
 class JNIHelper
 {
 private:
-    std::string app_bunlde_name_;
-    std::string app_label_;
+    std::string app_name_;
 
     ANativeActivity* activity_;
     jobject jni_helper_java_ref_;
@@ -63,24 +56,14 @@ private:
     mutable pthread_mutex_t mutex_;
 
     jstring GetExternalFilesDirJString( JNIEnv *env );
+    jclass RetrieveClass( JNIEnv *jni,
+            const char* class_name );
 
     JNIHelper();
     ~JNIHelper();
     JNIHelper( const JNIHelper& rhs );
     JNIHelper& operator=( const JNIHelper& rhs );
 
-    /*
-     * Call method in JNIHelper class
-     */
-    jobject CallObjectMethod( const char* strMethodName,
-            const char* strSignature,
-            ... );
-    void CallVoidMethod( const char* strMethodName,
-            const char* strSignature,
-            ... );
-
-    int32_t lock_count_;
-    bool attach_;
 public:
     /*
      * To load your own Java classes, JNIHelper requires to be initialized with a ANativeActivity handle.
@@ -93,20 +76,6 @@ public:
      */
     static void Init( ANativeActivity* activity,
             const char* helper_class_name );
-
-    /*
-     * Init() that accept so name.
-     * When using a JUI helper class, Java side requires SO name to initialize JNI calls to invoke native callbacks.
-     * Use this version when using JUI helper.
-     *
-     * arguments:
-     * in: activity, pointer to ANativeActivity. Used internally to set up JNI environment
-     * in: helper_class_name, pointer to Java side helper class name. (e.g. "com/sample/helper/NDKHelper" in samples )
-     * in: native_soname, pointer to soname of native library. (e.g. "NativeActivity" for "libNativeActivity.so" )
-     */
-    static void Init( ANativeActivity* activity,
-            const char* helper_class_name,
-            const char* native_soname );
 
     /*
      * Retrieve the singleton object of the helper.
@@ -194,118 +163,9 @@ public:
      */
     const char* GetAppName()
     {
-        return app_bunlde_name_.c_str();
+        return app_name_.c_str();
     }
 
-    /*
-     * Retrieves application label
-     *
-     * return: pointer to an app label string
-     *
-     */
-    const char* GetAppLabel()
-    {
-        return app_label_.c_str();
-    }
-
-    /*
-     * Execute given function in Java UIThread.
-     *
-     * arguments:
-     *  in: pFunction, a pointer to a function to be executed in Java UI Thread.
-     *  Note that the helpe function returns immediately without synchronizing a function completion.
-     */
-    void RunOnUiThread( std::function<void()> callback );
-
-    /*
-     * Lock NDKHelper instance
-     *
-     * arguments:
-     *  in: attach, currently ignored
-     *
-     * return: A pointer to JNIEnv that is returned from AttachCurrentThread
-     */
-    JNIEnv* Lock( bool attach = true )
-    {
-        JNIEnv *env;
-        pthread_mutex_lock( &mutex_ );
-        if( lock_count_ == 0 )
-        {
-            attach_ = attach;
-        }
-        lock_count_++;
-        activity_->vm->AttachCurrentThread( &env, NULL );
-
-#ifdef DEBUG_LOCK
-        LOGI( "locked %d attach:%d", lock_count_, attach_ );
-#endif
-        return env;
-    }
-
-    /*
-     * Unlock NDKHelper instance
-     * arguments:
-     *  in: detach, when it's false, it won't call detachCurrentThread.
-     *   Specify false when a function is called from Java code which shouldn't be detached.
-     *
-     */
-    void Unlock()
-    {
-        --lock_count_;
-        //Predecrement codegen error in GCC when the func inlined in callVoidMedhods?
-        if( attach_ && lock_count_ == 0 )
-        {
-#ifdef DEBUG_LOCK
-            LOGI( "DetachCurrentThread" );
-#endif
-            activity_->vm->DetachCurrentThread();
-        }
-#ifdef DEBUG_LOCK
-        LOGI( "unlocked %d attach:%d", lock_count_, attach_ );
-#endif
-        pthread_mutex_unlock( &mutex_ );
-    }
-
-    /*
-     * Decrement a global reference to the object
-     * arguments:
-     *  in: obj, obj to decrement a global reference
-     */
-    void DeleteObject( jobject obj );
-
-    /*
-     * Helper methods to call a method in given object
-     */
-    jobject CreateObject( const char* class_name );
-    jobject CallObjectMethod( jobject object,
-            const char* strMethodName,
-            const char* strSignature,
-            ... );
-    void CallVoidMethod( jobject object,
-            const char* strMethodName,
-            const char* strSignature,
-            ... );
-    float CallFloatMethod( jobject object,
-            const char* strMethodName,
-            const char* strSignature,
-            ... );
-    int32_t CallIntMethod( jobject object,
-            const char* strMethodName,
-            const char* strSignature,
-            ... );
-    bool CallBooleanMethod( jobject object,
-            const char* strMethodName,
-            const char* strSignature,
-            ... );
-    jclass RetrieveClass( JNIEnv *jni,
-            const char* class_name );
 };
-
-extern "C"
-{
-JNIEXPORT
-void Java_com_sample_helper_NDKHelper_RunOnUiThreadHandler( JNIEnv* env,
-        int64_t pointer );
-}
 
 } //namespace ndkHelper

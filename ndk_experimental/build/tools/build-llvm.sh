@@ -316,6 +316,10 @@ dump "Install  : llvm toolchain binaries"
 cd $LLVM_BUILD_OUT && run make install $MAKE_FLAGS
 fail_panic "Couldn't install llvm toolchain to $TOOLCHAIN_BUILD_PREFIX"
 
+# copy arm_neon_x86.h from GCC
+GCC_SRC_DIR=$SRC_DIR/gcc/gcc-$DEFAULT_GCC32_VERSION
+cp -a $GCC_SRC_DIR/gcc/config/i386/arm_neon.h $TOOLCHAIN_BUILD_PREFIX/lib/clang/$LLVM_VERSION/include/arm_neon_x86.h
+
 # Since r156448, llvm installs a separate llvm-config-host when cross-compiling. Use llvm-config-host if this
 # exists otherwise llvm-config.
 # Note, llvm-config-host should've really been called llvm-config-build and the following changes fix this by
@@ -417,12 +421,18 @@ find $TOOLCHAIN_BUILD_PREFIX/bin -maxdepth 1 -type f -exec $STRIP {} \;
 find $TOOLCHAIN_BUILD_PREFIX/lib -maxdepth 1 -type f \( -name "*.dll" -o -name "*.so" \) -exec $STRIP {} \;
 
 # For now, le64-tools is just like le32 ones
-run ln -s ndk-link $TOOLCHAIN_BUILD_PREFIX/bin/le32-none-ndk-link
-run ln -s ndk-link $TOOLCHAIN_BUILD_PREFIX/bin/le64-none-ndk-link
-run ln -s ndk-strip $TOOLCHAIN_BUILD_PREFIX/bin/le32-none-ndk-strip
-run ln -s ndk-strip $TOOLCHAIN_BUILD_PREFIX/bin/le64-none-ndk-strip
-run ln -s ndk-translate $TOOLCHAIN_BUILD_PREFIX/bin/le32-none-ndk-translate
-run ln -s ndk-translate $TOOLCHAIN_BUILD_PREFIX/bin/le64-none-ndk-translate
+if [ -f "$TOOLCHAIN_BUILD_PREFIX/bin/ndk-link${HOST_EXE}" ]; then
+    run ln -s ndk-link${HOST_EXE} $TOOLCHAIN_BUILD_PREFIX/bin/le32-none-ndk-link${HOST_EXE}
+    run ln -s ndk-link${HOST_EXE} $TOOLCHAIN_BUILD_PREFIX/bin/le64-none-ndk-link${HOST_EXE}
+fi
+if [ -f "$TOOLCHAIN_BUILD_PREFIX/bin/ndk-strip${HOST_EXE}" ]; then
+    run ln -s ndk-strip${HOST_EXE} $TOOLCHAIN_BUILD_PREFIX/bin/le32-none-ndk-strip${HOST_EXE}
+    run ln -s ndk-strip${HOST_EXE} $TOOLCHAIN_BUILD_PREFIX/bin/le64-none-ndk-strip${HOST_EXE}
+fi
+if [ -f "$TOOLCHAIN_BUILD_PREFIX/bin/ndk-translate${HOST_EXE}" ]; then
+    run ln -s ndk-translate${HOST_EXE} $TOOLCHAIN_BUILD_PREFIX/bin/le32-none-ndk-translate${HOST_EXE}
+    run ln -s ndk-translate${HOST_EXE} $TOOLCHAIN_BUILD_PREFIX/bin/le64-none-ndk-translate${HOST_EXE}
+fi
 
 # install script
 if [ "$USE_PYTHON" != "yes" ]; then

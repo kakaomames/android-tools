@@ -20,6 +20,7 @@
 #include <jni.h>
 #include <errno.h>
 
+#include <android/sensor.h>
 #include <android/log.h>
 #include <android_native_app_glue.h>
 #include <android/native_window_jni.h>
@@ -54,6 +55,10 @@ class Engine
 
     android_app* app_;
 
+    ASensorManager* sensor_manager_;
+    const ASensor* accelerometer_sensor_;
+    ASensorEventQueue* sensor_event_queue_;
+
     void UpdateFPS( float fFPS );
     void ShowUI();
     void TransformPosition( ndk_helper::Vec2& vec );
@@ -79,6 +84,11 @@ public:
             int32_t iIndex,
             float& fX,
             float& fY );
+
+    void InitSensors();
+    void ProcessSensors( int32_t id );
+    void SuspendSensors();
+    void ResumeSensors();
 };
 
 //-------------------------------------------------------------------------
@@ -87,7 +97,10 @@ public:
 Engine::Engine() :
                 initialized_resources_( false ),
                 has_focus_( false ),
-                app_( NULL )
+                app_( NULL ),
+                sensor_manager_( NULL ),
+                accelerometer_sensor_( NULL ),
+                sensor_event_queue_( NULL )
 {
     gl_context_ = ndk_helper::GLContext::GetInstance();
 }
@@ -124,7 +137,6 @@ int Engine::InitDisplay()
     if( !initialized_resources_ )
     {
         gl_context_->Init( app_->window );
-        gl_context_->SetSwapInterval( 0 );	//Set interval of 0 for a benchmark
         LoadResources();
         initialized_resources_ = true;
     }
@@ -291,10 +303,12 @@ void Engine::HandleCmd( struct android_app* app,
     case APP_CMD_STOP:
         break;
     case APP_CMD_GAINED_FOCUS:
+        eng->ResumeSensors();
         //Start animation
         eng->has_focus_ = true;
         break;
     case APP_CMD_LOST_FOCUS:
+        eng->SuspendSensors();
         // Also stop animating.
         eng->has_focus_ = false;
         eng->DrawFrame();
@@ -303,6 +317,55 @@ void Engine::HandleCmd( struct android_app* app,
         //Free up GL resources
         eng->TrimMemory();
         break;
+    }
+}
+
+//-------------------------------------------------------------------------
+//Sensor handlers
+//-------------------------------------------------------------------------
+void Engine::InitSensors()
+{
+    sensor_manager_ = ASensorManager_getInstance();
+    accelerometer_sensor_ = ASensorManager_getDefaultSensor( sensor_manager_,
+            ASENSOR_TYPE_ACCELEROMETER );
+    sensor_event_queue_ = ASensorManager_createEventQueue( sensor_manager_, app_->looper,
+            LOOPER_ID_USER, NULL, NULL );
+}
+
+void Engine::ProcessSensors( int32_t id )
+{
+    // If a sensor has data, process it now.
+    if( id == LOOPER_ID_USER )
+    {
+        if( accelerometer_sensor_ != NULL )
+        {
+            ASensorEvent event;
+            while( ASensorEventQueue_getEvents( sensor_event_queue_, &event, 1 ) > 0 )
+            {
+            }
+        }
+    }
+}
+
+void Engine::ResumeSensors()
+{
+    // When our app gains focus, we start monitoring the accelerometer.
+    if( accelerometer_sensor_ != NULL )
+    {
+        ASensorEventQueue_enableSensor( sensor_event_queue_, accelerometer_sensor_ );
+        // We'd like to get 60 events per second (in us).
+        ASensorEventQueue_setEventRate( sensor_event_queue_, accelerometer_sensor_,
+                (1000L / 60) * 1000 );
+    }
+}
+
+void Engine::SuspendSensors()
+{
+    // When our app loses focus, we stop monitoring the accelerometer.
+    // This is to avoid consuming battery while not being used.
+    if( accelerometer_sensor_ != NULL )
+    {
+        ASensorEventQueue_disableSensor( sensor_event_queue_, accelerometer_sensor_ );
     }
 }
 
@@ -384,6 +447,9 @@ void android_main( android_app* state )
     monstartup("libTeapotNativeActivity.so");
 #endif
 
+    // Prepare to monitor accelerometer
+    g_engine.InitSensors();
+
     // loop waiting for stuff to do.
     while( 1 )
     {
@@ -401,6 +467,8 @@ void android_main( android_app* state )
             // Process this event.
             if( source != NULL )
                 source->process( state, source );
+
+            g_engine.ProcessSensors( id );
 
             // Check if we are exiting.
             if( state->destroyRequested != 0 )

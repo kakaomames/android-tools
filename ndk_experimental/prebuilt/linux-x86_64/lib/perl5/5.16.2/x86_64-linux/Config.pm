@@ -85,7 +85,7 @@ sub AUTOLOAD {
 tie %Config, 'Config', {
     archlibexp => '/tmp/ndk-andrewhsieh/build/perl/prefix/lib/5.16.2/x86_64-linux',
     archname => 'x86_64-linux',
-    cc => '/usr/local/google/home/andrewhsieh/mydroid/ndk/../prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.11-4.6/bin/x86_64-linux-gcc',
+    cc => '/usr/local/google/home/andrewhsieh/mydroid/ndk/../prebuilts/tools/gcc-sdk/gcc',
     d_readlink => 'define',
     d_symlink => 'define',
     dlext => 'so',
@@ -95,7 +95,7 @@ tie %Config, 'Config', {
     inc_version_list => ' ',
     intsize => '4',
     ldlibpthname => 'LD_LIBRARY_PATH',
-    libpth => '/s/mydroid/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.11-4.6/bin/../lib/gcc/x86_64-linux/4.6/ /s/mydroid/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.11-4.6/bin/../lib/gcc/ /s/mydroid/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.11-4.6/bin/../lib/gcc/x86_64-linux/4.6/../../../../x86_64-linux/lib/../lib64/ /s/mydroid/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.11-4.6/bin/../lib/gcc/x86_64-linux/4.6/../../../../x86_64-linux/lib/ /s/mydroid/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.11-4.6/bin/../sysroot/usr/lib/',
+    libpth => '/s/mydroid/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.7-4.6/bin/../lib/gcc/x86_64-linux/4.6.x-google/ /s/mydroid/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.7-4.6/bin/../lib/gcc/ /s/mydroid/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.7-4.6/bin/../lib/gcc/x86_64-linux/4.6.x-google/../../../../x86_64-linux/lib/../lib64/ /s/mydroid/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.7-4.6/bin/../lib/gcc/x86_64-linux/4.6.x-google/../../../../x86_64-linux/lib/ /s/mydroid/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.7-4.6/bin/../sysroot/usr/lib/',
     osname => 'linux',
     osvers => '3.2.5-gg1336',
     path_sep => ':',

@@ -16,12 +16,17 @@
 
 package com.sample.teapot;
 
-import com.sample.helper.NDKHelper;
+import javax.microedition.khronos.opengles.GL10;
 
 import android.app.Application;
+import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.opengl.GLUtils;
 import android.util.Log;
 import android.widget.Toast;
 

@@ -1,26 +1,58 @@
-Android NDK ChangeLog:
-
-    - [WIP] All ARM/X86/MIPS GCC toolchains are multilibs
-    - [WIP] Enable perf
-    - [WIP] Enable Valgrind
-    - [WIP] Enable AddressSanitizer
-    - [WIP] Upgraded GDB to 7.6
-
 ----------------------------------------------------------------------------
-android-ndk-r9e
+android-ndk-r10
 ===
 
 IMPORTANT CHANGES:
 ---
 
-- Added GCC 4.9 compiler.  Since GCC 4.6 is still the default,
-  you need to explicitly enable it:
+- Added 3 new ABIs: arm64-v8a, x86_64, mips64.
+  
+  Note that 
+>  1. GCC 4.9 is the default compiler for 64-bit ABIs.  NDK_TOOLCHAIN_VERSION=clang
+      (currently at clang3.4) may not work for arm64-v8a and mips64 supports.
+>  2. API L is the first level with 64-bit support.  Note tha this is intermediate for
+      lmp-preview only, and will be replaced by actual API level in number at L-release
+>  3. Added APP_ABI=all32 and all64:
+>      APP_ABI=all32 is equivalent to APP_ABI=armeabi,armeabi-v7a,x86,mips
+>      APP_ABI=all64 is equivalent to APP_ABI=arm64-v8a,x86_64,mips64
+>      APP_ABI=all selects all ABIs
+>  4. the new GNU libstdc++ in andorid-L contain all <tr1/cmath>.
+      Check _GLIBCXX_USE_C99_MATH_TR1 before defining your own
+>  5. cpu-features have been updated for ARMv8 kernel.  The existing 
+      cpu-features may fail to detect the presence of NEON on ARMv8
+      platform.  Please recompile your code with the new cpu-features
+
+- About platforms/android-L API directory 
+> 1. Updated Bionic headers/libs in android-L are synced to AOSP/bionic around release
+     time, which is different from the bionic headers in android-3 .. -20 since
+     froyo/gingerbread with only bug-fixes.
+
+- Added GCC 4.9 compilers to 32-/64-bit ABIs.  GCC 4.9 is the default for 64-bit ABIs
+  as previously mentioned.  Since GCC 4.6 is still the default for 32-bit you need to
+  explicitly enable it: 
 >  1. For ndk-build: Either export NDK_TOOLCHAIN_VERSION=4.9 or add it
      in Application.mk.
 >  2. For standalone: Use "--toolchain=" option in make-standalone-toolchain.sh.
      eg. "--toolchain=arm-linux-androideabi-4.9"
 
-- Added 3 new ABIs and 64-bit compilers support them: arm64, x86_64, and mips64
+- Upgraded GDB in GCC4.8/4.9 and x86* to 7.6.  Since GDB in the default
+  GCC4.6 for arm and mips is still GDB-7.3.x, You need to set NDK_TOOLCHAIN_VERSION=4.8
+  (or 4.9) for ndk-gdb to select gdb 7.6
+
+- Added SSSE3 (ie. -mssse3, triple-s) to be the default of ABI x86 (upgraded from SSE3).
+  This breaks the existing x86 ABI, but all shipped x86 Android devies has SSSE3 support.
+  Emulator-x86 and SDK x86 images are built w/o SSE3 support, though.  Please upgrade your
+  machine with SSSE3 to run emulator-x86 in KVM/HAXM
+
+- Upgrade gcc4.8 to 4.8.3
+
+- Improved libc++ EH support by switching to libc++abi (from gabi++).
+  Note:
+>  1. Almost all tests except for locale now passs for clang3.4 and gcc4.8
+      See CPLUSPLUS-SUPPORT.html
+>  2. gcc >= 4.7 can now use <atomic>
+>  3. gcc4.6 can no longer rebuild libc++ (via LIBCXX_FORCE_REBUILD:=true).
+      clang3.3 isn't tested.
 
 - Updated mclinker to 2.7 with aarch64linux support
 
@@ -47,19 +79,66 @@ IMPORTANT BUG FIXES:
 >  See http://b.android.com/66950
 
 
-
 OTHER BUG FIXES:
 ---
 
-- Fixed make-standalone-toolchain.sh --stl=libc++ to
->  1. copy gabi++/include. See http://b.android.com/68001
->  2. run on non-ndk directory.  See http://b.android.com/67690
+- Fixed headers
+> 1. Fixed 32-bit ssize_t to be int instead of "long int"
+> 2. Fixed WCHAR_MIN and WCHAR_MAX to 
+>     1. respond to __WCHAR_UNSIGNED__
+>     2. work for both signed (X86/MIPS) and unsigned (ARM) wchar_t, and
+>     3. work for -fshort-wchar too
+- 3. Removed non-existance symbols from 32-bit libc.so.  Added pread64, pwrite64,
+     ftruncate64 for API >= 12.  See b.android.com/69319 and commit message of
+     https://android-review.googlesource.com/#/c/94137 for list
 
+- Fixed gcc warning about redefinition of putchar. Warning message reads:
+>   include/stdio.h:236:5: warning: conflicts with previous declaration here [-Wattributes]
+>      int  putchar(int);
+> See https://android-review.googlesource.com/#/c/91185
+
+- Fixed make-standalone-toolchain.sh --stl=libc++ to
+>  1. copy cxxabi.h.  See http://b.android.com/68001
+>  2. run on non-ndk directory.  See http://b.android.com/67690 and http://b.android.com/68647
+
+- Fixed GCC/Windows to quote argument only necessary (vs. always) when
+  spwan process for external programs, which makes its less likely to
+  exceed the 32K length limit
+
+- Fixed an issue where APP_PLATFORM specified in env. var can't be
+  adjusted
+
+- Fixed crazy_linker IsSystemLibrary() implementation to use strrchr()
+  instead of strchr() to really find the basename of the library path.
+
+- Fixed native-audio fail to build in debug mode
+
+- Fixed gdb print extrem fp number. 
+  See b.android.com/69203
+
+- Fixed clang3.4 compilation with "-Wl,-shared" (vs. "-shared" which
+  works fine).  The issue was clang target for Android adds "-pie" if
+  neither "-shared" nor "-static" exist, which was wrong, and cause
+  linker to complain "-shared" and "-pie" don't co-exist
 
 
 OTHER CHANGES:
 ---
     
+- Add arm_neon.h in x86 toolchain which now emulates ~47% of NEON in arm_neon.h.
+  64-bit type isn't supported at this moment.  See CPU-X86.html ARM NEON intrinsics support.
+
+- Port ARM/GOT_PREL optimization (present in GCC 4.6 built from GCC google branch)
+  to ARM GCC 4.8/4.9.  This optimization reduce instruction count to access global
+  variable in some cases.  See $NDK/tests/build/b14811006-GOT_PREL-optimization/build.sh
+  for an example.
+
+- STL gabi++/stlport/libc++ now contains both arm and thumb version of
+  libraries (vs. previously thumb-only)
+
+- It's possible to call make-standalone-toolchain.sh with --toolchain=x86_64-linux-android-4.9
+  which is equivalent to --toolchain=x86_64-4.9
+
 
 ----------------------------------------------------------------------------
 android-ndk-r9d
@@ -2073,7 +2152,7 @@ IMPORTANT CHANGES:
   Android devices.
 
   Note that by default, code is still generated for ARM-based devices.
-  You can however add 'x86' to your APP_PLATFORM definition in your
+  You can however add 'x86' to your APP_ABI definition in your
   Application.mk. For example, the following line instructs ndk-build
   to build your code for three distinct ABIs:
 

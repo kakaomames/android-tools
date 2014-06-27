@@ -35,8 +35,11 @@ STL=gnustl
 register_var_option "--stl=<name>" STL "Specify C++ STL"
 
 ARCH=
-register_option "--arch=<name>" do_arch "Specify target architecture" "arm"
-do_arch () { ARCH=$1; }
+register_var_option "--arch=<name>" ARCH "Specify target architecture"
+
+# Grab the ABIs that match the architecture.
+ABIS=
+register_var_option "--abis=<list>" ABIS "Specify list of target ABIs."
 
 NDK_DIR=`dirname $0`
 NDK_DIR=`dirname $NDK_DIR`
@@ -84,6 +87,11 @@ if [ -z "$ARCH" ]; then
         aarch64-*)
             ARCH=arm64
             ;;
+        x86_64-linux-android-*)
+            ARCH=x86_64
+            TOOLCHAIN_NAME=$(echo "$TOOLCHAIN_NAME" | sed -e 's/-linux-android//')
+            echo "Auto-truncate: --toolchain=$TOOLCHAIN_NAME"
+            ;;
         x86_64-*)
             ARCH=x86_64
             ;;
@@ -124,6 +132,15 @@ else
 
 fi
 
+if [ -z "$ABIS" ]; then
+    ABIS=$(convert_arch_to_abi $ARCH)
+fi
+
+if [ -z "$ABIS" ]; then
+    dump "ERROR: No ABIS. Possibly unsupported NDK architecture $ARCH?"
+    exit 1
+fi
+
 ARCH_LIB=$ARCH
 ARCH_STL=$ARCH
 if [ "$ARCH_INC" != "$ARCH" ]; then
@@ -155,14 +172,20 @@ if [ "$ARCH_INC" != "$ARCH" ]; then
     fi
 fi
 
-# Detect LLVM version from toolchain name
-if [ -z "$LLVM_VERSION" ]; then
-    LLVM_VERSION_EXTRACT=$(echo "$TOOLCHAIN_NAME" | grep 'clang[0-9]\.[0-9]$' | sed -e 's/.*-clang//')
-    if [ -n "$LLVM_VERSION_EXTRACT" ]; then
-        TOOLCHAIN_NAME=$(get_default_toolchain_name_for_arch $ARCH)
+# Detect LLVM version from toolchain name with *clang*
+LLVM_VERSION_EXTRACT=$(echo "$TOOLCHAIN_NAME" | grep 'clang[0-9]\.[0-9]$' | sed -e 's/.*-clang//')
+if [ -n "$LLVM_VERSION_EXTRACT" ]; then
+    NEW_TOOLCHAIN_NAME=${TOOLCHAIN_NAME%-clang${LLVM_VERSION_EXTRACT}}
+    if [ -z "$LLVM_VERSION" ]; then
         LLVM_VERSION=$LLVM_VERSION_EXTRACT
-        echo "Auto-config: --toolchain=$TOOLCHAIN_NAME, --llvm-version=$LLVM_VERSION"
+        echo "Auto-config: --toolchain=$NEW_TOOLCHAIN_NAME, --llvm-version=$LLVM_VERSION"
+    else
+        if [ "$LLVM_VERSION" != "$LLVM_VERSION_EXTRACT" ]; then
+            echo "Conflict llvm-version: --llvm-version=$LLVM_VERSION and as implied by --toolchain=$TOOLCHAIN_NAME"
+            exit 1
+	fi
     fi
+    TOOLCHAIN_NAME=$NEW_TOOLCHAIN_NAME
 fi
 
 # Check PLATFORM
@@ -174,7 +197,7 @@ if [ -z "$PLATFORM" -a "$ARCH_INC" = "$ARCH" ] ; then
             PLATFORM=android-9
             ;;
         arm64|x86_64|mips64)
-            PLATFORM=android-20
+            PLATFORM=android-$FIRST_API64_LEVEL
             ;;
         *)
             dump "ERROR: Unsupported NDK architecture $ARCH!"
@@ -203,6 +226,15 @@ fi
 # Extract architecture from platform name
 parse_toolchain_name $TOOLCHAIN_NAME
 
+case "$TOOLCHAIN_NAME" in
+  *4.9l)
+    GCC_VERSION=4.9l
+    ;;
+  *4.8l)
+    GCC_VERSION=4.8l
+    ;;
+esac
+
 # Check that there are any platform files for it!
 (cd $NDK_DIR/platforms && ls -d */arch-$ARCH_INC >/dev/null 2>&1 )
 if [ $? != 0 ] ; then
@@ -221,7 +253,7 @@ if [ ! -d "$SRC_SYSROOT_INC" -o ! -d "$SRC_SYSROOT_LIB" ] ; then
 fi
 
 # Check that we have any prebuilts GCC toolchain here
-if [ ! -d "$TOOLCHAIN_PATH/prebuilt" ] ; then
+if [ ! -d "$TOOLCHAIN_PATH/prebuilt" ]; then
     echo "Toolchain is missing prebuilt files: $TOOLCHAIN_NAME"
     echo "You must point to a valid NDK release package!"
     exit 1
@@ -374,7 +406,7 @@ if [ -n "$LLVM_VERSION" ]; then
           TOOLCHAIN_PREFIX=$DEFAULT_ARCH_TOOLCHAIN_PREFIX_mips
           ;;
       arm64)
-          LLVM_TARGET=aarch64-linux-android
+          LLVM_TARGET=aarch64-none-linux-android
           TOOLCHAIN_PREFIX=$DEFAULT_ARCH_TOOLCHAIN_PREFIX_arm64
           ;;
       x86_64)
@@ -469,10 +501,14 @@ dump "Copying sysroot headers and libraries..."
 # expect the sysroot files to be placed there!
 run copy_directory_nolinks "$SRC_SYSROOT_INC" "$TMPDIR/sysroot/usr/include"
 run copy_directory_nolinks "$SRC_SYSROOT_LIB" "$TMPDIR/sysroot/usr/lib"
-# x86_64 toolchain is built multilib.
-if [ "$ARCH" = "x86_64" ]; then
-run copy_directory_nolinks "$SRC_SYSROOT_LIB/../lib64" "$TMPDIR/sysroot/usr/lib64"
-run copy_directory_nolinks "$SRC_SYSROOT_LIB/../libx32" "$TMPDIR/sysroot/usr/libx32"
+# x86_64 and mips64el toolchain are built multilib.
+if [ "$ARCH" = "x86_64" -o "$ARCH" = "mips64" ]; then
+    run copy_directory_nolinks "$SRC_SYSROOT_LIB/../lib64" "$TMPDIR/sysroot/usr/lib64"
+    if [ "$ARCH" = "x86_64" ]; then
+        run copy_directory_nolinks "$SRC_SYSROOT_LIB/../libx32" "$TMPDIR/sysroot/usr/libx32"
+    else
+        run copy_directory_nolinks "$SRC_SYSROOT_LIB/../lib32" "$TMPDIR/sysroot/usr/lib32"
+    fi
 fi
 if [ "$ARCH_INC" != "$ARCH" ]; then
     cp -a $NDK_DIR/$GABIXX_SUBDIR/libs/$ABI/* $TMPDIR/sysroot/usr/lib
@@ -487,7 +523,7 @@ if [ "$ARCH_LIB" != "$ARCH" ]; then
     cp -a $NDK_DIR/platforms/$PLATFORM/arch-$ARCH/usr/lib/crt* $TMPDIR/sysroot/usr/lib
 fi
 
-dump "Copying libstdc++ headers and libraries..."
+dump "Copying c++ runtime headers and libraries..."
 
 GNUSTL_DIR=$NDK_DIR/$GNUSTL_SUBDIR/$GCC_VERSION
 GNUSTL_LIBS=$GNUSTL_DIR/libs
@@ -508,9 +544,12 @@ ABI_STL_INCLUDE="$TMPDIR/include/c++/$GCC_BASE_VERSION"
 ABI_STL_INCLUDE_TARGET="$ABI_STL_INCLUDE/$ABI_CONFIGURE_TARGET"
 
 # $1: filenames of headers
-copy_gabixx_headers () {
+copy_abi_headers () {
+  local ABI_NAME=$1
+  shift
+
   for header in $@; do
-    (cd $ABI_STL_INCLUDE && cp -a ../../gabi++/include/$header $header)
+    (set -e; cd $ABI_STL_INCLUDE && cp -a ../../$ABI_NAME/include/$header $header) || exit 1
   done
 }
 
@@ -523,39 +562,42 @@ copy_stl_common_headers () {
         libcxx|libc++)
             copy_directory "$LIBCXX_DIR/libcxx/include" "$ABI_STL_INCLUDE"
             copy_directory "$SUPPORT_DIR/include" "$ABI_STL_INCLUDE"
-            copy_directory "$STLPORT_DIR/../gabi++/include" "$ABI_STL_INCLUDE/../../gabi++/include"
-            copy_gabixx_headers cxxabi.h unwind.h unwind-arm.h unwind-itanium.h gabixx_config.h
+            copy_directory "$LIBCXX_DIR/../llvm-libc++abi/libcxxabi/include" "$ABI_STL_INCLUDE/../../llvm-libc++abi/include"
+            copy_abi_headers llvm-libc++abi cxxabi.h libunwind.h unwind.h
             ;;
         stlport)
             copy_directory "$STLPORT_DIR/stlport" "$ABI_STL_INCLUDE"
             copy_directory "$STLPORT_DIR/../gabi++/include" "$ABI_STL_INCLUDE/../../gabi++/include"
-            copy_gabixx_headers cxxabi.h unwind.h unwind-arm.h unwind-itanium.h gabixx_config.h
+            copy_abi_headers gabi++ cxxabi.h unwind.h unwind-arm.h unwind-itanium.h gabixx_config.h
             ;;
     esac
 }
 
 # $1: Source ABI (e.g. 'armeabi')
-# $2: Optional destination directory, default to empty (e.g. "", "thumb", "armv7-a/thumb")
-# $3: Optional source directory, default to empty (e.g. "", "thumb", "armv7-a/thumb")
-# $4: Optional "yes" (default) or "no" about whether to copy additional header (eg. include/bits)
+# #2  Optional destination path of additional header to copy (eg. include/bits), default to empty
+# $3: Optional source path of additional additional header to copy, default to empty
+# $4: Optional destination directory, default to empty (e.g. "", "thumb", "armv7-a/thumb")
+# $5: Optional source directory, default to empty (e.g. "", "thumb", "armv7-a/thumb")
 copy_stl_libs () {
     local ABI=$1
-    local DEST_DIR=$2
-    local SRC_DIR=$3
-    local COPY_ADDITIONAL_HEADER=yes
+    local HEADER_DST=$2
+    local HEADER_SRC=$3
+    local DEST_DIR=$4
+    local SRC_DIR=$5
+    local ABI_SRC_DIR=$ABI
+
+    if [ -n "$SRC_DIR" ]; then
+        ABI_SRC_DIR=$ABI/$SRC_DIR
+    else
+        if [ "$DEST_DIR" != "${DEST_DIR%%/*}" ] ; then
+            ABI_SRC_DIR=$ABI/`basename $DEST_DIR`
+        fi
+    fi
+
     case $STL in
         gnustl)
-            # gnustl has thumb version of libraries.  Append ABI with basename($DEST_DIR) if $DEST_DIR contain '/'
-            ABI_SRC_DIR=$ABI
-            if [ -n "$SRC_DIR" ]; then
-                ABI_SRC_DIR=$ABI/$SRC_DIR
-            else
-                if [ "$DEST_DIR" != "${DEST_DIR%%/*}" ] ; then
-                    ABI_SRC_DIR=$ABI/`basename $DEST_DIR`
-                fi
-	    fi
-            if [ "$COPY_ADDITIONAL_HEADER" != "no" ]; then
-                copy_directory "$GNUSTL_LIBS/$ABI/include/bits" "$ABI_STL_INCLUDE_TARGET/$DEST_DIR/bits"
+            if [ "$HEADER_SRC" != "" ]; then
+                copy_directory "$GNUSTL_LIBS/$ABI/include/$HEADER_SRC" "$ABI_STL_INCLUDE_TARGET/$HEADER_DST"
             fi
             copy_file_list "$GNUSTL_LIBS/$ABI_SRC_DIR" "$ABI_STL/lib/$DEST_DIR" "libgnustl_shared.so"
             copy_file_list "$GNUSTL_LIBS/$ABI_SRC_DIR" "$ABI_STL/lib/$DEST_DIR" "libsupc++.a"
@@ -565,8 +607,8 @@ copy_stl_libs () {
             if [ "$ARCH" = "${ARCH%%64*}" ]; then
                 copy_file_list "$COMPILER_RT_LIBS/$ABI" "$ABI_STL/lib/$DEST_DIR" "libcompiler_rt_shared.so" "libcompiler_rt_static.a"
             fi
-            copy_file_list "$LIBCXX_LIBS/$ABI" "$ABI_STL/lib/$DEST_DIR" "libc++_shared.so"
-            cp -p "$LIBCXX_LIBS/$ABI/libc++_static.a" "$ABI_STL/lib/$DEST_DIR/libstdc++.a"
+            copy_file_list "$LIBCXX_LIBS/$ABI_SRC_DIR" "$ABI_STL/lib/$DEST_DIR" "libc++_shared.so"
+            cp -p "$LIBCXX_LIBS/$ABI_SRC_DIR/libc++_static.a" "$ABI_STL/lib/$DEST_DIR/libstdc++.a"
             ;;
         stlport)
             if [ "$ARCH_STL" != "$ARCH" ]; then
@@ -576,8 +618,8 @@ copy_stl_libs () {
               cp -p "`ls $tmp_lib_dir/sources/cxx-stl/stlport/libs/*/libstlport_shared.bc`" "$ABI_STL/lib/$DEST_DIR/libstlport_shared.so"
               rm -rf $tmp_lib_dir
             else
-              copy_file_list "$STLPORT_LIBS/$ABI" "$ABI_STL/lib/$DEST_DIR" "libstlport_shared.so"
-              cp -p "$STLPORT_LIBS/$ABI/libstlport_static.a" "$ABI_STL/lib/$DEST_DIR/libstdc++.a"
+              copy_file_list "$STLPORT_LIBS/$ABI_SRC_DIR" "$ABI_STL/lib/$DEST_DIR" "libstlport_shared.so"
+              cp -p "$STLPORT_LIBS/$ABI_SRC_DIR/libstlport_static.a" "$ABI_STL/lib/$DEST_DIR/libstdc++.a"
             fi
             ;;
         *)
@@ -587,29 +629,58 @@ copy_stl_libs () {
     esac
 }
 
+# $1: Source ABI (e.g. 'armeabi')
+copy_stl_libs_for_abi () {
+    local ABI=$1
+
+    if [ "$(convert_abi_to_arch "$ABI")" != "$ARCH" ]; then
+        dump "ERROR: ABI '$ABI' does not match ARCH '$ARCH'"
+        exit 1
+    fi
+
+    case $ABI in
+        armeabi)
+            copy_stl_libs armeabi          "bits"                "bits"
+            copy_stl_libs armeabi          "thumb/bits"          "bits"       "/thumb"
+            ;;
+        armeabi-v7a)
+            copy_stl_libs armeabi-v7a      "armv7-a/bits"        "bits"       "armv7-a"
+            copy_stl_libs armeabi-v7a      "armv7-a/thumb/bits"  "bits"       "armv7-a/thumb"
+            ;;
+        armeabi-v7a-hard)
+            copy_stl_libs armeabi-v7a-hard ""                    ""           "armv7-a/hard"       "."
+            copy_stl_libs armeabi-v7a-hard ""                    ""           "armv7-a/thumb/hard" "thumb"
+            ;;
+        x86_64)
+            if [ "$STL" = "gnustl" ]; then
+                copy_stl_libs x86_64       "32/bits"             "32/bits"    ""                   "lib"
+                copy_stl_libs x86_64       "bits"                "bits"       "../lib64"           "lib64"
+                copy_stl_libs x86_64       "x32/bits"            "x32/bits"   "../libx32"          "libx32"
+            else
+                copy_stl_libs "$ABI"
+            fi
+            ;;
+        mips64)
+            if [ "$STL" = "gnustl" ]; then
+                copy_stl_libs mips64       "32/bits"             "32/bits"    ""                   "lib"
+                copy_stl_libs mips64       "bits"                "bits"       "../lib64"           "lib64"
+                copy_stl_libs mips64       "n32/bits"            "n32/bits"   "../lib32"           "lib32"
+            else
+                copy_stl_libs "$ABI"
+            fi
+            ;;
+        *)
+            copy_stl_libs "$ABI"           "bits"                "bits"
+            ;;
+    esac
+}
+
 mkdir -p "$ABI_STL_INCLUDE_TARGET"
 fail_panic "Can't create directory: $ABI_STL_INCLUDE_TARGET"
 copy_stl_common_headers
-case $ARCH in
-    arm)
-        copy_stl_libs armeabi ""
-        copy_stl_libs armeabi "/thumb"
-        copy_stl_libs armeabi-v7a "armv7-a"
-        copy_stl_libs armeabi-v7a "armv7-a/thumb"
-        copy_stl_libs armeabi-v7a-hard "armv7-a/hard" "." "no"
-        copy_stl_libs armeabi-v7a-hard "armv7-a/thumb/hard" "thumb" "no"
-        ;;
-    arm64)
-        copy_stl_libs arm64-v8a ""
-        ;;
-    x86|mips|mips64|x86_64)
-        copy_stl_libs "$ARCH" ""
-        ;;
-    *)
-        dump "ERROR: Unsupported NDK architecture: $ARCH"
-        exit 1
-        ;;
-esac
+for ABI in $(tr ',' ' ' <<< $ABIS); do
+  copy_stl_libs_for_abi "$ABI"
+done
 
 # Install or Package
 if [ -n "$INSTALL_DIR" ] ; then

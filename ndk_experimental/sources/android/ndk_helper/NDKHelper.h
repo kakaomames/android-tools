@@ -35,6 +35,5 @@
 #include "JNIHelper.h"          //JNI support
 #include "gestureDetector.h"    //Tap/Doubletap/Pinch detector
 #include "perfMonitor.h"        //FPS counter
-#include "sensorManager.h"      //SensorManager
 #include "interpolator.h"       //Interpolator
 #endif

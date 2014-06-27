@@ -1,5 +1,5 @@
 if [ "$1" != "-cc1" ]; then
-    `dirname $0`/../clang++ -target aarch64-linux-android "$@"
+    `dirname $0`/../clang++ -target aarch64-none-linux-android "$@"
 else
     # target/triple already spelled out.
     `dirname $0`/../clang++ "$@"

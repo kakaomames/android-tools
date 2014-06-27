@@ -26,7 +26,6 @@
 //--------------------------------------------------------------------------------
 #include <jni.h>
 #include <errno.h>
-#include <stdlib.h>
 
 #include <vector>
 
@@ -38,6 +37,9 @@
 #include <android_native_app_glue.h>
 #include <android/native_window_jni.h>
 #include <cpu-features.h>
+
+#define CLASS_NAME "android/app/NativeActivity"
+#define APPLICATION_CLASS_NAME "com/sample/moreteapotss/MoreTeapotsApplication"
 
 #include "NDKHelper.h"
 
@@ -114,7 +116,7 @@ public:
             const int32_t numY,
             const int32_t numZ );
     void Render();
-    void Update( const double time );
+    void Update( float dTime );
     bool Bind( ndk_helper::TapCamera* camera );
     void Unload();
     void UpdateViewport();

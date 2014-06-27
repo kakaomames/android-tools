@@ -6,7 +6,9 @@
 # Note: levels 6 and 7 are omitted since they have the same native
 # APIs as level 5. Same for levels 10, 11 and 12
 #
-API_LEVELS="3 4 5 8 9 12 13 14 15 16 17 18 19"
+API_LEVELS="3 4 5 8 9 12 13 14 15 16 17 18 19 L"
+
+FIRST_API64_LEVEL=L
 
 # Default ABIs for the target prebuilt binaries.
 PREBUILT_ABIS="armeabi armeabi-v7a x86 mips armeabi-v7a-hard arm64-v8a x86_64 mips64"
@@ -24,6 +26,9 @@ GNUSTL_SUBDIR=sources/cxx-stl/gnu-libstdc++
 # Location of the LLVM libc++ headers and libraries, relative to the NDK
 # root directory.
 LIBCXX_SUBDIR=sources/cxx-stl/llvm-libc++
+
+# Location of the LLVM libc++abi headers, relative to the NDK # root directory.
+LIBCXXABI_SUBDIR=sources/cxx-stl/llvm-libc++abi/libcxxabi
 
 # Location of the libportable sources, relative to the NDK root directory
 LIBPORTABLE_SUBDIR=sources/android/libportable
@@ -44,14 +49,10 @@ TOOLCHAIN_GIT_DATE=now
 # The space-separated list of all GCC versions we support in this NDK
 DEFAULT_GCC_VERSION_LIST="4.6 4.8 4.9"
 
-# The default GCC version for 32-bit NDK is the first item in $DEFAULT_GCC_VERSION_LIST
-DEFAULT_GCC32_VERSION=$(echo "$DEFAULT_GCC_VERSION_LIST" | tr ' ' '\n' | head -n 1)
-
-# The default GCC version for 64-bit is the second item in $DEFAULT_GCC_VERSION_LIST
-DEFAULT_GCC64_VERSION=$(echo "$DEFAULT_GCC_VERSION_LIST" | tr ' ' '\n' | head -n 2 | tail -n 1)
-
-# The default GCC version for "clang -gcc-toolchain", is also the second item in $DEFAULT_GCC_VERSION_LIST
-DEFAULT_LLVM_GCC_VERSION=$(echo "$DEFAULT_GCC_VERSION_LIST" | tr ' ' '\n' | head -n 2 | tail -n 1)
+DEFAULT_GCC32_VERSION=4.6
+DEFAULT_GCC64_VERSION=4.9
+DEFAULT_LLVM_GCC32_VERSION=4.8
+DEFAULT_LLVM_GCC64_VERSION=4.9
 
 DEFAULT_BINUTILS_VERSION=2.21
 DEFAULT_GDB_VERSION=7.3.x
@@ -64,7 +65,7 @@ DEFAULT_PPL_VERSION=1.0
 DEFAULT_PYTHON_VERSION=2.7.5
 DEFAULT_PERL_VERSION=5.16.2
 
-RECENT_BINUTILS_VERSION=2.23
+RECENT_BINUTILS_VERSION=2.24
 
 # Default platform to build target binaries against.
 DEFAULT_PLATFORM=android-9
@@ -246,6 +247,7 @@ get_default_binutils_version_for_gcc ()
 {
     case $1 in
         mipsel-*-4.4.3|*-4.6) echo "$DEFAULT_BINUTILS_VERSION";;
+        mipsel-*-4.8|mipsel-*-4.9) echo "2.25";;
         *-4.4.3) echo "2.19";;
         x86*-4.7) echo "2.23";;  # Use 2.23 to get x32 support in ld.gold
         *-4.7) echo "2.22";;
@@ -277,7 +279,17 @@ get_default_binutils_version_for_llvm ()
 get_default_gdb_version_for_gcc ()
 {
     case $1 in
-        x86*|aarch64-*|mips64el-*|*-4.9) echo "7.6";;
+        x86*|aarch64-*|mips64el-*|*-4.8|*-4.8l|*-4.9|*-4.9l) echo "7.6";;
         *) echo "$DEFAULT_GDB_VERSION";;
     esac
+}
+
+# Return the gdbserver version to be used by default when building a given
+# version of GCC.
+#
+# $1: toolchain with version numer (e.g. 'arm-linux-androideabi-4.6')
+#
+get_default_gdbserver_version_for_gcc ()
+{
+    echo "7.6"
 }

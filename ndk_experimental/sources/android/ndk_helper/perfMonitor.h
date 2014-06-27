@@ -39,7 +39,7 @@ private:
     double last_tick_;
     int32_t tickindex_;
     double ticksum_;
-    double ticklist_[ NUM_SAMPLES ];
+    double ticklist_[NUM_SAMPLES];
 
     double UpdateTick( double current_tick );
 public:

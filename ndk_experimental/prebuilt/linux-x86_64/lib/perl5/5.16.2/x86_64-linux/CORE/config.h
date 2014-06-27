@@ -9,9 +9,9 @@
 
 /* Package name      : perl5
  * Source directory  : .
- * Configuration time: Thu Apr 17 10:19:06 PDT 2014
+ * Configuration time: Wed May 14 14:49:45 CST 2014
  * Configured by     : andrewhsieh
- * Target system     : linux ahsieh.mtv.corp.google.com 3.2.5-gg1336 #1 smp thu aug 29 02:37:18 pdt 2013 x86_64 x86_64 x86_64 gnulinux 
+ * Target system     : linux andrewhsieh.tpe.corp.google.com 3.2.5-gg1336 #1 smp thu aug 29 02:37:18 pdt 2013 x86_64 x86_64 x86_64 gnulinux 
  */
 
 #ifndef _config_h_
@@ -1075,9 +1075,9 @@
  *	This symbol is intended to be used along with CPPRUN in the same manner
  *	symbol CPPMINUS is used with CPPSTDIN. It contains either "-" or "".
  */
-#define CPPSTDIN "/usr/local/google/home/andrewhsieh/mydroid/ndk/../prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.11-4.6/bin/x86_64-linux-gcc -E"
+#define CPPSTDIN "/usr/local/google/home/andrewhsieh/mydroid/ndk/../prebuilts/tools/gcc-sdk/gcc -E"
 #define CPPMINUS "-"
-#define CPPRUN "/usr/local/google/home/andrewhsieh/mydroid/ndk/../prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.11-4.6/bin/x86_64-linux-gcc -E"
+#define CPPRUN "/usr/local/google/home/andrewhsieh/mydroid/ndk/../prebuilts/tools/gcc-sdk/gcc -E"
 #define CPPLAST "-"
 
 /* HAS_ACCESS:
@@ -3773,7 +3773,7 @@
  *	available to exclusively create and open a uniquely named
  *	(with a suffix) temporary file.
  */
-#define HAS_MKSTEMPS		/**/
+/*#define HAS_MKSTEMPS		/ **/
 
 /* HAS_MODFL:
  *	This symbol, if defined, indicates that the modfl routine is
@@ -4625,8 +4625,8 @@
  */
 #define GMTIME_MAX		67768036191676799	/**/
 #define GMTIME_MIN		-62167219200	/**/
-#define LOCALTIME_MAX	67768036191705599	/**/
-#define LOCALTIME_MIN	-62167190822	/**/
+#define LOCALTIME_MAX	67768036191647999	/**/
+#define LOCALTIME_MIN	-62167248360	/**/
 
 /* USE_64_BIT_INT:
  *	This symbol, if defined, indicates that 64-bit integers should

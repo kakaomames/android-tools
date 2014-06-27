@@ -52,9 +52,7 @@ namespace shader
  * return: true if a shader compilation succeeded, false if it failed
  *
  */
-bool CompileShader( GLuint *shader,
-        const GLenum type,
-        std::vector<uint8_t>& data );
+bool CompileShader( GLuint *shader, const GLenum type, std::vector<uint8_t>& data );
 
 /******************************************************************
  * CompileShader() with buffer
@@ -82,9 +80,7 @@ bool CompileShader( GLuint *shader,
  * return: true if a shader compilation succeeded, false if it failed
  *
  */
-bool CompileShader( GLuint *shader,
-        const GLenum type,
-        const char *strFileName );
+bool CompileShader( GLuint *shader, const GLenum type, const char *strFileName );
 
 /******************************************************************
  * CompileShader() with std::map helps patching on a shader on the fly.

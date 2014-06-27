@@ -62,7 +62,6 @@ private:
 
     //Momentum support
     bool momentum_;
-    double time_stamp_;
     Vec2 vec_drag_delta_;
     Vec2 vec_last_input_;
     Vec3 vec_offset_last_;
@@ -86,28 +85,22 @@ public:
     void BeginDrag( const Vec2& vec );
     void EndDrag();
     void Drag( const Vec2& vec );
-    void Update( const double time );
+    void Update();
 
     Mat4& GetRotationMatrix();
     Mat4& GetTransformMatrix();
 
-    void BeginPinch( const Vec2& v1,
-            const Vec2& v2 );
+    void BeginPinch( const Vec2& v1, const Vec2& v2 );
     void EndPinch();
-    void Pinch( const Vec2& v1,
-            const Vec2& v2 );
+    void Pinch( const Vec2& v1, const Vec2& v2 );
 
-    void SetFlip( const float x,
-            const float y,
-            const float z )
+    void SetFlip( const float x, const float y, const float z )
     {
         vec_flip_ = Vec2( x, y );
         flip_z_ = z;
     }
 
-    void SetPinchTransformFactor( const float x,
-            const float y,
-            const float z )
+    void SetPinchTransformFactor( const float x, const float y, const float z )
     {
         vec_pinch_transform_factor_ = Vec3( x, y, z );
     }

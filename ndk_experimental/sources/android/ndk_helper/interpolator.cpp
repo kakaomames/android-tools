@@ -69,8 +69,7 @@ Interpolator& Interpolator::Add( const float dest,
     return *this;
 }
 
-bool Interpolator::Update( const double current_time,
-        float& p )
+bool Interpolator::Update( const double current_time, float& p )
 {
     bool bContinue;
     if( current_time >= dest_time_ )
