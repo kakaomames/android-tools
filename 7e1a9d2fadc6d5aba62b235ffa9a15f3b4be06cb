@@ -1,0 +1,11 @@
+Change-Id: I7e1a9d2fadc6d5aba62b235ffa9a15f3b4be06cb
+Commit-Queue+1: Armand Navabi <navabi@google.com>
+Code-Review+2: Armand Navabi <navabi@google.com>
+Commit-Queue+1: Ross McIlroy <rmcilroy@chromium.org>
+Verified+1: Ross McIlroy <rmcilroy@chromium.org>
+Code-Review+2: Primiano Tucci <primiano@chromium.org>
+Submitted-by: Armand Navabi <navabi@google.com>
+Submitted-at: Fri, 27 Jun 2014 09:53:03 -0700
+Reviewed-on: https://gerrit.chromium.org/gerrit/70653
+Project: android_tools
+Branch: refs/heads/master
