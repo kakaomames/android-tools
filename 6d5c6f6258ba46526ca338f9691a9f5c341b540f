@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "AAAAdn//h40\u003d",
+        "filename": "README.chromium",
+        "patchSetId": 2
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1002763
+      },
+      "writtenOn": "2014-07-01T17:16:19Z",
+      "side": 1,
+      "message": "It is only platforms/android-L/arch-*64/usr/lib/libc.so which is from rc2, the rest of android-L is rc3.",
+      "revId": "6d5c6f6258ba46526ca338f9691a9f5c341b540f",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
+    }
+  ]
+}
