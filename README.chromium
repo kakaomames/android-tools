@@ -1,6 +1,14 @@
 Name: Android Tools (SDK/NDK)
 URL: http://developer.android.com/sdk/index.html
-Version: NDK r9d, SDK API level 19
+Versions: 
+  NDK r9d
+  Android SDK Platform API 19
+  Android SDK Tools 23.0.2
+  Android SDK Platform-tools 20
+  Android SDK Build-tools 19
+  Android SDK Sources 19
+  Android Support Library 20
+  Google Cloud Messaging 3
 Security Critical: no
 License: Apache Version 2.0
 
@@ -24,8 +32,8 @@ Local Modifications:
     android_tools_ndk.gyp
     crazy_linker.gyp
 -In sdk/
+- Kept sdk/tools/zipalign that was removed in Android SDK Tools 23.0.2
 - Removed unused resources from the support library (see crbug.com/372481)
-- sdk/extras added gcm library (revision 3)
 - Updated trace-viewer script to r220 under sdk/tools/systrace.
   Steps to update to the latest version of trace-viewer:
     git clone https://android.googlesource.com/platform/external/chromium-trace
