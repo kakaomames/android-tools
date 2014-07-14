@@ -2,11 +2,11 @@ Name: Android Tools (SDK/NDK)
 URL: http://developer.android.com/sdk/index.html
 Versions:
   NDK r9d
-  Android SDK Platform API 19
+  Android SDK Platform API 20
   Android SDK Tools 23.0.2
   Android SDK Platform-tools 20
   Android SDK Build-tools 20.0.0
-  Android SDK Sources 19
+  Android SDK Sources 20
   Android Support Library 20
   Google Cloud Messaging 3
 Security Critical: no
