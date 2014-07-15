@@ -59,6 +59,27 @@ endif
 #
 ifeq ($(NDK_APP_ABI),all)
     NDK_APP_ABI := $(NDK_APP_ABI_ALL_EXPANDED)
+    _abis_without_toolchain := $(filter-out $(NDK_ALL_ABIS),$(NDK_APP_ABI))
+    ifneq (,$(_abis_without_toolchain))
+        $(call ndk_log,Remove the following abis expanded from 'all' due to no toolchain: $(_abis_without_toolchain))
+	NDK_APP_ABI := $(filter-out $(_abis_without_toolchain),$(NDK_APP_ABI))
+    endif
+else
+ifeq ($(NDK_APP_ABI),all32)
+    NDK_APP_ABI := $(NDK_APP_ABI_ALL32_EXPANDED)
+    _abis_without_toolchain := $(filter-out $(NDK_ALL_ABIS),$(NDK_APP_ABI))
+    ifneq (,$(_abis_without_toolchain))
+        $(call ndk_log,Remove the following abis expanded from 'all32' due to no toolchain: $(_abis_without_toolchain))
+	NDK_APP_ABI := $(filter-out $(_abis_without_toolchain),$(NDK_APP_ABI))
+    endif
+else
+ifeq ($(NDK_APP_ABI),all64)
+    NDK_APP_ABI := $(NDK_APP_ABI_ALL64_EXPANDED)
+    _abis_without_toolchain := $(filter-out $(NDK_ALL_ABIS),$(NDK_APP_ABI))
+    ifneq (,$(_abis_without_toolchain))
+        $(call ndk_log,Remove the following abis expanded from 'all64' due to no toolchain: $(_abis_without_toolchain))
+	NDK_APP_ABI := $(filter-out $(_abis_without_toolchain),$(NDK_APP_ABI))
+    endif
 else
     # Plug in the unknown
     _unknown_abis := $(strip $(filter-out $(NDK_ALL_ABIS),$(NDK_APP_ABI)))
@@ -66,7 +87,7 @@ else
         ifeq (1,$(words $(filter-out $(NDK_KNOWN_ARCHS),$(NDK_FOUND_ARCHS))))
             ifneq ($(filter %bcall,$(_unknown_abis)),)
                  _unknown_abis_prefix := $(_unknown_abis:%bcall=%)
-                 NDK_APP_ABI := $(NDK_KNOWN_ABIS:%=$(_unknown_abis_prefix)bc%)
+                 NDK_APP_ABI := $(NDK_KNOWN_ABI32S:%=$(_unknown_abis_prefix)bc%)
             else
                 ifneq ($(filter %all,$(_unknown_abis)),)
                     _unknown_abis_prefix := $(_unknown_abis:%all=%)
@@ -90,6 +111,8 @@ else
         $(call __ndk_info,Please fix the APP_ABI definition in $(NDK_APP_APPLICATION_MK))
         $(call __ndk_error,Aborting)
     endif
+endif
+endif
 endif
 
 # Clear all installed binaries for this application

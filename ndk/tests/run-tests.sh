@@ -36,7 +36,10 @@ NDK_BUILDTOOLS_PATH=$ROOTDIR/build/tools
 # directoy and tested separately from armeabi-v7a.  Some tests are now compiled with both
 # APP_ABI=armeabi-v7a and APP_ABI=armeabi-v7a-hard. Without _NDK_TESTING_ALL_=yes, tests
 # may fail to install due to race condition on the same libs/armeabi-v7a
-_NDK_TESTING_ALL_=yes
+if [ -z "$_NDK_TESTING_ALL_" ]; then
+   _NDK_TESTING_ALL_=all
+fi
+export _NDK_TESTING_ALL_
 
 # The list of tests that are too long to be part of a normal run of
 # run-tests.sh. Most of these do not run properly at the moment.
@@ -61,6 +64,12 @@ RUN_TESTS_FILTERED=
 NDK_PACKAGE=
 WINE=
 CONTINUE_ON_BUILD_FAIL=
+if [ -z "$TEST_DIR" ]; then
+    TEST_DIR="/tmp/ndk-$USER/tests"
+fi
+if [ -z "$TARGET_TEST_SUBDIR" ]; then
+    TARGET_TEST_SUBDIR="ndk-tests"
+fi
 
 while [ -n "$1" ]; do
     opt="$1"
@@ -81,6 +90,9 @@ while [ -n "$1" ]; do
             ;;
         --platform=*)
             PLATFORM="$optarg"
+	    ;;
+        --test-dir=*)
+            TEST_DIR="$optarg"
             ;;
         --ndk=*)
             NDK_ROOT="$optarg"
@@ -271,7 +283,6 @@ else # !FULL_TESTS
 fi # !FULL_TESTS
 
 
-TEST_DIR="/tmp/ndk-$USER/tests"
 mkdir -p $TEST_DIR
 setup_default_log_file "$TEST_DIR/build-tests.log"
 
@@ -432,7 +443,7 @@ gen_empty_archive() {
 case $ABI in
     default)  # Let the APP_ABI in jni/Application.mk decide what to build
         ;;
-    armeabi|armeabi-v7a|x86|mips|armeabi-v7a-hard)
+    armeabi|armeabi-v7a|arm64-v8a|x86|x86_64|mips|mips64|armeabi-v7a-hard)
         NDK_BUILD_FLAGS="$NDK_BUILD_FLAGS APP_ABI=$ABI"
         ;;
     *)
@@ -559,11 +570,19 @@ is_incompatible_abi ()
         local APP_ABIS=`get_build_var $PROJECT APP_ABI`
         APP_ABIS=$APP_ABIS" "
         if [ "$APP_ABIS" != "${APP_ABIS%%all*}" ] ; then
-        # replace the first "all" with all available ABIs
-          ALL_ABIS=`get_build_var $PROJECT NDK_ALL_ABIS`
-          APP_ABIS_FRONT="${APP_ABIS%%all*}"
-          APP_ABIS_BACK="${APP_ABIS#*all}"
-          APP_ABIS="${APP_ABIS_FRONT}${ALL_ABIS}${APP_ABIS_BACK}"
+        # replace "all", "all32" and "all64"
+          _EXPANDED=`get_build_var $PROJECT NDK_APP_ABI_ALL_EXPANDED`
+          _FRONT="${APP_ABIS%%all*}"
+          _BACK="${APP_ABIS#*all}"
+          APP_ABIS="${_FRONT}${_EXPANDED}${_BACK}"
+          _EXPANDED=`get_build_var $PROJECT NDK_APP_ABI_ALL32_EXPANDED`
+          _FRONT="${APP_ABIS%%all32*}"
+          _BACK="${APP_ABIS#*all32}"
+          APP_ABIS="${_FRONT}${_EXPANDED}${_BACK}"
+          _EXPANDED=`get_build_var $PROJECT NDK_APP_ABI_ALL64_EXPANDED`
+          _FRONT="${APP_ABIS%%all64*}"
+          _BACK="${APP_ABIS#*all64}"
+          APP_ABIS="${_FRONT}${_EXPANDED}${_BACK}"
         fi
         if [ "$APP_ABIS" = "${APP_ABIS%$ABI *}" ] ; then
             echo "Skipping `basename $PROJECT`: incompatible ABI, needs $APP_ABIS"
@@ -774,7 +793,7 @@ if is_testable device; then
         local TEST=$3
         local TEST_NAME="$(basename $TEST)"
         local SRCDIR
-        local DSTDIR="$4/ndk-tests"
+        local DSTDIR="$4/$TARGET_TEST_SUBDIR"
         local SRCFILE
         local DSTFILE
         local PROGRAM
@@ -900,9 +919,11 @@ if is_testable device; then
                 dump "   ---> TEST FAILED!!"
             fi
             adb_var_shell_cmd "$DEVICE" "" "rm -f $DSTPATH"
-            for DATA in $(ls $DATAPATHS); do
-                adb_var_shell_cmd "$DEVICE" "" "rm -f $DSTDIR/`basename $DATA`"
-            done
+            if [ -n "$DATAPATHS" ]; then
+                for DATA in $(ls $DATAPATHS); do
+                    adb_var_shell_cmd "$DEVICE" "" "rm -f $DSTDIR/`basename $DATA`"
+                done
+            fi
         done
         # Cleanup
         adb_var_shell_cmd "$DEVICE" "" rm -r $DSTDIR
@@ -952,10 +973,6 @@ if is_testable device; then
         dump "SKIPPING RUNNING TESTS ON DEVICE!"
     else
         AT_LEAST_CPU_ABI_MATCH=
-        REAL_ABI=$ABI
-        if [ "$REAL_ABI" = "armeabi-v7a-hard" ]; then
-            REAL_ABI=armeabi-v7a
-        fi
         for DEVICE in $ADB_DEVICES; do
             # undo earlier ' '-to-'#' translation
             DEVICE=$(echo "$DEVICE" | tr '#' ' ')
@@ -964,7 +981,7 @@ if is_testable device; then
             adb_var_shell_cmd "$DEVICE" CPU_ABI2 getprop ro.product.cpu.abi2
             CPU_ABIS="$CPU_ABI1,$CPU_ABI2"
             CPU_ABIS=$(commas_to_spaces $CPU_ABIS)
-            if [ "$_NDK_TESTING_ALL_" = "yes" ]; then
+            if [ -n "$_NDK_TESTING_ALL_" ]; then
                 if [ "$CPU_ABI1" = "armeabi-v7a" -o "$CPU_ABI2" = "armeabi-v7a" ]; then
                     CPU_ABIS="$CPU_ABIS armeabi-v7a-hard"
                 fi
@@ -976,7 +993,7 @@ if is_testable device; then
             fi
             log "CPU_ABIS=$CPU_ABIS"
             for CPU_ABI in $CPU_ABIS; do
-                if [ "$REAL_ABI" = "default" -o "$REAL_ABI" = "$CPU_ABI" -o "$REAL_ABI" = "$(find_ndk_unknown_archs)" ] ; then
+                if [ "$ABI" = "default" -o "$ABI" = "$CPU_ABI" -o "$ABI" = "$(find_ndk_unknown_archs)" ] ; then
                     AT_LEAST_CPU_ABI_MATCH="yes"
                     for DIR in `ls -d $ROOTDIR/tests/device/*`; do
                         if is_buildable $DIR; then

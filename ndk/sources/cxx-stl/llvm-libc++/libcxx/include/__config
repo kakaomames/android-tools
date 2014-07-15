@@ -191,6 +191,7 @@
 
 #ifndef _LIBCPP_INLINE_VISIBILITY
 #define _LIBCPP_INLINE_VISIBILITY __attribute__ ((__visibility__("hidden"), __always_inline__))
+#define _LIBCPP_INLINE_VISIBILITY_EXCEPT_GCC49 _LIBCPP_INLINE_VISIBILITY
 #endif
 
 #ifndef _LIBCPP_EXCEPTION_ABI
@@ -199,9 +200,15 @@
 
 #ifndef _LIBCPP_ALWAYS_INLINE
 #define _LIBCPP_ALWAYS_INLINE  __attribute__ ((__visibility__("hidden"), __always_inline__))
+#define _LIBCPP_ALWAYS_INLINE_EXCEPT_GCC49 _LIBCPP_ALWAYS_INLINE
 #endif
 
 #if defined(__clang__)
+
+#if defined(__APPLE__) && !defined(__i386__) && !defined(__x86_64__) &&        \
+    !defined(__arm__)
+#define _LIBCPP_ALTERNATE_STRING_LAYOUT
+#endif
 
 #if __has_feature(cxx_alignas)
 #  define _ALIGNAS_TYPE(x) alignas(x)
@@ -215,7 +222,7 @@
 #define _LIBCPP_HAS_NO_TEMPLATE_ALIASES
 #endif
 
-#ifndef __GXX_EXPERIMENTAL_CXX0X__
+#if __cplusplus < 201103L
 #ifdef __linux__
 #define _LIBCPP_HAS_NO_UNICODE_CHARS
 #else
@@ -334,7 +341,11 @@ typedef __char32_t char32_t;
 #endif
 
 #if __has_feature(underlying_type)
-#  define _LIBCXX_UNDERLYING_TYPE(T) __underlying_type(T)
+#  define _LIBCPP_UNDERLYING_TYPE(T) __underlying_type(T)
+#endif
+
+#if __has_feature(is_literal)
+#  define _LIBCPP_IS_LITERAL(T) __is_literal(T)
 #endif
 
 // Inline namespaces are available in Clang regardless of C++ dialect.
@@ -347,19 +358,43 @@ namespace std {
   }
 }
 
+#if !defined(_LIBCPP_HAS_NO_ASAN) && !__has_feature(address_sanitizer)
+#define _LIBCPP_HAS_NO_ASAN
+#endif
+
 #elif defined(__GNUC__)
+
+// FixME: GCC4.9 fails some always_inline cases
+# if (_GNUC_VER == 409)
+#undef _LIBCPP_ALWAYS_INLINE_EXCEPT_GCC49
+#define _LIBCPP_ALWAYS_INLINE_EXCEPT_GCC49 inline
+#undef _LIBCPP_INLINE_VISIBILITY_EXCEPT_GCC49
+#define _LIBCPP_INLINE_VISIBILITY_EXCEPT_GCC49
+#endif
 
 #define _ALIGNAS(x) __attribute__((__aligned__(x)))
 #define _ALIGNAS_TYPE(x) __attribute__((__aligned__(__alignof(x))))
 
 #define _LIBCPP_NORETURN __attribute__((noreturn))
 
+#if _GNUC_VER >= 407
+#define _LIBCPP_UNDERLYING_TYPE(T) __underlying_type(T)
+#define _LIBCPP_IS_LITERAL(T) __is_literal_type(T)
+#endif
+
 #if !__EXCEPTIONS
 #define _LIBCPP_NO_EXCEPTIONS
 #endif
 
 #define _LIBCPP_HAS_NO_TEMPLATE_ALIASES
+
+// constexpr was added to GCC in 4.6
+#if _GNUC_VER < 406
 #define _LIBCPP_HAS_NO_CONSTEXPR
+// Can only use constexpr in c++11 mode.
+#elif !defined(__GXX_EXPERIMENTAL_CXX0X__) && __cplusplus < 201103L
+#define _LIBCPP_HAS_NO_CONSTEXPR
+#endif
 
 #define _NOEXCEPT throw()
 #define _NOEXCEPT_(x)
@@ -421,54 +456,56 @@ namespace _LIBCPP_NAMESPACE {
 using namespace _LIBCPP_NAMESPACE __attribute__((__strong__));
 }
 
-// Emulation of clang's __has_feature() for GCC on known cases
-#ifndef __has_feature
-
-#if !defined(_LIBCPP_HAS_NO_TRAILING_RETURN) || !defined(_LIBCPP_HAS_NO_ADVANCED_SFINAE)
-#define __gxx__cxx_access_control_sfinae          1 // Also see usage in 7 tests
-#else
-#define __gxx__cxx_access_control_sfinae          0
+#if !defined(_LIBCPP_HAS_NO_ASAN) && !defined(__SANITIZE_ADDRESS__)
+#define _LIBCPP_HAS_NO_ASAN
 #endif
-#define __gxx__cxx_alias_templates                !_LIBCPP_HAS_NO_TEMPLATE_ALIASES
+
+// Emulation of clang's __has_feature() for GCC on known cases
+#undef __has_feature
+#define __has_feature(__x) __gxx__ ## __x
+
+#define __gxx__cxx_access_control_sfinae          !defined(_LIBCPP_HAS_NO_TRAILING_RETURN) || !defined(_LIBCPP_HAS_NO_ADVANCED_SFINAE) // Also see usage in 7 tests
+#define __gxx__cxx_alias_templates                !defined(_LIBCPP_HAS_NO_TEMPLATE_ALIASES)
+#define __gxx__cxx_address_sanitizer              !defined(_LIBCPP_HAS_NO_ASAN)
 #define __gxx__cxx_alignas                        0  // Not sure, doesn't matter.
-#define __gxx__cxx_atomic                         0  // In c11-atomic branch targeted for GCC 4.9.  Also see usages in 20+ places
+#define __gxx__cxx_atomic                         (_GNUC_VER >= 407)
 #define __gxx__cxx_attributes                     0  // Not sure. Also see usage in libcxx/test/utilities/meta/meta.unary/meta.unary.prop/is_polymorphic.pass.cpp
-#define __gxx__cxx_auto_type                      !_LIBCPP_HAS_NO_AUTO_TYPE
-#define __gxx__cxx_constexpr                      !_LIBCPP_HAS_NO_CONSTEXPR
-#define __gxx__cxx_decltype                       !_LIBCPP_HAS_NO_DECLTYPE
-#define __gxx__cxx_defaulted_functions            !_LIBCPP_HAS_NO_DEFAULTED_FUNCTIONS  // libcxx/test/utilities/meta/meta.unary/meta.unary.prop/is_trivially_move_constructible.pass.cpp
-#define __gxx__cxx_deleted_functions              !_LIBCPP_HAS_NO_DELETED_FUNCTIONS
-#define __gxx__cxx_exceptions                     !_LIBCPP_NO_EXCEPTIONS
+#define __gxx__cxx_auto_type                      !defined(_LIBCPP_HAS_NO_AUTO_TYPE)
+#define __gxx__cxx_constexpr                      !defined(_LIBCPP_HAS_NO_CONSTEXPR)
+#define __gxx__cxx_decltype                       !defined(_LIBCPP_HAS_NO_DECLTYPE)
+#define __gxx__cxx_defaulted_functions            !defined(_LIBCPP_HAS_NO_DEFAULTED_FUNCTIONS)  // libcxx/test/utilities/meta/meta.unary/meta.unary.prop/is_trivially_move_constructible.pass.cpp
+#define __gxx__cxx_deleted_functions              !defined(_LIBCPP_HAS_NO_DELETED_FUNCTIONS)
+#define __gxx__cxx_exceptions                     !defined(_LIBCPP_NO_EXCEPTIONS)
 #define __gxx__cxx_explicit_conversions           (_GNUC_VER >= 405)
-#define __gxx__cxx_generalized_initializers       !_LIBCPP_HAS_NO_GENERALIZED_INITIALIZERS
-#define __gxx__cxx_lambdas                        !_LIBCPP_HAS_NO_LAMBDAS
+#define __gxx__cxx_generalized_initializers       !defined(_LIBCPP_HAS_NO_GENERALIZED_INITIALIZERS)
+#define __gxx__cxx_lambdas                        !defined(_LIBCPP_HAS_NO_LAMBDAS)
 #define __gxx__cxx_noexcept                       0  // Not sure, doesn't matter.
-#define __gxx__cxx_nullptr                        !_LIBCPP_HAS_NO_NULLPTR
-#define __gxx__cxx_reference_qualified_functions  (_GNUC_VER >= 408)  // Not if 4.7 work. 4.6 certainly not.  Also see usage in libcxx/include/type_traits
+#define __gxx__cxx_nullptr                        !defined(_LIBCPP_HAS_NO_NULLPTR)
+#define __gxx__cxx_reference_qualified_functions  (_GNUC_VER >= 408)  // Since 4.8.1
 #ifdef _LIBCPP_NO_RTTI
 #define __gxx__cxx_rtti                           0
 #else
 #define __gxx__cxx_rtti                           __GXX_RTTI
 #endif
-#define __gxx__cxx_rvalue_references              !_LIBCPP_HAS_NO_RVALUE_REFERENCES
-#define __gxx__cxx_static_assert                  !_LIBCPP_HAS_NO_STATIC_ASSERT
-#define __gxx__cxx_strong_enums                   !_LIBCPP_HAS_NO_STRONG_ENUMS  // See usage in libcxx/test/utilities/meta/meta.trans/meta.trans.other/underlying_type.pass.cpp
-#define __gxx__cxx_trailing_return                !_LIBCPP_HAS_NO_TRAILING_RETURN
+#define __gxx__cxx_rvalue_references              !defined(_LIBCPP_HAS_NO_RVALUE_REFERENCES)
+#define __gxx__cxx_static_assert                  !defined(_LIBCPP_HAS_NO_STATIC_ASSERT)
+#define __gxx__cxx_strong_enums                   !defined(_LIBCPP_HAS_NO_STRONG_ENUMS)  // See usage in libcxx/test/utilities/meta/meta.trans/meta.trans.other/underlying_type.pass.cpp
+#define __gxx__cxx_trailing_return                !defined(_LIBCPP_HAS_NO_TRAILING_RETURN)
 #define __gxx__cxx_unrestricted_unions            1  // Not sure.  Also See usage in libcxx/test/utilities/meta/meta.unary/meta.unary.prop/is_nothrow_destructible.pass.cpp
-#define __gxx__cxx_variadic_templates             !_LIBCPP_HAS_NO_VARIADICS
+#define __gxx__cxx_variadic_templates             !defined(_LIBCPP_HAS_NO_VARIADICS)
 #define __gxx__has_nothrow_assign                 (_GNUC_VER >= 403)  // See usage in libcxx/include/type_traits
 #define __gxx__has_nothrow_constructor            (_GNUC_VER >= 403)  // See usage in libcxx/include/type_traits
 #define __gxx__has_nothrow_copy                   (_GNUC_VER >= 403)  // See usage in libcxx/include/type_traits
 #define __gxx__has_trivial_constructor            (_GNUC_VER >= 403)  // See usage in libcxx/include/type_traits
 #define __gxx__has_trivial_destructor             (_GNUC_VER >= 403)  // See usage in libcxx/include/type_traits
 #define __gxx__has_virtual_destructor             (_GNUC_VER >= 403)  // See usage in libcxx/include/type_traits
-#define __gxx__is_base_of                         !_LIBCPP_HAS_IS_BASE_OF  // See usage in libcxx/include/type_traits
+#define __gxx__is_base_of                         !defined(_LIBCPP_HAS_IS_BASE_OF)  // See usage in libcxx/include/type_traits
 #define __gxx__is_class                           (_GNUC_VER >= 403)  // See usage in libcxx/include/type_traits
 #define __gxx__is_convertible_to                  0  // Not supported in GCC 4.8.  Also see usage in libcxx/include/type_traits
 #define __gxx__is_empty                           1  // Not sure.  Also see usage in libcxx/include/type_traits
 #define __gxx__is_enum                            (_GNUC_VER >= 403)  // See usage in libcxx/include/type_traits
 #define __gxx__is_final                           (_GNUC_VER >= 408)  // Not if 4.7 work. 4.6 certainly not.  Also see usage in libcxx/include/unordered_map,tuple,ext/hash_map,map,memory
-#define __gxx__is_literal                         0  // Not supported in GCC 4.8.  Also see usage in libcxx/include/type_traits
+#define __gxx__is_literal                         defined(_LIBCPP_IS_LITERAL)
 #define __gxx__is_pod                             (_GNUC_VER >= 403)  // See usage in libcxx/include/type_traits
 #define __gxx__is_polymorphic                     1  // Not sure.  Also see usage in libcxx/include/type_traits
 #define __gxx__is_standard_layout                 1  // Not sure.  Also see usage in libcxx/include/type_traits
@@ -476,13 +513,10 @@ using namespace _LIBCPP_NAMESPACE __attribute__((__strong__));
 #define __gxx__is_trivially_constructible         0  // Not supported in GCC 4.8.  Also see usage in libcxx/include/type_traits
 #define __gxx__is_trivially_copyable              0  // Not supported in GCC 4.8.  Also see usage in libcxx/include/type_traits
 #define __gxx__is_union                           (_GNUC_VER >= 403)  // See usage in libcxx/include/type_traits
-#define __gxx__objc_arc                           _LIBCPP_HAS_OBJC_ARC
-#define __gxx__objc_arc_weak                      _LIBCPP_HAS_OBJC_ARC_WEAK
-#define __gxx__underlying_type                    1  // Not sure.  Also see usage in libcxx/include/type_traits
+#define __gxx__objc_arc                           defined(_LIBCPP_HAS_OBJC_ARC)
+#define __gxx__objc_arc_weak                      defined(_LIBCPP_HAS_OBJC_ARC_WEAK)
+#define __gxx__underlying_type                    defined(_LIBCPP_UNDERLYING_TYPE)
 
-#define __has_feature(__x) __gxx__ ## __x
-
-#endif // __has_feature
 
 #elif defined(_LIBCPP_MSVC)
 
@@ -497,7 +531,7 @@ using namespace _LIBCPP_NAMESPACE __attribute__((__strong__));
 #define _ALIGNAS(x) __declspec(align(x))
 #define _LIBCPP_HAS_NO_VARIADICS
 
-#define _NOEXCEPT throw()
+#define _NOEXCEPT throw ()
 #define _NOEXCEPT_(x)
 #define _NOEXCEPT_OR_FALSE(x) false
 
@@ -508,6 +542,8 @@ using namespace _LIBCPP_NAMESPACE __attribute__((__strong__));
 #  define _LIBCPP_WEAK
 namespace std {
 }
+
+#define _LIBCPP_HAS_NO_ASAN
 
 #elif defined(__IBMCPP__)
 
@@ -541,12 +577,18 @@ namespace std {
   }
 }
 
+#define _LIBCPP_HAS_NO_ASAN
+
 #endif // __clang__ || __GNUC__ || _MSC_VER || __IBMCPP__
 
 #ifdef _LIBCPP_HAS_NO_UNICODE_CHARS
 typedef unsigned short char16_t;
 typedef unsigned int   char32_t;
 #endif  // _LIBCPP_HAS_NO_UNICODE_CHARS
+
+#ifndef __SIZEOF_INT128__
+#define _LIBCPP_HAS_NO_INT128
+#endif
 
 #ifdef _LIBCPP_HAS_NO_STATIC_ASSERT
 
@@ -623,6 +665,10 @@ template <unsigned> struct __static_assert_check {};
 #define _LIBCPP_EXTERN_TEMPLATE2(...) extern template __VA_ARGS__;
 #endif
 
+#if defined(__APPLE__) && defined(__LP64__) && !defined(__x86_64__)
+#define _LIBCPP_NONUNIQUE_RTTI_BIT (1ULL << 63)
+#endif
+
 #if defined(__APPLE__) || defined(__FreeBSD__) || defined(_WIN32) || defined(__sun__) || defined(__NetBSD__)
 #define _LIBCPP_LOCALE__L_EXTENSIONS 1
 #endif
@@ -665,6 +711,11 @@ template <unsigned> struct __static_assert_check {};
 #define _LIBCPP_CONSTEXPR_AFTER_CXX11 constexpr
 #define _LIBCPP_EXPLICIT_AFTER_CXX11 explicit
 #define _LIBCPP_DEPRECATED_AFTER_CXX11 [[deprecated]]
+#endif
+
+#ifndef _LIBCPP_HAS_NO_ASAN
+extern "C" void __sanitizer_annotate_contiguous_container(
+  const void *, const void *, const void *, const void *);
 #endif
 
 // Try to find out if RTTI is disabled.

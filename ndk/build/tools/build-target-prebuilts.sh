@@ -108,6 +108,11 @@ FLAGS=$FLAGS" --ndk-dir=\"$NDK_DIR\""
 ABIS=$(convert_archs_to_abis $ARCHS)
 UNKNOWN_ABIS=$(convert_archs_to_abis $UNKNOWN_ARCH)
 
+dump "Building $ABIS compiler-rt binaries..."
+run $BUILDTOOLS/build-compiler-rt.sh --abis="$ABIS" $FLAGS --src-dir="$SRC_DIR/llvm-$DEFAULT_LLVM_VERSION/compiler-rt" \
+   --llvm-version=$DEFAULT_LLVM_VERSION
+fail_panic "Could not build compiler-rt!"
+
 dump "Building $ABIS gabi++ binaries..."
 run $BUILDTOOLS/build-cxx-stl.sh --stl=gabi++ --abis="$ABIS" $FLAGS
 fail_panic "Could not build gabi++!"
@@ -120,11 +125,24 @@ fail_panic "Could not build stlport!"
 run $BUILDTOOLS/build-cxx-stl.sh --stl=stlport --abis="$ABIS,$UNKNOWN_ABIS" $FLAGS --with-debug-info
 fail_panic "Could not build stlport with debug info!"
 
-dump "Building $ABIS $UNKNOWN_ABIS libc++ binaries..."
-run $BUILDTOOLS/build-cxx-stl.sh --stl=libc++ --abis="$ABIS,$UNKNOWN_ABIS" $FLAGS
-fail_panic "Could not build libc++!"
-run $BUILDTOOLS/build-cxx-stl.sh --stl=libc++ --abis="$ABIS,$UNKNOWN_ABIS" $FLAGS --with-debug-info
-fail_panic "Could not build libc++ with debug info!"
+dump "Building $ABIS $UNKNOWN_ABIS libc++ binaries... with libc++abi"
+run $BUILDTOOLS/build-cxx-stl.sh --stl=libc++-libc++abi --abis="$ABIS,$UNKNOWN_ABIS" $FLAGS --llvm-version=$DEFAULT_LLVM_VERSION
+fail_panic "Could not build libc++ with libc++abi!"
+run $BUILDTOOLS/build-cxx-stl.sh --stl=libc++-libc++abi --abis="$ABIS,$UNKNOWN_ABIS" $FLAGS --with-debug-info --llvm-version=$DEFAULT_LLVM_VERSION
+fail_panic "Could not build libc++ with libc++abi and debug info!"
+
+# workaround issues in libc++/libc++abi for x86 and mips
+for abi in $ABIS; do
+  case $abi in
+     x86|x86_64|mips|mips64)
+  dump "Rebuilding $abi libc++ binaries... with gabi++"
+  run $BUILDTOOLS/build-cxx-stl.sh --stl=libc++-gabi++ --abis=$abi $FLAGS --llvm-version=$DEFAULT_LLVM_VERSION
+  fail_panic "Could not build libc++ with gabi++!"
+  run $BUILDTOOLS/build-cxx-stl.sh --stl=libc++-gabi++ --abis=$abi $FLAGS --with-debug-info --llvm-version=$DEFAULT_LLVM_VERSION
+  fail_panic "Could not build libc++ with gabi++ and debug info!"
+     ;;
+  esac
+done
 
 if [ ! -z $VISIBLE_LIBGNUSTL_STATIC ]; then
     GNUSTL_STATIC_VIS_FLAG=--visible-libgnustl-static
@@ -139,11 +157,6 @@ fail_panic "Could not build gnustl with debug info!"
 dump "Building $ABIS libportable binaries..."
 run $BUILDTOOLS/build-libportable.sh --abis="$ABIS" $FLAGS
 fail_panic "Could not build libportable!"
-
-dump "Building $ABIS compiler-rt binaries..."
-run $BUILDTOOLS/build-compiler-rt.sh --abis="$ABIS" $FLAGS --src-dir="$SRC_DIR/llvm-$DEFAULT_LLVM_VERSION/compiler-rt" \
-   --llvm-version=$DEFAULT_LLVM_VERSION
-fail_panic "Could not build compiler-rt!"
 
 if [ "$PACKAGE_DIR" ]; then
     dump "Done, see $PACKAGE_DIR"
