@@ -1,7 +1,7 @@
 Name: Android Tools (SDK/NDK)
 URL: http://developer.android.com/sdk/index.html
 Versions:
-  NDK r9d
+  NDK r10b-rc1
   Android SDK Platform API 20
   Android SDK Tools 23.0.2
   Android SDK Platform-tools 20
@@ -17,10 +17,10 @@ The Android SDK/NDK provide API libraries and developer tools necessary to
 build, test and debug for Android.
 
 Local Modifications:
+
 -In ndk/
 - Removed old android platforms in ndk/platforms
   (anything under android-14)
-- Included the Android support library (version 19.1)
 - Edited platforms/android-<version>/arch-arm/usr/include/math.h
   and platforms/android-<version>/arch-arm/usr/include/sys/cdefs.h
   to work around issues with clang 3.5
@@ -31,7 +31,9 @@ Local Modifications:
 - Added gyp files in ndk/
     android_tools_ndk.gyp
     crazy_linker.gyp
+
 -In sdk/
+- Included the Android support library (version 19.1)
 - Removed unused resources from the support library (see crbug.com/372481)
 - Updated trace-viewer script to r220 under sdk/tools/systrace.
   Steps to update to the latest version of trace-viewer:
@@ -39,10 +41,5 @@ Local Modifications:
     cd chromium-trace
     ./update.py
     cp script.js style.css $ANDROID_SDK_ROOT/tools/systrace
--In ndk_experimental/
-- A beta version (rc3) of the r10 NDK toolchain has been added in
-  ndk_experimental.
-    - libc.so has been taken from rc2 due to the removal of
-      __system_properties_get (which we currently require) from libc.so in rc3.
 
 No other modifications has been made to the public Android SDK/NDK.

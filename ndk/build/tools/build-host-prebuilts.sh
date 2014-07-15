@@ -55,6 +55,9 @@ register_var_option "--darwin-ssh=<hostname>" DARWIN_SSH "Generate darwin packag
 NO_GEN_PLATFORMS=
 register_var_option "--no-gen-platforms" NO_GEN_PLATFORMS "Don't generate platforms/ directory, use existing one"
 
+GCC_VERSION_LIST="default" # it's arch defined by default so use default keyword
+register_var_option "--gcc-version-list=<vers>" GCC_VERSION_LIST "List of GCC release versions"
+
 LLVM_VERSION_LIST=$DEFAULT_LLVM_VERSION_LIST
 register_var_option "--llvm-version-list=<vers>" LLVM_VERSION_LIST "List of LLVM release versions"
 
@@ -84,9 +87,10 @@ if [ ! -d "$SRC_DIR" ]; then
     exit 1
 fi
 
-if [ ! -f "$SRC_DIR/build/configure" -o ! -d "$SRC_DIR/gcc/gcc-$DEFAULT_GCC_VERSION" ]; then
+if [ ! -f "$SRC_DIR/build/configure" -o ! -d "$SRC_DIR/gcc/gcc-$DEFAULT_GCC32_VERSION" -o ! -d "$SRC_DIR/gcc/gcc-$DEFAULT_GCC64_VERSION" ]; then
     echo "ERROR: The file $SRC_DIR/build/configure or"
-    echo "       the directory $SRC_DIR/gcc/gcc-$DEFAULT_GCC_VERSION does not exist"
+    echo "       the directory $SRC_DIR/gcc/gcc-$DEFAULT_GCC32_VERSION or"
+    echo "       $SRC_DIR/gcc/gcc-$DEFAULT_GCC64_VERSION does not exist"
     echo "This is not the top of a toolchain tree: $SRC_DIR"
     echo "You must give the path to a copy of the toolchain source directories"
     echo "created by 'download-toolchain-sources.sh."
@@ -318,14 +322,25 @@ for SYSTEM in $SYSTEMS; do
     # Then the toolchains
     for ARCH in $ARCHS; do
         TOOLCHAIN_NAMES=$(get_toolchain_name_list_for_arch $ARCH)
+        if [ "$GCC_VERSION_LIST" != "default" ]; then
+           TOOLCHAINS=
+           for VERSION in $(commas_to_spaces $GCC_VERSION_LIST); do
+              for TOOLCHAIN in $TOOLCHAIN_NAMES; do
+                 if [ $TOOLCHAIN != ${TOOLCHAIN%%$VERSION} ]; then
+                    TOOLCHAINS="$TOOLCHAIN $TOOLCHAINS"
+                 fi
+              done
+           done
+           TOOLCHAIN_NAMES=$TOOLCHAINS
+        fi
         if [ -z "$TOOLCHAIN_NAMES" ]; then
-            echo "ERROR: Invalid architecture name: $ARCH"
+            echo "ERROR: Toolchains: "$(spaces_to_commas $GCC_VERSION_LIST)" are not available for arch: $ARCH"
             exit 1
         fi
 
         for TOOLCHAIN_NAME in $TOOLCHAIN_NAMES; do
             echo "Building $SYSNAME toolchain for $ARCH architecture: $TOOLCHAIN_NAME"
-            run $BUILDTOOLS/build-gcc.sh "$SRC_DIR" "$NDK_DIR" $TOOLCHAIN_NAME $TOOLCHAIN_FLAGS --with-python=prebuilt
+            run $BUILDTOOLS/build-gcc.sh "$SRC_DIR" "$NDK_DIR" $TOOLCHAIN_NAME $TOOLCHAIN_FLAGS --with-python=prebuilt -j$BUILD_NUM_CPUS
             fail_panic "Could not build $TOOLCHAIN_NAME-$SYSNAME!"
         done
     done
@@ -337,7 +352,7 @@ for SYSTEM in $SYSTEMS; do
     fi
     for LLVM_VERSION in $LLVM_VERSION_LIST; do
         echo "Building $SYSNAME clang/llvm-$LLVM_VERSION"
-        run $BUILDTOOLS/build-llvm.sh "$SRC_DIR" "$NDK_DIR" "llvm-$LLVM_VERSION" $TOOLCHAIN_FLAGS $POLLY_FLAGS $CHECK_FLAG
+        run $BUILDTOOLS/build-llvm.sh "$SRC_DIR" "$NDK_DIR" "llvm-$LLVM_VERSION" $TOOLCHAIN_FLAGS $POLLY_FLAGS $CHECK_FLAG -j$BUILD_NUM_CPUS
         fail_panic "Could not build llvm for $SYSNAME"
     done
 

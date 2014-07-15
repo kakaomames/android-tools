@@ -32,6 +32,13 @@
 #define PORTABLE_TAG "signal_portable"
 #include <log_portable.h>
 
+/* for build against old platforms when SIGRT* defined instead of __SIGRT* */
+#ifndef __SIGRTMIN
+#define __SIGRTMIN SIGRTMIN
+#endif
+#ifndef __SIGRTMAX
+#define __SIGRTMAX SIGRTMAX
+#endif
 
 #if SIGBUS_PORTABLE == SIGBUS
 #error Bad build environment
@@ -174,7 +181,7 @@ __hidden char *map_mips_signum_to_name(int mips_signum)
     case SIGXCPU:       name = "SIGXCPU:30";    break;
     case SIGXFSZ:       name = "SIGXFSZ:31";    break;
 
-    case SIGRTMIN:      name = "SIGRTMIN:32";   break;
+    case __SIGRTMIN:    name = "SIGRTMIN:32";   break;
     case SIGRT_1:       name = "SIGRT_1:33";    break;
     case SIGRT_2:       name = "SIGRT_2:34";    break;
     case SIGRT_3:       name = "SIGRT_3:35";    break;
@@ -210,7 +217,7 @@ __hidden char *map_mips_signum_to_name(int mips_signum)
 
     /* NOTE: SIGRT_33...SIGRTMAX-1 Not printed */
 
-    case SIGRTMAX:      name = "SIGRTMAX:128";  break;
+    case __SIGRTMAX:    name = "SIGRTMAX:128";  break;
     default:            name = "<<UNKNOWN>>";   break;
     }
     return name;
@@ -327,8 +334,8 @@ __hidden int signum_pton(int portable_signum)
      * NOTE: SIGRTMAX_PORTABLE == 64 but SIGRTMAX == 128.
      */
     case SIGRTMIN_PORTABLE...SIGRTMAX_PORTABLE:         /* 32 ... 64 */
-        ASSERT(SIGRTMIN_PORTABLE == SIGRTMIN);
-        ASSERT(SIGRTMAX_PORTABLE <= SIGRTMAX);
+        ASSERT(SIGRTMIN_PORTABLE == __SIGRTMIN);
+        ASSERT(SIGRTMAX_PORTABLE <= __SIGRTMAX);
         return portable_signum;
 
     default:
@@ -470,18 +477,18 @@ __hidden int signum_ntop(int mips_signum)
      * Mapping lower 32 Real Time signals to identical Portable signal numbers.
      * NOTE: SIGRTMAX_PORTABLE == 64 but SIGRTMAX == 128.
      */
-    case SIGRTMIN...SIGRTMAX_PORTABLE:              /* 32 ... 64 */
-        ASSERT(SIGRTMIN == SIGRTMIN_PORTABLE);
-        ASSERT(SIGRTMAX >= SIGRTMAX_PORTABLE);
+    case __SIGRTMIN...SIGRTMAX_PORTABLE:              /* 32 ... 64 */
+        ASSERT(__SIGRTMIN == SIGRTMIN_PORTABLE);
+        ASSERT(__SIGRTMAX >= SIGRTMAX_PORTABLE);
         return mips_signum;
 
    /*
     * Mapping upper 63 Native Real Time signals to the last Portable signal number.
     * Shouldn't even be possible to be using these signals.
     */
-    case (SIGRTMAX_PORTABLE+1)...SIGRTMAX:          /* 65 ... 128 */
-        ASSERT(SIGRTMIN == SIGRTMIN_PORTABLE);
-        ASSERT(SIGRTMAX >= SIGRTMAX_PORTABLE);
+    case (SIGRTMAX_PORTABLE+1)...__SIGRTMAX:          /* 65 ... 128 */
+        ASSERT(__SIGRTMIN == SIGRTMIN_PORTABLE);
+        ASSERT(__SIGRTMAX >= SIGRTMAX_PORTABLE);
 
         ALOGE("%s: mips_signum:%d Can't be mapped to a unique portable signal;", __func__,
                    mips_signum);
@@ -858,22 +865,6 @@ int WRAP(kill)(pid_t pid, int portable_signum)
               pid,    portable_signum);
 
     rv = do_kill(pid, portable_signum, REAL(kill));
-
-    ALOGV("%s: return(rv:%d); }", __func__, rv);
-    return rv;
-}
-
-
-int WRAP(tkill)(int tid, int portable_signum)
-{
-    extern int REAL(tkill)(int, int);
-    int rv;
-
-    ALOGV(" ");
-    ALOGV("%s(tid:%d, portable_signum:%d) {", __func__,
-              tid,    portable_signum);
-
-    rv = do_kill(tid, portable_signum, REAL(tkill));
 
     ALOGV("%s: return(rv:%d); }", __func__, rv);
     return rv;

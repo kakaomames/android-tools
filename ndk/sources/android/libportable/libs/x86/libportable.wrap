@@ -15,5 +15,4 @@
 --wrap=fstatat
 --wrap=ioctl
 --wrap=lstat
---wrap=open
 --wrap=stat

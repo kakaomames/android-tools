@@ -97,7 +97,7 @@ tie %Config, 'Config', {
     ldlibpthname => 'LD_LIBRARY_PATH',
     libpth => '/s/mydroid/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.7-4.6/bin/../lib/gcc/x86_64-linux/4.6.x-google/ /s/mydroid/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.7-4.6/bin/../lib/gcc/ /s/mydroid/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.7-4.6/bin/../lib/gcc/x86_64-linux/4.6.x-google/../../../../x86_64-linux/lib/../lib64/ /s/mydroid/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.7-4.6/bin/../lib/gcc/x86_64-linux/4.6.x-google/../../../../x86_64-linux/lib/ /s/mydroid/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.7-4.6/bin/../sysroot/usr/lib/',
     osname => 'linux',
-    osvers => '3.2.5-gg1236',
+    osvers => '3.2.5-gg1336',
     path_sep => ':',
     privlibexp => '/tmp/ndk-andrewhsieh/build/perl/prefix/lib/5.16.2',
     scriptdir => '/tmp/ndk-andrewhsieh/build/perl/prefix/bin',

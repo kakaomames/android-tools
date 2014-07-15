@@ -60,8 +60,7 @@ NO_GIT=no
 register_var_option "--no-git" NO_GIT "Don't use git to list input files, take all of them."
 
 # set of toolchain prebuilts we need to package
-TOOLCHAINS=$(get_toolchain_name_list_for_arch arm)
-OPTION_TOOLCHAINS=$TOOLCHAINS
+OPTION_TOOLCHAINS=
 register_var_option "--toolchains=<list>" OPTION_TOOLCHAINS "Specify list of toolchains."
 
 # set of platforms to package (all by default)
@@ -80,11 +79,11 @@ register_var_option "--out-dir=<path>" OPTION_OUT_DIR "Specify output package di
 DEVELOPMENT_ROOT=`dirname $ANDROID_NDK_ROOT`/development/ndk
 register_var_option "--development-root=<path>" DEVELOPMENT_ROOT "Specify platforms/samples directory"
 
-LLVM_VERSION_LIST=$DEFAULT_LLVM_VERSION_LIST
-register_var_option "--llvm=<versions>" LLVM_VERSION_LIST "List of LLVM release versions"
+GCC_VERSION_LIST="default" # it's arch defined by default so use default keyword
+register_var_option "--gcc-version-list=<vers>" GCC_VERSION_LIST "List of GCC release versions"
 
-WITH_LIBCXX=
-register_var_option "--with-libcxx" WITH_LIBCXX "Package experimental Libc++ sources"
+LLVM_VERSION_LIST=$DEFAULT_LLVM_VERSION_LIST
+register_var_option "--llvm-version-list=<versions>" LLVM_VERSION_LIST "List of LLVM release versions"
 
 register_try64_option
 
@@ -127,25 +126,10 @@ SYSTEMS=$(commas_to_spaces $SYSTEMS)
 
 # Detect unknown archs
 ARCHS=$(commas_to_spaces $ARCHS)
-UNKNOWN_ARCH=$(filter_out "$DEFAULT_ARCHS" "$ARCHS")
+# FIXME after 64-bit arch become DEFAULT_ARCHS
+UNKNOWN_ARCH=$(filter_out "$DEFAULT_ARCHS arm64 x86_64 mips64" "$ARCHS")
 if [ ! -z "$UNKNOWN_ARCH" ]; then
     ARCHS=$(filter_out "$UNKNOWN_ARCH" "$ARCHS")
-fi
-
-# Do we need to support x86?
-
-echo "$ARCHS" | tr ' ' '\n' | grep -q x86
-if [ $? = 0 ] ; then
-    TRY_X86=yes
-else
-    TRY_X86=no
-fi
-# Do we need to support mips?
-echo "$ARCHS" | tr ' ' '\n' | grep -q mips
-if [ $? = 0 ] ; then
-    TRY_mips=yes
-else
-    TRY_mips=no
 fi
 
 # Compute ABIS from ARCHS
@@ -173,13 +157,25 @@ LLVM_VERSION_LIST=$(commas_to_spaces $LLVM_VERSION_LIST)
 if [ "$OPTION_TOOLCHAINS" != "$TOOLCHAINS" ]; then
     TOOLCHAINS=$(commas_to_spaces $OPTION_TOOLCHAINS)
 else
-    if [ "$TRY_X86" = "yes" ]; then
-        TOOLCHAINS=$TOOLCHAINS" "$(get_toolchain_name_list_for_arch x86)
-    fi
-    if [ "$TRY_mips" = "yes" ]; then
-        TOOLCHAINS=$TOOLCHAINS" "$(get_toolchain_name_list_for_arch mips)
-    fi
+    for ARCH in $ARCHS; do
+       case $ARCH in
+           arm|arm64|x86|x86_64|mips|mips64) TOOLCHAINS=$TOOLCHAINS" "$(get_toolchain_name_list_for_arch $ARCH) ;;
+           *) echo "ERROR: Unknown arch to package: $ARCH"; exit 1 ;;
+       esac
+    done
     TOOLCHAINS=$(commas_to_spaces $TOOLCHAINS)
+fi
+
+if [ "$GCC_VERSION_LIST" != "default" ]; then
+   TOOLCHAIN_NAMES=
+   for VERSION in $(commas_to_spaces $GCC_VERSION_LIST); do
+      for TOOLCHAIN in $TOOLCHAINS; do
+         if [ $TOOLCHAIN != ${TOOLCHAIN%%$VERSION} ]; then
+            TOOLCHAIN_NAMES="$TOOLCHAIN $TOOLCHAIN_NAMES"
+         fi
+      done
+   done
+   TOOLCHAINS=$TOOLCHAIN_NAMES
 fi
 
 # Check the prebuilt path
@@ -231,7 +227,8 @@ fi
 
 echo "Architectures: $ARCHS"
 echo "CPU ABIs: $ABIS"
-echo "Toolchains: $TOOLCHAINS"
+echo "GCC Toolchains: $TOOLCHAINS"
+echo "LLVM Toolchains: $LLVM_VERSION_LIST"
 echo "Host systems: $SYSTEMS"
 
 
@@ -351,8 +348,6 @@ if [ "$PREBUILT_DIR" ]; then
     echo "Unpacking samples files" &&
     unpack_archive "$PREBUILT_DIR/samples.tar.bz2" "$REFERENCE"
     fail_panic "Could not unpack platform and sample files"
-    # Remove experimental api levels
-    rm -rf $REFERENCE/platforms/android-20
 elif [ "$PREBUILT_NDK" ]; then
     echo "ERROR: NOT IMPLEMENTED!"
     exit 1
@@ -377,17 +372,6 @@ rm -rf $REFERENCE/sources/host-tools
 rm -rf $REFERENCE/samples/*/{obj,libs,build.xml,local.properties,Android.mk} &&
 rm -rf $REFERENCE/tests/build/*/{obj,libs} &&
 rm -rf $REFERENCE/tests/device/*/{obj,libs}
-
-if [ "$WITH_LIBCXX" ]; then
-    # Remove the libc++ test suite, it's large (28 MiB) and not useful for
-    # developers using the NDK.
-    #rm -rf $REFERENCE/sources/cxx-stl/llvm-libc++/libcxx/test
-    true;
-else
-    # Remove the libc++ sources, they're not ready for release.
-    # http://b.android.com/36496
-    rm -rf $REFERENCE/sources/cxx-stl/llvm-libc++
-fi
 
 # Regenerate HTML documentation, place the files under .../docs/
 $NDK_ROOT_DIR/build/tools/build-docs.sh \
@@ -414,9 +398,7 @@ if [ -z "$PREBUILT_NDK" ]; then
     for ABI in $ABIS; do
         unpack_prebuilt gabixx-libs-$ABI "$REFERENCE"
         unpack_prebuilt stlport-libs-$ABI "$REFERENCE"
-        if [ "$WITH_LIBCXX" ]; then
-            unpack_prebuilt libcxx-libs-$ABI "$REFERENCE"
-        fi
+        unpack_prebuilt libcxx-libs-$ABI "$REFERENCE"
         for VERSION in $DEFAULT_GCC_VERSION_LIST; do
             unpack_prebuilt gnu-libstdc++-libs-$VERSION-$ABI "$REFERENCE"
         done
@@ -459,6 +441,7 @@ for SYSTEM in $SYSTEMS; do
     # Remove tests containing duplicated files in case-insensitive file system
     if [ "$SYSTEM" = "windows" -o "$SYSTEM" = "darwin-x86" ]; then
         rm -rf $DSTDIR/tests/build/c++-stl-source-extensions
+        find $DSTDIR/platforms | sort | uniq -di | xargs rm
     fi
 
     if [ "$PREBUILT_NDK" ]; then
@@ -483,15 +466,13 @@ for SYSTEM in $SYSTEMS; do
             echo "WARNING: Could not find STLport source tree!"
         fi
 
-        if [ "$WITH_LIBCXX" ]; then
-            if [ -d "$DSTDIR/$LIBCXX_SUBDIR" ]; then
-                LIBCXX_ABIS=$PREBUILT_ABIS $UNKNOWN_ABIS
-                for STL_ABI in $LIBCXX_ABIS; do
-                    copy_prebuilt "$LIBCXX_SUBDIR/libs/$STL_ABI" "$LIBCXX_SUBDIR/libs"
-                done
-            else
-                echo "WARNING: Could not find Libc++ source tree!"
-            fi
+        if [ -d "$DSTDIR/$LIBCXX_SUBDIR" ]; then
+            LIBCXX_ABIS=$PREBUILT_ABIS $UNKNOWN_ABIS
+            for STL_ABI in $LIBCXX_ABIS; do
+                copy_prebuilt "$LIBCXX_SUBDIR/libs/$STL_ABI" "$LIBCXX_SUBDIR/libs"
+            done
+        else
+            echo "WARNING: Could not find Libc++ source tree!"
         fi
 
         for VERSION in $DEFAULT_GCC_VERSION_LIST; do
@@ -545,11 +526,14 @@ for SYSTEM in $SYSTEMS; do
         done
 
         # Unpack mclinker
-        unpack_prebuilt ld.mcld-$SYSTEM "$DSTDIR" "$DSTDIR64"
+        if [ -n "$LLVM_VERSION_LIST" ]; then
+            unpack_prebuilt ld.mcld-$SYSTEM "$DSTDIR" "$DSTDIR64"
+        fi
+        rm -rf $DSTDIR/toolchains/*l
+        rm -rf $DSTDIR64/toolchains/*l
 
         # Unpack renderscript tools
         unpack_prebuilt renderscript-$SYSTEM "$DSTDIR" "$DSTDIR64"
-        unpack_prebuilt renderscript "$DSTDIR" "$DSTDIR64"
 
         # Unpack prebuilt ndk-stack and other host tools
         unpack_prebuilt ndk-stack-$SYSTEM "$DSTDIR" "$DSTDIR64" "yes"
@@ -569,10 +553,18 @@ for SYSTEM in $SYSTEMS; do
     # Unpack other host tools
     unpack_prebuilt scan-build-view "$DSTDIR" "$DSTDIR64"
 
-    # Remove experimental stuffs
-    rm -rf $DSTDIR/toolchains/aarch64*
-    rm -rf $DSTDIR/toolchains/mips64el*
-    rm -rf $DSTDIR/toolchains/x86_64*
+    # Unpack renderscript headers/libs
+    unpack_prebuilt renderscript "$DSTDIR" "$DSTDIR64"
+
+    # Unpack misc stuff
+    if [ -f "$PREBUILT_DIR/misc.tar.bz2" ]; then
+        unpack_prebuilt misc "$DSTDIR" "$DSTDIR64"
+    fi
+		    
+    # Unpack misc stuff
+    if [ -f "$PREBUILT_DIR/misc.tar.bz2" ]; then
+        unpack_prebuilt misc "$DSTDIR" "$DSTDIR64"
+    fi
 
     # Create an archive for the final package. Extension depends on the
     # host system.
