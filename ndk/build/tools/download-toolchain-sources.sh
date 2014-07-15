@@ -113,7 +113,7 @@ LLVM_VERSION_LIST=$(commas_to_spaces $LLVM_VERSION_LIST)
 # Create temp directory where everything will be copied first
 #
 PKGNAME=android-ndk-toolchain-$RELEASE
-TMPDIR=/tmp/ndk-$USER/$PKGNAME
+TMPDIR=$NDK_TMPDIR/$PKGNAME
 log "Creating temporary directory $TMPDIR"
 rm -rf $TMPDIR && mkdir $TMPDIR
 fail_panic "Could not create temporary directory: $TMPDIR"
@@ -215,9 +215,9 @@ toolchain_checkout "" $BRANCH cloog .
 toolchain_checkout "" $BRANCH isl .
 toolchain_checkout "" $BRANCH ppl .
 toolchain_checkout "" $BRANCH expat .
-toolchain_checkout "" $BRANCH binutils binutils-2.21 binutils-2.23
-toolchain_checkout "" $BRANCH gcc gcc-4.6 gcc-4.8
-toolchain_checkout "" $BRANCH gdb gdb-7.3.x gdb-7.6
+toolchain_checkout "" $BRANCH binutils binutils-2.21 binutils-2.23 binutils-2.24
+toolchain_checkout "" $BRANCH gcc gcc-4.6 gcc-4.8 gcc-4.9
+toolchain_checkout "" $BRANCH gdb gdb-7.3.x gdb-7.6 gdb-7.7
 toolchain_checkout "" $BRANCH python Python-2.7.5
 toolchain_checkout "" $BRANCH perl perl-5.16.2
 toolchain_checkout "" $BRANCH mclinker .

@@ -78,6 +78,7 @@ system_libs := \
     RS \
     ui \
     utils \
+    mediandk \
     atomic
 
 libs_in_ldflags := $(filter-out $(addprefix -l,$(system_libs)), $(libs_in_ldflags))
@@ -145,14 +146,6 @@ LOCAL_RS_OBJECTS :=
 #
 LOCAL_CFLAGS := -DANDROID $(LOCAL_CFLAGS)
 
-# enable PIE for executable beyond certain API level
-ifeq ($(NDK_APP_PIE),true)
-  ifeq ($(call module-get-class,$(LOCAL_MODULE)),EXECUTABLE)
-    LOCAL_CFLAGS += -fPIE
-    LOCAL_LDFLAGS += -fPIE -pie
-  endif
-endif
-
 #
 # Add the default system shared libraries to the build
 #
@@ -213,6 +206,16 @@ else
   LOCAL_CFLAGS += $($(my)FORMAT_STRING_CFLAGS)
 endif
 
+# enable PIE for executable beyond certain API level, unless "-static"
+ifneq (,$(filter true,$(NDK_APP_PIE) $(TARGET_PIE)))
+  ifeq ($(call module-get-class,$(LOCAL_MODULE)),EXECUTABLE)
+    ifeq (,$(filter -static,$(TARGET_LDFLAGS) $(LOCAL_LDFLAGS) $(NDK_APP_LDFLAGS)))
+      LOCAL_CFLAGS += -fPIE
+      LOCAL_LDFLAGS += -fPIE -pie
+    endif
+  endif
+endif
+
 #
 # The original Android build system allows you to use the .arm prefix
 # to a source file name to indicate that it should be defined in either
@@ -266,12 +269,16 @@ ifdef LOCAL_ARM_NEON
 endif
 ifeq ($(LOCAL_ARM_NEON),true)
   neon_sources += $(LOCAL_SRC_FILES:%.neon=%)
+  # tag the precompiled header with 'neon' tag if it exists
+  ifneq (,$(LOCAL_PCH))
+    $(call tag-src-files,$(LOCAL_PCH),neon)
+  endif
 endif
 
 neon_sources := $(strip $(neon_sources))
 ifdef neon_sources
-  ifeq ($(filter $(TARGET_ARCH_ABI), armeabi-v7a armeabi-v7a-hard),)
-    $(call __ndk_info,NEON support is only possible for armeabi-v7a ABI and its variant armeabi-v7a-hard)
+  ifeq ($(filter $(TARGET_ARCH_ABI), armeabi-v7a armeabi-v7a-hard x86),)
+    $(call __ndk_info,NEON support is only possible for armeabi-v7a ABI, its variant armeabi-v7a-hard and x86 ABI)
     $(call __ndk_info,Please add checks against TARGET_ARCH_ABI in $(LOCAL_MAKEFILE))
     $(call __ndk_error,Aborting)
   endif
@@ -290,6 +297,10 @@ LOCAL_SRC_FILES := $(LOCAL_SRC_FILES:%.arm=%)
 
 ifeq ($(LOCAL_ARM_MODE),arm)
     arm_sources := $(LOCAL_SRC_FILES)
+    # tag the precompiled header with 'arm' tag if it exists
+    ifneq (,$(LOCAL_PCH))
+        $(call tag-src-files,$(LOCAL_PCH),arm)
+    endif
 endif
 ifeq ($(LOCAL_ARM_MODE),thumb)
     arm_sources := $(empty)
@@ -300,12 +311,26 @@ $(call tag-src-files,$(arm_sources),arm)
 #
 ifeq ($(APP_OPTIM),debug)
     $(call tag-src-files,$(LOCAL_SRC_FILES),debug)
+    ifneq (,$(LOCAL_PCH))
+        $(call tag-src-files,$(LOCAL_PCH),debug)
+    endif
+endif
+
+# add PCH to LOCAL_SRC_FILES so that TARGET-process-src-files-tags could process it
+ifneq (,$(LOCAL_PCH))
+    LOCAL_SRC_FILES += $(LOCAL_PCH)
 endif
 
 # Process all source file tags to determine toolchain-specific
 # target compiler flags, and text.
 #
 $(call TARGET-process-src-files-tags)
+
+# now remove PCH from LOCAL_SRC_FILES to prevent getting NDK warning about
+# unsupported source file extensions
+ifneq (,$(LOCAL_PCH))
+    LOCAL_SRC_FILES := $(filter-out $(LOCAL_PCH),$(LOCAL_SRC_FILES))
+endif
 
 # only call dump-src-file-tags during debugging
 #$(dump-src-file-tags)
@@ -385,6 +410,37 @@ ifneq ($(call module-is-shared-library,$(LOCAL_MODULE)),)
     RS_COMPAT := true
 endif
 
+
+# Build PCH
+
+get-pch-name = $(strip \
+    $(subst ../,__/,\
+        $(eval __pch := $1)\
+        $(eval __pch := $(__pch:%.h=%.precompiled.h))\
+        $(__pch)\
+    ))
+
+ifneq (,$(LOCAL_PCH))
+    # Build PCH into obj directory
+    LOCAL_BUILT_PCH := $(call get-pch-name,$(LOCAL_PCH))
+
+    # Build PCH
+    $(call compile-cpp-source,$(LOCAL_PCH),$(LOCAL_BUILT_PCH).gch)
+
+    # All obj files are dependent on the PCH
+    $(foreach src,$(filter $(all_cpp_patterns),$(LOCAL_SRC_FILES)),\
+        $(eval $(LOCAL_OBJS_DIR)/$(call get-object-name,$(src)) : $(LOCAL_OBJS_DIR)/$(LOCAL_BUILT_PCH).gch)\
+    )
+
+    # Files from now on build with PCH
+    LOCAL_CPPFLAGS += -Winvalid-pch -include $(LOCAL_BUILT_PCH)
+
+    # Insert PCH dir at beginning of include search path
+    LOCAL_C_INCLUDES := \
+        $(LOCAL_OBJS_DIR) \
+        $(LOCAL_C_INCLUDES)
+endif
+
 # Build the sources to object files
 #
 
@@ -418,6 +474,9 @@ CLEAN_OBJS_DIRS     += $(LOCAL_OBJS_DIR)
 #
 ifneq ($(filter -l%,$(LOCAL_LDLIBS)),)
     LOCAL_LDLIBS := -L$(call host-path,$(SYSROOT_LINK)/usr/lib) $(LOCAL_LDLIBS)
+    ifneq ($(filter x86_64 mips64,$(TARGET_ARCH_ABI)),)
+        LOCAL_LDLIBS := -L$(call host-path,$(SYSROOT_LINK)/usr/lib64) $(LOCAL_LDLIBS)
+    endif
 endif
 
 # When LOCAL_SHORT_COMMANDS is defined to 'true' we are going to write the

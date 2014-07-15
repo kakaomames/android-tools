@@ -9,9 +9,9 @@
 
 /* Package name      : perl5
  * Source directory  : .
- * Configuration time: Fri Aug 30 02:48:55 PDT 2013
+ * Configuration time: Sun Jul 13 15:57:18 CST 2014
  * Configured by     : andrewhsieh
- * Target system     : linux ahsieh.mtv.corp.google.com 3.2.5-gg1236 #1 smp tue may 21 02:35:06 pdt 2013 x86_64 x86_64 x86_64 gnulinux 
+ * Target system     : linux andrewhsieh-goobuntu.tpe.corp.google.com 3.2.5-gg1336 #1 smp thu aug 29 02:37:18 pdt 2013 x86_64 x86_64 x86_64 gnulinux 
  */
 
 #ifndef _config_h_
@@ -890,7 +890,7 @@
  *	feature tests from Configure are generally more reliable.
  */
 #define OSNAME "linux"		/**/
-#define OSVERS "3.2.5-gg1236"		/**/
+#define OSVERS "3.2.5-gg1336"		/**/
 
 /* USE_CROSS_COMPILE:
  *	This symbol, if defined, indicates that Perl is being cross-compiled.
@@ -4625,8 +4625,8 @@
  */
 #define GMTIME_MAX		67768036191676799	/**/
 #define GMTIME_MIN		-62167219200	/**/
-#define LOCALTIME_MAX	67768036191705599	/**/
-#define LOCALTIME_MIN	-62167190822	/**/
+#define LOCALTIME_MAX	67768036191647999	/**/
+#define LOCALTIME_MIN	-62167248360	/**/
 
 /* USE_64_BIT_INT:
  *	This symbol, if defined, indicates that 64-bit integers should

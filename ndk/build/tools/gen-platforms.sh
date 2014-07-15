@@ -70,7 +70,7 @@ OPTION_ARCH=
 OPTION_ABI=
 OPTION_DEBUG_LIBS=
 OPTION_OVERLAY=
-OPTION_GCC_VERSION=$DEFAULT_GCC_VERSION
+OPTION_GCC_VERSION=
 OPTION_LLVM_VERSION=$DEFAULT_LLVM_VERSION
 PACKAGE_DIR=
 
@@ -184,6 +184,11 @@ if [ -n "$OPTION_PLATFORM" ] ; then
 else
     # Build the list from the content of SRCDIR
     PLATFORMS=`extract_platforms_from "$SRCDIR"`
+    # hack to place non-numeric level 'L' (lmp-preview) at the very end
+    if [ "$PLATFORMS" != "${PLATFORMS%%L*}" ] ; then
+        PLATFORMS=`echo $PLATFORMS | tr -d 'L'`
+        PLATFORMS="$PLATFORMS L"
+    fi
     log "Using platforms: $PLATFORMS"
 fi
 
@@ -364,16 +369,31 @@ remove_unwanted_variable_symbols ()
 get_default_compiler_for_arch()
 {
     local ARCH=$1
-    local TOOLCHAIN_PREFIX EXTRA_CFLAGS CC
+    local TOOLCHAIN_PREFIX EXTRA_CFLAGS CC GCC_VERSION
 
     if [ "$ARCH" = "${ARCH%%64*}" -a "$(arch_in_unknown_archs $ARCH)" = "yes" ]; then
-        TOOLCHAIN_PREFIX="$NDK_DIR/$(get_llvm_toolchain_binprefix $OPTION_LLVM_VERSION)"
-        CC="$TOOLCHAIN_PREFIX/clang"
-        EXTRA_CFLAGS="-emit-llvm -target le32-none-ndk"
+        for TAG in $HOST_TAG $HOST_TAG32; do
+            TOOLCHAIN_PREFIX="$NDK_DIR/$(get_llvm_toolchain_binprefix $OPTION_LLVM_VERSION $TAG)"
+            CC="$TOOLCHAIN_PREFIX/clang"
+            if [ -f "$CC" ]; then
+                break;
+            fi
+        done
+        EXTRA_CFLAGS="-emit-llvm"
     else
-        TOOLCHAIN_PREFIX="$NDK_DIR/$(get_toolchain_binprefix_for_arch $ARCH $OPTION_GCC_VERSION)"
-        TOOLCHAIN_PREFIX=${TOOLCHAIN_PREFIX%-}
-        CC="$TOOLCHAIN_PREFIX-gcc"
+        if [ -n "$OPTION_GCC_VERSION" ]; then
+            GCC_VERSION=$OPTION_GCC_VERSION
+        else
+            GCC_VERSION=$(get_default_gcc_version_for_arch $ARCH)
+        fi
+        for TAG in $HOST_TAG $HOST_TAG32; do
+            TOOLCHAIN_PREFIX="$NDK_DIR/$(get_toolchain_binprefix_for_arch $ARCH $GCC_VERSION $TAG)"
+            TOOLCHAIN_PREFIX=${TOOLCHAIN_PREFIX%-}
+            CC="$TOOLCHAIN_PREFIX-gcc"
+            if [ -f "$CC" ]; then
+                break;
+            fi
+        done
         EXTRA_CFLAGS=
     fi
 
@@ -411,7 +431,7 @@ gen_shared_lib ()
 
     # Build it with our cross-compiler. It will complain about conflicting
     # types for built-in functions, so just shut it up.
-    COMMAND="$CC -Wl,-shared,-Bsymbolic -Wl,-soname,$LIBRARY -nostdlib -o $TMPO $TMPC"
+    COMMAND="$CC -Wl,-shared,-Bsymbolic -Wl,-soname,$LIBRARY -nostdlib -o $TMPO $TMPC -Wl,--exclude-libs,libgcc.a"
     echo "## COMMAND: $COMMAND" > $TMPL
     $COMMAND 1>>$TMPL 2>&1
     if [ $? != 0 ] ; then
@@ -423,7 +443,7 @@ gen_shared_lib ()
 
     # Copy to our destination now
     local libdir=$(dirname "$DSTFILE")
-    mkdir -p "$libdir" && cp -f $TMPO "$DSTFILE"
+    mkdir -p "$libdir" && rm -f "$DSTFILE" && cp -f $TMPO "$DSTFILE"
     if [ $? != 0 ] ; then
         dump "ERROR: Can't copy shared library for: $LIBNAME"
         dump "target location is: $DSTFILE"
@@ -432,8 +452,8 @@ gen_shared_lib ()
 
     if [ "$OPTION_DEBUG_LIBS" ]; then
       cp $TMPC $DSTFILE.c
-      echo "$FUNCS" > $DSTFILE.functions.txt
-      echo "$VARS" > $DSTFILE.variables.txt
+      echo "$FUNCS" | tr ' ' '\n' > $DSTFILE.functions.txt
+      echo "$VARS" | tr ' ' '\n' > $DSTFILE.variables.txt
     fi
 }
 
@@ -565,6 +585,12 @@ generate_api_level ()
     local HEADER="platforms/android-$API/arch-$ARCH/usr/include/android/api-level.h"
     log "Generating: $HEADER"
     rm -f "$3/$HEADER"  # Remove symlink if any.
+
+    # hack to replace 'L' with large number
+    if [ "$API" = "L" ]; then
+        API="9999 /*'L'*/"
+    fi
+
     cat > "$3/$HEADER" <<EOF
 /*
  * Copyright (C) 2008 The Android Open Source Project
@@ -616,6 +642,9 @@ fi
 for ARCH in $ARCHS; do
     # Find first platform for this arch
     PREV_SYSROOT_DST=
+    PREV_PLATFORM_SRC_ARCH=
+    LIBDIR=$(get_default_libdir_for_arch $ARCH)
+
     for PLATFORM in $PLATFORMS; do
         PLATFORM_DST=platforms/android-$PLATFORM   # Relative to $DSTDIR
         PLATFORM_SRC=$PLATFORM_DST                 # Relative to $SRCDIR
@@ -649,13 +678,30 @@ for ARCH in $ARCHS; do
         # into the x86 and mips android-9 directories.
         if [ -z "$PREV_SYSROOT_DST" ]; then
             for OLD_PLATFORM in $PLATFORMS; do
-                if [ "$OLD_PLATFORM" -eq "$PLATFORM" ]; then
+                if [ "$OLD_PLATFORM" = "$PLATFORM" ]; then
                     break
                 fi
                 copy_src_directory platforms/android-$OLD_PLATFORM/include \
                                    $SYSROOT_DST/include \
                                    "common android-$OLD_PLATFORM headers"
             done
+        fi
+
+        # There are two set of bionic headers: the original ones haven't been updated since
+        # gingerbread except for bug fixing, and the new ones in android-$FIRST_API64_LEVEL
+        # with 64-bit support.  Before the old bionic headers are deprecated/removed, we need
+        # to remove stale old headers when createing platform = $FIRST_API64_LEVEL
+        if [ "$PLATFORM" = "$FIRST_API64_LEVEL" ]; then
+            log "Removing stale bionic headers in \$DST/$SYSROOT_DST/include"
+            nonbionic_files="android EGL GLES GLES2 GLES3 KHR media OMXAL SLES jni.h thread_db.h zconf.h zlib.h"
+            if [ -d "$DSTDIR/$SYSROOT_DST/include/" ]; then
+                files=$(cd "$DSTDIR/$SYSROOT_DST/include/" && ls)
+                for file in $files; do
+                    if [ "$nonbionic_files" = "${nonbionic_files%%${file}*}" ]; then
+                        rm -rf "$DSTDIR/$SYSROOT_DST/include/$file"
+                    fi
+                done
+            fi
         fi
 
         # Now copy over all non-arch specific include files
@@ -666,15 +712,23 @@ for ARCH in $ARCHS; do
 
         # If --minimal is not used, copy or generate binary files.
         if [ -z "$OPTION_MINIMAL" ]; then
-            # Copy the prebuilt static libraries.
-            if [ "$ARCH" = "x86_64" ]; then
-            # We need full set for multilib compiler
-                copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib $SYSROOT_DST/lib "x86 sysroot libs"
-                copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib64 $SYSROOT_DST/lib64 "x86_64 sysroot libs"
-                copy_src_directory $PLATFORM_SRC/arch-$ARCH/libx32 $SYSROOT_DST/libx32 "x32 sysroot libs"
-            else
-                copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib $SYSROOT_DST/lib "$ARCH sysroot libs"
-            fi
+            # Copy the prebuilt static libraries.  We need full set for multilib compiler for some arch
+            case "$ARCH" in
+                x86_64)
+                    copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib $SYSROOT_DST/lib "x86 sysroot libs"
+                    copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib64 $SYSROOT_DST/lib64 "x86_64 sysroot libs"
+                    copy_src_directory $PLATFORM_SRC/arch-$ARCH/libx32 $SYSROOT_DST/libx32 "x32 sysroot libs"
+                    ;;
+                mips64)
+                    copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib $SYSROOT_DST/lib "mips -mabi=32 -mips32 sysroot libs"
+                    copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib $SYSROOT_DST/libr6 "mips -mabi=32 -mips32r6 sysroot libs"
+                    copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib64 $SYSROOT_DST/lib64r2 "mips -mabi=64 -mips64r2 sysroot libs"
+                    copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib64 $SYSROOT_DST/lib64 "mips -mabi=64 -mips64r6 sysroot libs"
+                    ;;
+                *)
+                    copy_src_directory $PLATFORM_SRC/arch-$ARCH/$LIBDIR $SYSROOT_DST/$LIBDIR "$ARCH sysroot libs"
+                    ;;
+            esac
 
             # Generate C runtime object files when available
             PLATFORM_SRC_ARCH=$PLATFORM_SRC/arch-$ARCH/src
@@ -686,35 +740,64 @@ for ARCH in $ARCHS; do
 
             # Genreate crt objects for known archs
             if [ "$(arch_in_unknown_archs $ARCH)" != "yes" ]; then
-               if [ "$ARCH" = "x86_64" ]; then
-               # We need full set for multilib compiler
-                 gen_crt_objects $PLATFORM $ARCH platforms/common/src $PLATFORM_SRC_ARCH $SYSROOT_DST/lib "-m32"
-                 gen_crt_objects $PLATFORM $ARCH platforms/common/src $PLATFORM_SRC_ARCH $SYSROOT_DST/lib64 "-m64"
-                 gen_crt_objects $PLATFORM $ARCH platforms/common/src $PLATFORM_SRC_ARCH $SYSROOT_DST/libx32 "-mx32"
-               else
-                 gen_crt_objects $PLATFORM $ARCH platforms/common/src $PLATFORM_SRC_ARCH $SYSROOT_DST/lib
-               fi
+                case "$ARCH" in
+                    x86_64)
+                        gen_crt_objects $PLATFORM $ARCH platforms/common/src $PLATFORM_SRC_ARCH $SYSROOT_DST/lib "-m32"
+                        gen_crt_objects $PLATFORM $ARCH platforms/common/src $PLATFORM_SRC_ARCH $SYSROOT_DST/lib64 "-m64"
+                        gen_crt_objects $PLATFORM $ARCH platforms/common/src $PLATFORM_SRC_ARCH $SYSROOT_DST/libx32 "-mx32"
+                        ;;
+                    mips64)
+                        gen_crt_objects $PLATFORM $ARCH platforms/common/src $PLATFORM_SRC_ARCH $SYSROOT_DST/lib "-mabi=32 -mips32"
+                        gen_crt_objects $PLATFORM $ARCH platforms/common/src $PLATFORM_SRC_ARCH $SYSROOT_DST/libr6 "-mabi=32 -mips32r6"
+                        gen_crt_objects $PLATFORM $ARCH platforms/common/src $PLATFORM_SRC_ARCH $SYSROOT_DST/lib64r2 "-mabi=64 -mips64r2"
+                        gen_crt_objects $PLATFORM $ARCH platforms/common/src $PLATFORM_SRC_ARCH $SYSROOT_DST/lib64 "-mabi=64 -mips64r6"
+                        ;;
+                    *)
+                        gen_crt_objects $PLATFORM $ARCH platforms/common/src $PLATFORM_SRC_ARCH $SYSROOT_DST/$LIBDIR
+                        ;;
+               esac
             fi
 
             # Generate shared libraries from symbol files
-            if [ "$ARCH" = "x86_64" ]; then
-               # We need full set for multilib compiler
-               gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/lib "-m32"
-               gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/lib64 "-m64"
-               gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/libx32 "-mx32"
+            if [ "$(arch_in_unknown_archs $ARCH)" = "yes" ]; then
+                gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/lib "-target le32-none-ndk"
+                gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/lib64 "-target le64-none-ndk"
             else
-               gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/lib
+                case "$ARCH" in
+                    x86_64)
+                        gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/lib "-m32"
+                        gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/lib64 "-m64"
+                        gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/libx32 "-mx32"
+                        ;;
+                    mips64)
+                        gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/lib "-mabi=32 -mips32"
+                        gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/libr6 "-mabi=32 -mips32r6"
+                        gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/lib64r2 "-mabi=64 -mips64r2"
+                        gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/lib64 "-mabi=64 -mips64r6"
+                        ;;
+                    *)
+                        gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/$LIBDIR
+                        ;;
+                esac
             fi
         else
             # Copy the prebuilt binaries to bootstrap GCC
-            if [ "$ARCH" = "x86_64" ]; then
-               # We need full set for multilib compiler
-               copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib-bootstrap/lib $SYSROOT_DST/lib "x86 sysroot libs (boostrap)"
-               copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib-bootstrap/lib64 $SYSROOT_DST/lib64 "x86_64 sysroot libs (boostrap)"
-               copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib-bootstrap/libx32 $SYSROOT_DST/libx32 "x32 sysroot libs (boostrap)"
-            else
-               copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib-bootstrap $SYSROOT_DST/lib "$ARCH sysroot libs (boostrap)"
-            fi
+            case "$ARCH" in
+                x86_64)
+                    copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib-bootstrap/lib $SYSROOT_DST/lib "x86 sysroot libs (boostrap)"
+                    copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib-bootstrap/lib64 $SYSROOT_DST/lib64 "x86_64 sysroot libs (boostrap)"
+                    copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib-bootstrap/libx32 $SYSROOT_DST/libx32 "x32 sysroot libs (boostrap)"
+                    ;;
+                mips64)
+                    copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib-bootstrap/lib $SYSROOT_DST/lib "mips -mabi=32 -mips32 sysroot libs (boostrap)"
+                    copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib-bootstrap/libr6 $SYSROOT_DST/libr6 "mips -mabi=32 -mips32r6 sysroot libs (boostrap)"
+                    copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib-bootstrap/lib64r2 $SYSROOT_DST/lib64r2 "mips -mabi=64 -mips64r2 sysroot libs (boostrap)"
+                    copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib-bootstrap/lib64 $SYSROOT_DST/lib64 "mips -mabi=64 -mips64r6 sysroot libs (boostrap)"
+                    ;;
+                *)
+                    copy_src_directory $PLATFORM_SRC/arch-$ARCH/lib-bootstrap $SYSROOT_DST/$LIBDIR "$ARCH sysroot libs (boostrap)"
+                    ;;
+            esac
         fi
         PREV_SYSROOT_DST=$SYSROOT_DST
     done
