@@ -1,0 +1,8 @@
+Commit-Queue+1: Ross McIlroy <rmcilroy@chromium.org>
+Code-Review+2: Ross McIlroy <rmcilroy@chromium.org>
+Verified+1: Ross McIlroy <rmcilroy@chromium.org>
+Submitted-by: Armand Navabi <navabi@google.com>
+Submitted-at: Thu, 17 Jul 2014 09:05:24 -0700
+Reviewed-on: https://gerrit.chromium.org/gerrit/70871
+Project: android_tools
+Branch: refs/heads/master
