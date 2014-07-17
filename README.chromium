@@ -39,6 +39,7 @@ Local Modifications:
     cd chromium-trace
     ./update.py
     cp script.js style.css $ANDROID_SDK_ROOT/tools/systrace
+- Deleted tools/lib/monitor-x86_64/configuration/org.eclipse.update/platform.xml
 -In ndk_experimental/
 - A beta version (rc3) of the r10 NDK toolchain has been added in
   ndk_experimental.
