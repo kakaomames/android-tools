@@ -23,9 +23,9 @@ Local Modifications:
   (anything under android-14)
 - Edited platforms/android-<version>/arch-arm/usr/include/math.h
   and platforms/android-<version>/arch-arm/usr/include/sys/cdefs.h
-  to work around issues with clang 3.5
+  to work around issues with clang 3.6
 - Edited stlport to force GCC to do "proper" inlining decisions
-  (see crbug/com/377433)
+  (see crbug.com/377433)
     ndk/sources/cxx-stl/stlport/stlport/stl/_construct.h
     ndk/sources/cxx-stl/stlport/stlport/stl/_vector.c
 - Added gyp files in ndk/
