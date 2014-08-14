@@ -140,7 +140,7 @@ extern const union __nan_un {
 #if 0
 typedef	__double_t	double_t;
 typedef	__float_t	float_t;
-#endif 
+#endif
 /* #endif */ /* __ISO_C_VISIBLE >= 1999 */
 
 /*
@@ -399,7 +399,7 @@ float	lgammaf_r(float, int *) __NDK_FPABI_MATH__;
  * float version of IEEE Test Vector
  */
 float	significandf(float) __NDK_FPABI_MATH__;
-/* #endif */	/* __BSD_VISIBLE */ 
+/* #endif */	/* __BSD_VISIBLE */
 
 /*
  * long double versions of ISO/POSIX math functions
@@ -528,10 +528,10 @@ double	__builtin_fma(double, double, double) __NDK_FPABI_MATH__;
 double	__builtin_hypot(double, double) __NDK_FPABI_MATH__;
 int	__builtin_ilogb(double) __NDK_FPABI_MATH__ __pure2;
 /* int	__builtin_isinf(double) __NDK_FPABI_MATH__ __pure2; */
-#if !defined(__clang__) || __clang_major__ > 3 || (__clang_major__ == 3 && __clang_minor__ >= 6)
+#if !defined(__clang__) || __clang_major__ > 3 || (__clang_major__ == 3 && __clang_minor__ >= 7)
 int	__builtin_isnan(double) __NDK_FPABI_MATH__ __pure2;
 #else
-/* clang < 3.5 has faulty prototype for __builtin_isnan */
+/* clang < 3.6 has faulty prototype for __builtin_isnan */
 #endif
 double	__builtin_lgamma(double) __NDK_FPABI_MATH__;
 long long __builtin_llrint(double) __NDK_FPABI_MATH__;
