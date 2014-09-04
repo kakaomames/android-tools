@@ -48,6 +48,10 @@ POLLY=no
 do_polly_option () { POLLY=yes; }
 register_option "--with-polly" do_polly_option "Enable Polyhedral optimizations for LLVM"
 
+MCLINKER=no
+do_mclinker_option () { MCLINKER=yes; }
+register_option "--mclinker" do_mclinker_option "Build mclinker as well"
+
 CHECK=no
 do_check_option () { CHECK=yes; }
 register_option "--check" do_check_option "Check LLVM"
@@ -179,7 +183,10 @@ LDFLAGS_FOR_BUILD="-L$TOOLCHAIN_BUILD_PREFIX/lib"
 # linux system, and libgcc_s_sjlj-1.dll and libstdc++-6.dll on windows
 LLVM_VERSION="`echo $TOOLCHAIN | tr '-' '\n' | tail -n 1`"
 if [ "$MINGW" = "yes" -o "$HOST_TAG" = "linux-x86" -o "$LLVM_VERSION" \> "3.4" ]; then
-    LDFLAGS_FOR_BUILD=$LDFLAGS_FOR_BUILD" -static-libgcc -static-libstdc++"
+    LDFLAGS_FOR_BUILD=$LDFLAGS_FOR_BUILD" -static-libstdc++"
+    if [ "$CC" = "${CC%%clang*}" ]; then
+        LDFLAGS_FOR_BUILD=$LDFLAGS_FOR_BUILD" -static-libgcc"
+    fi
 fi
 
 CFLAGS="$CFLAGS $CFLAGS_FOR_BUILD $HOST_CFLAGS"
@@ -350,7 +357,7 @@ if [ -f $TOOLCHAIN_BUILD_PREFIX/bin/llvm-config-host ] ; then
 fi
 
 # build mclinker only against default the LLVM version, once
-if [ "$TOOLCHAIN" = "llvm-$DEFAULT_LLVM_VERSION" ] ; then
+if [ "$MCLINKER" -o "$TOOLCHAIN" = "llvm-$DEFAULT_LLVM_VERSION" ] ; then
     dump "Copy     : mclinker source"
     MCLINKER_SRC_DIR=$BUILD_OUT/mclinker
     mkdir -p $MCLINKER_SRC_DIR
@@ -423,8 +430,8 @@ UNUSED_LLVM_EXECUTABLES="
 bugpoint c-index-test clang-check clang-format clang-tblgen lli llvm-bcanalyzer
 llvm-config llvm-config-host llvm-cov llvm-diff llvm-dwarfdump llvm-extract llvm-ld
 llvm-mc llvm-nm llvm-mcmarkup llvm-objdump llvm-prof llvm-ranlib llvm-readobj llvm-rtdyld
-llvm-size llvm-stress llvm-stub llvm-symbolizer llvm-tblgen macho-dump cloog lli-child-target
-not count FileCheck llvm-profdata"
+llvm-size llvm-stress llvm-stub llvm-symbolizer llvm-tblgen llvm-vtabledump macho-dump cloog
+lli-child-target not count FileCheck llvm-profdata"
 
 for i in $UNUSED_LLVM_EXECUTABLES; do
     rm -f $TOOLCHAIN_BUILD_PREFIX/bin/$i
@@ -554,6 +561,12 @@ if [ -f "$SRC_DIR/SOURCES" ]; then
     cp "$SRC_DIR/SOURCES" "$TOOLCHAIN_PATH/SOURCES"
 fi
 
+# check GLIBC/GLBICXX symbols
+if [ "$HOST_OS" = "linux" ]; then
+    SUBDIR=$(get_toolchain_install_subdir $TOOLCHAIN $HOST_TAG)
+    $ANDROID_NDK_ROOT/build/tools/check-glibc.sh $NDK_DIR/$SUBDIR
+fi
+	
 if [ "$PACKAGE_DIR" ]; then
     ARCHIVE="$TOOLCHAIN-$HOST_TAG.tar.bz2"
     SUBDIR=$(get_toolchain_install_subdir $TOOLCHAIN $HOST_TAG)

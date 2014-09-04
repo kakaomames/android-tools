@@ -493,14 +493,13 @@ NDK_ALL_PLATFORM_LEVELS := $(filter android-%,$(NDK_ALL_PLATFORMS))
 NDK_ALL_PLATFORM_LEVELS := $(patsubst android-%,%,$(NDK_ALL_PLATFORM_LEVELS))
 $(call ndk_log,Found stable platform levels: $(NDK_ALL_PLATFORM_LEVELS))
 
-# Hack to pull $(NDK_PREVIEW_LEVEL) ahead of all (numeric) level
-NDK_MAX_PLATFORM_LEVEL := 3
-_max_theoretical_api_level := 99
-$(foreach level,$(NDK_ALL_PLATFORM_LEVELS),\
-  $(eval NDK_MAX_PLATFORM_LEVEL := $$(if $$(subst $$(NDK_PREVIEW_LEVEL),,$$(level)),$$(call max,$$(NDK_MAX_PLATFORM_LEVEL),$$(level)),$(_max_theoretical_api_level)))\
-)
-ifeq ($(NDK_MAX_PLATFORM_LEVEL),$(_max_theoretical_api_level))
+ifneq (,$(filter $(NDK_PREVIEW_LEVEL),$(NDK_ALL_PLATFORM_LEVELS)))
 NDK_MAX_PLATFORM_LEVEL := $(NDK_PREVIEW_LEVEL)
+else
+NDK_MAX_PLATFORM_LEVEL := 3
+$(foreach level,$(NDK_ALL_PLATFORM_LEVELS),\
+  $(eval NDK_MAX_PLATFORM_LEVEL := $$(call max,$$(NDK_MAX_PLATFORM_LEVEL),$$(level)))\
+)
 endif
 
 $(call ndk_log,Found max platform level: $(NDK_MAX_PLATFORM_LEVEL))

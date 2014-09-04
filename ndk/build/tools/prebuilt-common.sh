@@ -31,7 +31,7 @@ NDK_BUILDTOOLS_ABSPATH=$(cd $NDK_BUILDTOOLS_PATH && pwd)
 # may contain functions missing from server runs very old libc.so.  Define __USE_OLD_LINUX_HOST_GCC=yes
 # to use the original "prebuilts/tools/gcc-sdk" with glibc2.7 sysroot
 if [ -z "$__USE_OLD_LINUX_HOST_GCC" ]; then
-    __USE_OLD_LINUX_HOST_GCC=yes
+    __USE_OLD_LINUX_HOST_GCC=yes  # no
 fi
 
 #====================================================
@@ -666,6 +666,9 @@ handle_canadian_build ()
 #
 find_mingw_toolchain ()
 {
+    if [ "$DEBIAN_NAME" -a "$BINPREFIX" -a "$MINGW_GCC" ]; then
+        return
+    fi
     # IMPORTANT NOTE: binutils 2.21 requires a cross toolchain named
     # i585-pc-mingw32msvc-gcc, or it will fail its configure step late
     # in the toolchain build. Note that binutils 2.19 can build properly
@@ -681,9 +684,6 @@ find_mingw_toolchain ()
     # Fedora note: On Fedora it's x86_64-w64-mingw32- or i686-w64-mingw32-
     # On older Fedora it's 32-bit only and called i686-pc-mingw32-
     # so we just add more prefixes to the list to check.
-    if [ -n "$MINGW_GCC" -a -n "$DEBIAN_NAME" ]; then
-        return
-    fi
     if [ "$HOST_ARCH" = "x86_64" -a "$TRY64" = "yes" ]; then
         BINPREFIX=x86_64-pc-mingw32msvc-
         BINPREFIXLST="x86_64-pc-mingw32msvc- x86_64-w64-mingw32- amd64-mingw32msvc-"
@@ -1083,7 +1083,7 @@ parse_toolchain_name ()
         ABI_CFLAGS_FOR_TARGET="-fexceptions -fpic"
         ABI_CXXFLAGS_FOR_TARGET="-frtti -fpic"
         # Add --disable-fixed-point to disable fixed-point support
-        ABI_CONFIGURE_EXTRA_FLAGS="$ABI_CONFIGURE_EXTRA_FLAGS --disable-fixed-point --disable-libgomp --disable-libatomic"
+        ABI_CONFIGURE_EXTRA_FLAGS="$ABI_CONFIGURE_EXTRA_FLAGS --disable-fixed-point"
         ;;
     mips64el*)
         ARCH="mips64"

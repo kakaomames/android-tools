@@ -449,33 +449,9 @@ SUPPORT32_SOURCES_x86=\
 
 # android/support files for libc++
 SUPPORT64_SOURCES=\
-"../../android/support/src/locale_support.c \
-../../android/support/src/musl-locale/catclose.c \
+"../../android/support/src/musl-locale/catclose.c \
 ../../android/support/src/musl-locale/catgets.c \
 ../../android/support/src/musl-locale/catopen.c \
-../../android/support/src/musl-locale/isdigit_l.c \
-../../android/support/src/musl-locale/islower_l.c \
-../../android/support/src/musl-locale/isupper_l.c \
-../../android/support/src/musl-locale/iswalpha_l.c \
-../../android/support/src/musl-locale/iswblank_l.c \
-../../android/support/src/musl-locale/iswcntrl_l.c \
-../../android/support/src/musl-locale/iswdigit_l.c \
-../../android/support/src/musl-locale/iswlower_l.c \
-../../android/support/src/musl-locale/iswprint_l.c \
-../../android/support/src/musl-locale/iswpunct_l.c \
-../../android/support/src/musl-locale/iswspace_l.c \
-../../android/support/src/musl-locale/iswupper_l.c \
-../../android/support/src/musl-locale/iswxdigit_l.c \
-../../android/support/src/musl-locale/isxdigit_l.c \
-../../android/support/src/musl-locale/strcoll_l.c \
-../../android/support/src/musl-locale/strftime_l.c \
-../../android/support/src/musl-locale/strxfrm_l.c \
-../../android/support/src/musl-locale/tolower_l.c \
-../../android/support/src/musl-locale/toupper_l.c \
-../../android/support/src/musl-locale/towlower_l.c \
-../../android/support/src/musl-locale/towupper_l.c \
-../../android/support/src/musl-locale/wcscoll_l.c \
-../../android/support/src/musl-locale/wcsxfrm_l.c \
 "
 
 # If the --no-makefile flag is not used, we're going to put all build
@@ -525,14 +501,20 @@ case $CXX_STL in
     ;;
 esac
 
+HIDDEN_VISIBILITY_FLAGS="-fvisibility=hidden -fvisibility-inlines-hidden"
+
 # By default, all static libraries include hidden ELF symbols, except
 # if one uses the --visible-static option.
 if [ -z "$VISIBLE_STATIC" ]; then
-    STATIC_CXXFLAGS="-fvisibility=hidden -fvisibility-inlines-hidden"
+    STATIC_CXXFLAGS="$HIDDEN_VISIBILITY_FLAGS"
 else
     STATIC_CXXFLAGS=
 fi
 SHARED_CXXFLAGS=
+# Mainlly deal with android_support.a
+STATIC_CONLYFLAGS="$HIDDEN_VISIBILITY_FLAGS"
+SHARED_CONLYFLAGS="$HIDDEN_VISIBILITY_FLAGS"
+
 
 # build_stl_libs_for_abi
 # $1: ABI
@@ -567,9 +549,11 @@ build_stl_libs_for_abi ()
         EXTRA_CXXFLAGS="$EXTRA_CXXFLAGS -mthumb"
     fi
 
-    if [ "$TYPE" = "static" -a -z "$VISIBLE_STATIC" ]; then
+    if [ "$TYPE" = "static" ]; then
+        EXTRA_CFLAGS="$EXTRA_CFLAGS $STATIC_CONLYFLAGS"
         EXTRA_CXXFLAGS="$EXTRA_CXXFLAGS $STATIC_CXXFLAGS"
     else
+        EXTRA_CFLAGS="$EXTRA_CFLAGS $SHARED_CONLYFLAGS"
         EXTRA_CXXFLAGS="$EXTRA_CXXFLAGS $SHARED_CXXFLAGS"
     fi
 
@@ -590,17 +574,25 @@ build_stl_libs_for_abi ()
     # libc++ built with clang (for ABI armeabi-only) produces
     # libc++_shared.so and libc++_static.a with undefined __atomic_fetch_add_4
     # Add -latomic.
-    if [ -n "$LLVM_VERSION" -a "$CXX_STL_LIB" = "libc++" -a "$ABI" = "armeabi" ]; then
-        # EHABI tables were added as experimental flags in llvm 3.4. In 3.5, these
-        # are now the defaults and the flags have been removed. Add these flags
-        # explicitly only for llvm 3.4.
-        if [ "$LLVM_VERSION" = "3.4" ]; then
-            EXTRA_CFLAGS="${EXTRA_CFLAGS} -mllvm -arm-enable-ehabi-descriptors \
-                          -mllvm -arm-enable-ehabi"
-            EXTRA_CXXFLAGS="${EXTRA_CXXFLAGS} -mllvm -arm-enable-ehabi-descriptors \
-                            -mllvm -arm-enable-ehabi"
+    if [ -n "$LLVM_VERSION" -a "$CXX_STL_LIB" = "libc++" ]; then
+        # clang3.5 use integrated-as as default, which has trouble compiling 
+        # llvm-libc++abi/libcxxabi/src/Unwind/UnwindRegistersRestore.S
+        if [ "$LLVM_VERSION" = "3.5" ]; then
+            EXTRA_CFLAGS="${EXTRA_CFLAGS} -no-integrated-as"
+            EXTRA_CXXFLAGS="${EXTRA_CXXFLAGS} -no-integrated-as"
         fi
-        EXTRA_LDFLAGS="$EXTRA_LDFLAGS -latomic"
+        if [ "$ABI" = "armeabi" ]; then
+            # EHABI tables were added as experimental flags in llvm 3.4. In 3.5, these
+            # are now the defaults and the flags have been removed. Add these flags
+            # explicitly only for llvm 3.4.
+            if [ "$LLVM_VERSION" = "3.4" ]; then
+                EXTRA_CFLAGS="${EXTRA_CFLAGS} -mllvm -arm-enable-ehabi-descriptors \
+                              -mllvm -arm-enable-ehabi"
+                EXTRA_CXXFLAGS="${EXTRA_CXXFLAGS} -mllvm -arm-enable-ehabi-descriptors \
+                                -mllvm -arm-enable-ehabi"
+	    fi
+            EXTRA_LDFLAGS="$EXTRA_LDFLAGS -latomic"
+        fi
     fi
 
     builder_begin_android $ABI "$BUILDDIR" "$GCCVER" "$LLVM_VERSION" "$MAKEFILE"
