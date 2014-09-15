@@ -357,7 +357,7 @@ if [ -f $TOOLCHAIN_BUILD_PREFIX/bin/llvm-config-host ] ; then
 fi
 
 # build mclinker only against default the LLVM version, once
-if [ "$MCLINKER" -o "$TOOLCHAIN" = "llvm-$DEFAULT_LLVM_VERSION" ] ; then
+if [ "$MCLINKER" = "yes" -o "$TOOLCHAIN" = "llvm-$DEFAULT_LLVM_VERSION" ] ; then
     dump "Copy     : mclinker source"
     MCLINKER_SRC_DIR=$BUILD_OUT/mclinker
     mkdir -p $MCLINKER_SRC_DIR

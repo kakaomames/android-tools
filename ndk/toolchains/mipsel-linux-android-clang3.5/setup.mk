@@ -53,9 +53,12 @@ TARGET_CFLAGS := \
         -target $(LLVM_TRIPLE) \
         -fpic \
         -fno-strict-aliasing \
+        -finline-functions \
         -ffunction-sections \
         -funwind-tables \
         -fmessage-length=0 \
+        -Wno-invalid-command-line-argument \
+        -Wno-unused-command-line-argument \
         -no-canonical-prefixes
 
 TARGET_LDFLAGS += \

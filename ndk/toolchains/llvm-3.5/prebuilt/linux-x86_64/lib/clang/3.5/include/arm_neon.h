@@ -24,6 +24,10 @@
 #ifndef __ARM_NEON_H
 #define __ARM_NEON_H
 
+#if defined(__i386__)
+#include "arm_neon_x86.h"
+#else
+
 #if !defined(__ARM_NEON)
 #error "NEON support not enabled"
 #endif
@@ -68378,5 +68382,7 @@ __ai int32x4_t vabal_high_s16(int32x4_t __p0, int16x8_t __p1, int16x8_t __p2) {
 #endif
 
 #undef __ai
+
+#endif // __i386__
 
 #endif /* __ARM_NEON_H */

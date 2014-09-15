@@ -266,7 +266,6 @@ get_default_binutils_version_for_llvm ()
 {
     case $1 in
         *-3.3|*-3.2) echo "2.21";;
-        *-3.4) echo "2.23";;
         *) echo "2.24";;
     esac
 }

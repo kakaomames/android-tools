@@ -1,7 +1,7 @@
 Name: Android Tools (SDK/NDK)
 URL: http://developer.android.com/sdk/index.html
 Versions:
-  NDK r10c-rc1
+  NDK r10c-rc4
   Android SDK Platform API 20
   Android SDK Tools 23.0.2
   Android SDK Platform-tools 20
@@ -19,16 +19,16 @@ build, test and debug for Android.
 Local Modifications:
 
 -In ndk/
-- Removed old android platforms in ndk/platforms
+- Removed old android platforms in platforms/
   (anything under android-14)
 - Edited platforms/android-<version>/arch-arm/usr/include/math.h
   and platforms/android-<version>/arch-arm/usr/include/sys/cdefs.h
   to work around issues with clang 3.6
 - Edited stlport to force GCC to do "proper" inlining decisions
   (see crbug.com/377433)
-    ndk/sources/cxx-stl/stlport/stlport/stl/_construct.h
-    ndk/sources/cxx-stl/stlport/stlport/stl/_vector.c
-- Added gyp files in ndk/
+    sources/cxx-stl/stlport/stlport/stl/_construct.h
+    sources/cxx-stl/stlport/stlport/stl/_vector.c
+- Added gyp files
     android_tools_ndk.gyp
     crazy_linker.gyp
 

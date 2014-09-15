@@ -1,4 +1,4 @@
-From 1f7116320843169cc9ea4b4a65a5e4c66db1bd10 Mon Sep 17 00:00:00 2001
+From 98a7f874f42aa13fc775793976d3a595674f771f Mon Sep 17 00:00:00 2001
 From: Andrew Hsieh <andrewhsieh@google.com>
 Date: Mon, 14 Apr 2014 11:15:08 -0700
 Subject: [PATCH 3/3] Allow multiple --no-warn-mismatch
@@ -22,7 +22,7 @@ index 40ac2dc..902fac1 100644
    llvm::cl::init(false));
  
 diff --git a/tools/mcld/main.cpp b/tools/mcld/main.cpp
-index 6a28c91..b8795dd 100644
+index 1f797bd..699e704 100644
 --- a/tools/mcld/main.cpp
 +++ b/tools/mcld/main.cpp
 @@ -734,6 +734,7 @@ ArgARMCompatibility("p",
@@ -34,5 +34,5 @@ index 6a28c91..b8795dd 100644
                    cl::init(false));
  
 -- 
-1.9.1.423.g4596e3a
+2.1.0.rc2.206.gedb03e5
 
