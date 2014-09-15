@@ -16,6 +16,24 @@
       "revId": "7fc902d157a9aed7a2b68adc9c69181b3a43cd58",
       "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "AAAAdn//XPA\u003d",
+        "filename": "README.chromium",
+        "patchSetId": 1
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1116524
+      },
+      "writtenOn": "2014-09-15T13:26:24Z",
+      "side": 0,
+      "message": "I did it for consistency, some of the lines did not have ndk/, the others did. The first line should make it clear we\u0027re talking about the ndk sub-directory.\nI can change it back if you feel strongly about it.",
+      "parentUuid": "AAAAdn//XPI\u003d",
+      "revId": "7fc902d157a9aed7a2b68adc9c69181b3a43cd58",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
     }
   ]
 }
