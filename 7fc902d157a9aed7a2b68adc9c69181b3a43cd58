@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "AAAAdn//XPI\u003d",
+        "filename": "README.chromium",
+        "patchSetId": 1
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1002871
+      },
+      "writtenOn": "2014-09-15T13:22:13Z",
+      "side": 0,
+      "message": "Any reason for removing references to /ndk?\nThe point is that android_tools contains both the NDK and the SDK, so these references serve to disambiguate that, I think.",
+      "revId": "7fc902d157a9aed7a2b68adc9c69181b3a43cd58",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
+    }
+  ]
+}
