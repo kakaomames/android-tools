@@ -2,12 +2,12 @@ Name: Android Tools (SDK/NDK)
 URL: http://developer.android.com/sdk/index.html
 Versions:
   NDK r10c-rc4
-  Android SDK Platform API 20
-  Android SDK Tools 23.0.2
-  Android SDK Platform-tools 20
+  Android SDK Platform API 21
+  Android SDK Tools 23.0.5
+  Android SDK Platform-tools 21
   Android SDK Build-tools 20.0.0
-  Android SDK Sources 20
-  Android Support Library 20
+  Android SDK Sources 21
+  Android Support Library 21
   Google Cloud Messaging 3
 Security Critical: no
 License: Apache Version 2.0
@@ -33,7 +33,7 @@ Local Modifications:
     crazy_linker.gyp
 
 -In sdk/
-- Included the Android support library (version 19.1)
+- Included the Android support library (version 21)
 - Removed unused resources from the support library (see crbug.com/372481)
 - Updated trace-viewer script to r220 under sdk/tools/systrace.
   Steps to update to the latest version of trace-viewer:

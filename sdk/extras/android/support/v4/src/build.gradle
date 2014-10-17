@@ -1,6 +1,11 @@
 apply plugin: 'android-library'
 archivesBaseName = 'support-v4'
 
+// create a jar task for the code internal implementation
+tasks.create(name: "internalJar", type: Jar) {
+    baseName "internal_impl"
+}
+
 // --------------------------
 // TO ADD NEW PLATFORM SPECIFIC CODE, UPDATE THIS:
 // create and configure the sourcesets/dependencies for platform-specific code.
@@ -14,7 +19,8 @@ def eclairMr1SS    = createApiSourceset('eclairmr1',    'eclair-mr1',    '7',   
 def froyoSS        = createApiSourceset('froyo',        'froyo',         '8',       eclairMr1SS)
 def gingerbreadSS  = createApiSourceset('gingerbread',  'gingerbread',   '9',       froyoSS)
 def honeycombSS    = createApiSourceset('honeycomb',    'honeycomb',     '11',      gingerbreadSS)
-def honeycombMr2SS = createApiSourceset('honeycombmr2', 'honeycomb_mr2', '13',      honeycombSS)
+def honeycombMr1SS = createApiSourceset('honeycombmr1', 'honeycomb_mr1', '12',      honeycombSS)
+def honeycombMr2SS = createApiSourceset('honeycombmr2', 'honeycomb_mr2', '13',      honeycombMr1SS)
 def icsSS          = createApiSourceset('ics',          'ics',           '14',      honeycombMr2SS)
 def icsMr1SS       = createApiSourceset('icsmr1',       'ics-mr1',       '15',      icsSS)
 def jbSS           = createApiSourceset('jellybean',    'jellybean',     '16',      icsMr1SS)
@@ -22,6 +28,7 @@ def jbMr1SS        = createApiSourceset('jellybeanmr1', 'jellybean-mr1', '17',  
 def jbMr2SS        = createApiSourceset('jellybeanmr2', 'jellybean-mr2', '18',      jbMr1SS)
 def kitkatSS       = createApiSourceset('kitkat',       'kitkat',        '19',      jbMr2SS)
 def api20SS        = createApiSourceset('api20',        'api20',         'current', kitkatSS)
+def api21SS        = createApiSourceset('api21',        'api21',         'current', api20SS)
 
 
 def createApiSourceset(String name, String folder, String apiLevel, SourceSet previousSource) {
@@ -35,21 +42,15 @@ def createApiSourceset(String name, String folder, String apiLevel, SourceSet pr
         setupDependencies(configName, previousSource)
     }
     ext.allSS.add(sourceSet)
+
+    internalJar.from sourceSet.output
+
     return sourceSet
 }
 
 def setupDependencies(String configName, SourceSet previousSourceSet) {
     project.getDependencies().add(configName, previousSourceSet.output)
     project.getDependencies().add(configName, previousSourceSet.compileClasspath)
-}
-
-// create a jar task for the code above
-tasks.create(name: "internalJar", type: Jar) {
-    baseName "internal_impl"
-}
-
-ext.allSS.each { ss ->
-    internalJar.from ss.output
 }
 
 dependencies {
