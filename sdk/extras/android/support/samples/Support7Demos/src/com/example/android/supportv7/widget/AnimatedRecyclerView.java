@@ -15,6 +15,7 @@
  */
 package com.example.android.supportv7.widget;
 
+import android.support.v4.util.ArrayMap;
 import android.widget.CompoundButton;
 import com.example.android.supportv7.R;
 import android.app.Activity;
@@ -45,9 +46,9 @@ public class AnimatedRecyclerView extends Activity {
     ArrayList<String> mItems = new ArrayList<String>();
     MyAdapter mAdapter;
 
-    static final boolean USE_CUSTOM_ANIMATIONS = false;
-
     boolean mAnimationsEnabled = true;
+    boolean mPredictiveAnimationsEnabled = true;
+    RecyclerView.ItemAnimator mCachedAnimator = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,6 +57,7 @@ public class AnimatedRecyclerView extends Activity {
 
         ViewGroup container = (ViewGroup) findViewById(R.id.container);
         mRecyclerView = new RecyclerView(this);
+        mCachedAnimator = mRecyclerView.getItemAnimator();
         mRecyclerView.setLayoutManager(new MyLayoutManager(this));
         mRecyclerView.setHasFixedSize(true);
         mRecyclerView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
@@ -71,7 +73,30 @@ public class AnimatedRecyclerView extends Activity {
         enableAnimations.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked && mRecyclerView.getItemAnimator() == null) {
+                    mRecyclerView.setItemAnimator(mCachedAnimator);
+                } else if (!isChecked && mRecyclerView.getItemAnimator() != null) {
+                    mRecyclerView.setItemAnimator(null);
+                }
                 mAnimationsEnabled = isChecked;
+            }
+        });
+
+        CheckBox enablePredictiveAnimations =
+                (CheckBox) findViewById(R.id.enablePredictiveAnimations);
+        enablePredictiveAnimations.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                mPredictiveAnimationsEnabled = isChecked;
+            }
+        });
+
+        CheckBox enableChangeAnimations =
+                (CheckBox) findViewById(R.id.enableChangeAnimations);
+        enableChangeAnimations.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                mCachedAnimator.setSupportsChangeAnimations(isChecked);
             }
         });
     }
@@ -94,6 +119,13 @@ public class AnimatedRecyclerView extends Activity {
         boolean selected = ((CheckBox) view).isChecked();
         MyViewHolder holder = (MyViewHolder) mRecyclerView.getChildViewHolder(parent);
         mAdapter.selectItem(holder, selected);
+    }
+
+    public void itemClicked(View view) {
+        ViewGroup parent = (ViewGroup) view;
+        MyViewHolder holder = (MyViewHolder) mRecyclerView.getChildViewHolder(parent);
+        mAdapter.toggleExpanded(holder);
+        mAdapter.notifyItemChanged(holder.getPosition());
     }
 
     public void deleteItem(View view) {
@@ -127,6 +159,7 @@ public class AnimatedRecyclerView extends Activity {
     private void addAtPosition(int position, String text) {
         mItems.add(position, text);
         mAdapter.mSelected.put(text, Boolean.FALSE);
+        mAdapter.mExpanded.put(text, Boolean.FALSE);
         mAdapter.notifyItemInserted(position);
     }
 
@@ -158,8 +191,8 @@ public class AnimatedRecyclerView extends Activity {
         }
 
         @Override
-        public boolean supportsItemAnimations() {
-            return mAnimationsEnabled;
+        public boolean supportsPredictiveItemAnimations() {
+            return mPredictiveAnimationsEnabled;
         }
 
         @Override
@@ -186,44 +219,47 @@ public class AnimatedRecyclerView extends Activity {
                 View v = recycler.getViewForPosition(mFirstPosition + i);
 
                 RecyclerView.LayoutParams params = (RecyclerView.LayoutParams) v.getLayoutParams();
-                if (!params.isItemRemoved()) {
-                    addView(v);
-                }
+                addView(v);
                 measureChild(v, 0, 0);
                 bottom = top + v.getMeasuredHeight();
                 v.layout(left, top, right, bottom);
-                if (params.isItemRemoved()) {
+                if (mPredictiveAnimationsEnabled && params.isItemRemoved()) {
                     parentBottom += v.getHeight();
                 }
             }
 
-            // Now that we've run a full layout, figure out which views were not used
-            // (cached in previousViews). For each of these views, position it where
-            // it would go, according to its position relative to the visible
-            // positions in the list. This information will be used by RecyclerView to
-            // record post-layout positions of these items for the purposes of animating them
-            // out of view
+            if (mAnimationsEnabled && mPredictiveAnimationsEnabled && !state.isPreLayout()) {
+                // Now that we've run a full layout, figure out which views were not used
+                // (cached in previousViews). For each of these views, position it where
+                // it would go, according to its position relative to the visible
+                // positions in the list. This information will be used by RecyclerView to
+                // record post-layout positions of these items for the purposes of animating them
+                // out of view
 
-            View lastVisibleView = getChildAt(getChildCount() - 1);
-            if (lastVisibleView != null) {
-                RecyclerView.LayoutParams lastParams =
-                        (RecyclerView.LayoutParams) lastVisibleView.getLayoutParams();
-                int lastPosition = lastParams.getViewPosition();
-                final List<RecyclerView.ViewHolder> previousViews = recycler.getScrapList();
-                count = previousViews.size();
-                for (int i = 0; i < count; ++i) {
-                    View view = previousViews.get(i).itemView;
-                    RecyclerView.LayoutParams params =
-                            (RecyclerView.LayoutParams) view.getLayoutParams();
-                    int position = params.getViewPosition();
-                    int newTop;
-                    if (position < mFirstPosition) {
-                        newTop = view.getHeight() * (position - mFirstPosition);
-                    } else {
-                        newTop = lastVisibleView.getTop() + view.getHeight() *
-                                (position - lastPosition);
+                View lastVisibleView = getChildAt(getChildCount() - 1);
+                if (lastVisibleView != null) {
+                    RecyclerView.LayoutParams lastParams =
+                            (RecyclerView.LayoutParams) lastVisibleView.getLayoutParams();
+                    int lastPosition = lastParams.getViewPosition();
+                    final List<RecyclerView.ViewHolder> previousViews = recycler.getScrapList();
+                    count = previousViews.size();
+                    for (int i = 0; i < count; ++i) {
+                        View view = previousViews.get(i).itemView;
+                        RecyclerView.LayoutParams params =
+                                (RecyclerView.LayoutParams) view.getLayoutParams();
+                        if (params.isItemRemoved()) {
+                            continue;
+                        }
+                        int position = params.getViewPosition();
+                        int newTop;
+                        if (position < mFirstPosition) {
+                            newTop = view.getHeight() * (position - mFirstPosition);
+                        } else {
+                            newTop = lastVisibleView.getTop() + view.getHeight() *
+                                    (position - lastPosition);
+                        }
+                        view.offsetTopAndBottom(newTop - view.getTop());
                     }
-                    view.offsetTopAndBottom(newTop - view.getTop());
                 }
             }
         }
@@ -276,7 +312,7 @@ public class AnimatedRecyclerView extends Activity {
                     final int scrollBy = -Math.min(dy - scrolled, hangingBottom);
                     scrolled -= scrollBy;
                     offsetChildrenVertical(scrollBy);
-                    if (scrolled < dy && getItemCount() > mFirstPosition + getChildCount()) {
+                    if (scrolled < dy && state.getItemCount() > mFirstPosition + getChildCount()) {
                         View v = recycler.getViewForPosition(mFirstPosition + getChildCount());
                         final int top = getChildAt(getChildCount() - 1).getBottom();
                         addView(v);
@@ -322,7 +358,7 @@ public class AnimatedRecyclerView extends Activity {
                 }
             }
             if (direction == View.FOCUS_DOWN || direction == View.FOCUS_FORWARD) {
-                while (mFirstPosition + getChildCount() < getItemCount() &&
+                while (mFirstPosition + getChildCount() < state.getItemCount() &&
                         newViewsHeight < mScrollDistance) {
                     View v = recycler.getViewForPosition(mFirstPosition + getChildCount());
                     final int top = getChildAt(getChildCount() - 1).getBottom();
@@ -389,7 +425,8 @@ public class AnimatedRecyclerView extends Activity {
     class MyAdapter extends RecyclerView.Adapter {
         private int mBackground;
         List<String> mData;
-        HashMap<String, Boolean> mSelected = new HashMap<String, Boolean>();
+        ArrayMap<String, Boolean> mSelected = new ArrayMap<String, Boolean>();
+        ArrayMap<String, Boolean> mExpanded = new ArrayMap<String, Boolean>();
 
         public MyAdapter(List<String> data) {
             TypedValue val = new TypedValue();
@@ -399,6 +436,7 @@ public class AnimatedRecyclerView extends Activity {
             mData = data;
             for (String itemText : mData) {
                 mSelected.put(itemText, Boolean.FALSE);
+                mExpanded.put(itemText, Boolean.FALSE);
             }
         }
 
@@ -416,11 +454,20 @@ public class AnimatedRecyclerView extends Activity {
         public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
             String itemText = mData.get(position);
             ((MyViewHolder) holder).textView.setText(itemText);
+            ((MyViewHolder) holder).expandedText.setText("More text for the expanded version");
             boolean selected = false;
             if (mSelected.get(itemText) != null) {
                 selected = mSelected.get(itemText);
             }
             ((MyViewHolder) holder).checkBox.setChecked(selected);
+            Boolean expanded = mExpanded.get(itemText);
+            if (expanded != null && expanded) {
+                ((MyViewHolder) holder).expandedText.setVisibility(View.VISIBLE);
+                ((MyViewHolder) holder).textView.setVisibility(View.GONE);
+            } else {
+                ((MyViewHolder) holder).expandedText.setVisibility(View.GONE);
+                ((MyViewHolder) holder).textView.setVisibility(View.VISIBLE);
+            }
         }
 
         @Override
@@ -435,14 +482,21 @@ public class AnimatedRecyclerView extends Activity {
         public void selectItem(MyViewHolder holder, boolean selected) {
             mSelected.put((String) holder.textView.getText(), selected);
         }
+
+        public void toggleExpanded(MyViewHolder holder) {
+            String text = (String) holder.textView.getText();
+            mExpanded.put(text, !mExpanded.get(text));
+        }
     }
 
     static class MyViewHolder extends RecyclerView.ViewHolder {
+        public TextView expandedText;
         public TextView textView;
         public CheckBox checkBox;
 
         public MyViewHolder(View v) {
             super(v);
+            expandedText = (TextView) v.findViewById(R.id.expandedText);
             textView = (TextView) v.findViewById(R.id.text);
             checkBox = (CheckBox) v.findViewById(R.id.selected);
         }
@@ -451,4 +505,5 @@ public class AnimatedRecyclerView extends Activity {
         public String toString() {
             return super.toString() + " \"" + textView.getText() + "\"";
         }
-    }}
+    }
+}
