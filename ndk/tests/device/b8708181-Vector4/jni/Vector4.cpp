@@ -7,7 +7,7 @@
  */
 int main()
 {
-    return 0; // Skip this test (Should not assume vector4 type on le32 triple)
+    return 0;
 }
 
 #else

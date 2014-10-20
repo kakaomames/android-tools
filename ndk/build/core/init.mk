@@ -491,16 +491,17 @@ $(foreach _platform,$(NDK_ALL_PLATFORMS),\
 NDK_PREVIEW_LEVEL := L
 NDK_ALL_PLATFORM_LEVELS := $(filter android-%,$(NDK_ALL_PLATFORMS))
 NDK_ALL_PLATFORM_LEVELS := $(patsubst android-%,%,$(NDK_ALL_PLATFORM_LEVELS))
+ifneq (,$(filter $(NDK_PREVIEW_LEVEL),$(NDK_ALL_PLATFORM_LEVELS)))
+    $(call __ndk_info,Please remove stale preview platforms/android-$(NDK_PREVIEW_LEVEL))
+    $(call __ndk_info,API level android-L is renamed as android-21.)
+    $(call __ndk_error,Aborting)
+endif
 $(call ndk_log,Found stable platform levels: $(NDK_ALL_PLATFORM_LEVELS))
 
-ifneq (,$(filter $(NDK_PREVIEW_LEVEL),$(NDK_ALL_PLATFORM_LEVELS)))
-NDK_MAX_PLATFORM_LEVEL := $(NDK_PREVIEW_LEVEL)
-else
 NDK_MAX_PLATFORM_LEVEL := 3
 $(foreach level,$(NDK_ALL_PLATFORM_LEVELS),\
   $(eval NDK_MAX_PLATFORM_LEVEL := $$(call max,$$(NDK_MAX_PLATFORM_LEVEL),$$(level)))\
 )
-endif
 
 $(call ndk_log,Found max platform level: $(NDK_MAX_PLATFORM_LEVEL))
 
@@ -553,7 +554,7 @@ endif
 endif
 
 # The first API level ndk-build enforces -fPIE for executable
-NDK_PIE_PLATFORM_LEVEL := 16
+NDK_FIRST_PIE_PLATFORM_LEVEL := 16
 
 # the list of all toolchains in this NDK
 NDK_ALL_TOOLCHAINS :=
