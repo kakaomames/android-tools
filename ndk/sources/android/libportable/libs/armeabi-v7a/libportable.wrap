@@ -5,6 +5,8 @@
 --wrap=__swap16md
 --wrap=__swap32md
 --wrap=feclearexcept
+--wrap=fedisableexcept
+--wrap=feenableexcept
 --wrap=fegetenv
 --wrap=fegetexceptflag
 --wrap=fegetround
@@ -15,3 +17,15 @@
 --wrap=fesetround
 --wrap=fetestexcept
 --wrap=feupdateenv
+--wrap=fstat
+--wrap=fstat64
+--wrap=fstatat
+--wrap=fstatat64
+--wrap=fstatfs
+--wrap=fstatfs64
+--wrap=lstat
+--wrap=lstat64
+--wrap=stat
+--wrap=stat64
+--wrap=statfs
+--wrap=statfs64

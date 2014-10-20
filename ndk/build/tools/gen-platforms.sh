@@ -51,6 +51,12 @@ extract_platforms_from ()
     fi
 }
 
+# Override tmp file to be predictable
+TMPC=/tmp/ndk-$USER/tmp/tests/tmp-platform.c
+TMPO=/tmp/ndk-$USER/tmp/tests/tmp-platform.o
+TMPE=/tmp/ndk-$USER/tmp/tests/tmp-platform$EXE
+TMPL=/tmp/ndk-$USER/tmp/tests/tmp-platform.log
+
 SRCDIR="../development/ndk"
 DSTDIR="$ANDROID_NDK_ROOT"
 
@@ -184,11 +190,6 @@ if [ -n "$OPTION_PLATFORM" ] ; then
 else
     # Build the list from the content of SRCDIR
     PLATFORMS=`extract_platforms_from "$SRCDIR"`
-    # hack to place non-numeric level 'L' (lmp-preview) at the very end
-    if [ "$PLATFORMS" != "${PLATFORMS%%L*}" ] ; then
-        PLATFORMS=`echo $PLATFORMS | tr -d 'L'`
-        PLATFORMS="$PLATFORMS L"
-    fi
     log "Using platforms: $PLATFORMS"
 fi
 
@@ -474,6 +475,10 @@ gen_shared_libraries ()
 
     # Let's locate the toolchain we're going to use
     CC=$(get_default_compiler_for_arch $ARCH)" $FLAGS"
+    if [ $? != 0 ]; then
+        echo $CC
+        exit 1
+    fi
 
     # In certain cases, the symbols directory doesn't exist,
     # e.g. on x86 for PLATFORM < 9
@@ -522,6 +527,10 @@ gen_crt_objects ()
 
     # Let's locate the toolchain we're going to use
     CC=$(get_default_compiler_for_arch $ARCH)" $FLAGS"
+    if [ $? != 0 ]; then
+        echo $CC
+        exit 1
+    fi
 
     CRTBRAND_S=$DST_DIR/crtbrand.s
     log "Generating platform $API crtbrand assembly code: $CRTBRAND_S"
@@ -589,12 +598,6 @@ generate_api_level ()
     local HEADER="platforms/android-$API/arch-$ARCH/usr/include/android/api-level.h"
     log "Generating: $HEADER"
     rm -f "$3/$HEADER"  # Remove symlink if any.
-
-    # hack to replace 'L' with large number
-    if [ "$API" = "L" ]; then
-        API="9999 /*'L'*/"
-    fi
-
     cat > "$3/$HEADER" <<EOF
 /*
  * Copyright (C) 2008 The Android Open Source Project
@@ -644,12 +647,14 @@ if [ -z "$OPTION_OVERLAY" ]; then
     rm -rf $DSTDIR/platforms && mkdir -p $DSTDIR/platforms
 fi
 for ARCH in $ARCHS; do
+    echo "## Generating arch: $ARCH"
     # Find first platform for this arch
     PREV_SYSROOT_DST=
     PREV_PLATFORM_SRC_ARCH=
     LIBDIR=$(get_default_libdir_for_arch $ARCH)
 
     for PLATFORM in $PLATFORMS; do
+        echo "## Generating platform: $PLATFORM"
         PLATFORM_DST=platforms/android-$PLATFORM   # Relative to $DSTDIR
         PLATFORM_SRC=$PLATFORM_DST                 # Relative to $SRCDIR
         SYSROOT_DST=$PLATFORM_DST/arch-$ARCH/usr

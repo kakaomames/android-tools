@@ -148,7 +148,7 @@ if [ "$MINGW" != "yes" -a "$DARWIN" != "yes" ] ; then
 fi
 
 if [ "$MINGW" = "yes" -a "$TRY64" != "yes" ]; then
-    # Clang3.5 and later needs gcc4.7+ to build, and some of 
+    # Clang3.5 and later needs gcc4.7+ to build, and some of
     # cross toolchain "i586-*" we search for in find_mingw_toolchain()
     # can no longer build.  One solution is to provide DEBIAN_NAME=mingw32
     # BINPREFIX=i686-pc-mingw32msvc- MINGW_GCC=/path/to/i686-w64-mingw32,
@@ -367,6 +367,15 @@ if [ "$MCLINKER" = "yes" -o "$TOOLCHAIN" = "llvm-$DEFAULT_LLVM_VERSION" ] ; then
     fail_panic "Couldn't copy mclinker source: $MCLINKER_SRC_DIR"
 
     CXXFLAGS="$CXXFLAGS -fexceptions"  # optimized/ScriptParser.cc needs it
+    if [ "$MINGW" = "yes" ] ; then
+      # Windows dll targets is already build with position independent code, so adding
+      # -fPIC is considered insult to mingw-64 compilers which complains and dies
+      # if -Werror is also on
+      # 
+      #  addng .../mclinker/lib/ADT/StringEntry.cpp:1:0: error: -fPIC ignored for target (all code is position independent) [-Werror]
+      # 
+        CXXFLAGS="$CXXFLAGS -Wno-error"
+    fi
     export CXXFLAGS
 
     cd $MCLINKER_SRC_DIR && run ./autogen.sh
@@ -431,7 +440,7 @@ bugpoint c-index-test clang-check clang-format clang-tblgen lli llvm-bcanalyzer
 llvm-config llvm-config-host llvm-cov llvm-diff llvm-dwarfdump llvm-extract llvm-ld
 llvm-mc llvm-nm llvm-mcmarkup llvm-objdump llvm-prof llvm-ranlib llvm-readobj llvm-rtdyld
 llvm-size llvm-stress llvm-stub llvm-symbolizer llvm-tblgen llvm-vtabledump macho-dump cloog
-lli-child-target not count FileCheck llvm-profdata"
+llvm-vtabledump lli-child-target not count FileCheck llvm-profdata"
 
 for i in $UNUSED_LLVM_EXECUTABLES; do
     rm -f $TOOLCHAIN_BUILD_PREFIX/bin/$i
