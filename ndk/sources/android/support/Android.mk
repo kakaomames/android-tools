@@ -23,16 +23,10 @@ android_support_sources := \
     src/locale/localeconv.c \
     src/locale/newlocale.c \
     src/locale/uselocale.c \
-    src/stdio/fscanf.c \
-    src/stdio/scanf.c \
-    src/stdio/sscanf.c \
     src/stdio/stdio_impl.c \
     src/stdio/strtod.c \
     src/stdio/vfprintf.c \
-    src/stdio/vfscanf.c \
     src/stdio/vfwprintf.c \
-    src/stdio/vscanf.c \
-    src/stdio/vsscanf.c \
     src/msun/e_log2.c \
     src/msun/e_log2f.c \
     src/msun/s_nan.c \
@@ -150,7 +144,8 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := android_support
 LOCAL_SRC_FILES := $(android_support_sources)
 LOCAL_C_INCLUDES := $(android_support_c_includes)
-LOCAL_CFLAGS += -Drestrict=__restrict__ -ffunction-sections -fdata-sections -fvisibility=hidden -fvisibility-inlines-hidden
+LOCAL_CFLAGS += -Drestrict=__restrict__ -ffunction-sections -fdata-sections -fvisibility=hidden
+LOCAL_CPPFLAGS += -fvisibility-inlines-hidden
 
 # These Clang warnings are triggered by the Musl sources. The code is fine,
 # but we don't want to modify it. TODO(digit): This is potentially dangerous,

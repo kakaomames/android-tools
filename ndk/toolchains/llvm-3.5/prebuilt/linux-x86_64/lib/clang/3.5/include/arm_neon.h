@@ -27,7 +27,6 @@
 #if defined(__i386__)
 #include "arm_neon_x86.h"
 #else
-
 #if !defined(__ARM_NEON)
 #error "NEON support not enabled"
 #endif

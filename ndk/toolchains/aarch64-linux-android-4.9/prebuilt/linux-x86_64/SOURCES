@@ -13,9 +13,9 @@ toolchain/python.git                   0d4194853e08d3244931523470331c00dfb94863 
 toolchain/perl.git                     1121daca35c6c692602621eab28d4de19f0b347d Add -Dcc_as_ld to configure
 toolchain/mclinker.git                 5fca8b9c9c671d6c01f428c00ca131e65042a9fd Merge upstream mclinker 2.7
 toolchain/yasm.git                     87c09baff80ca5bbe938392d8f320e621707f317 test commit
-toolchain/clang.git (release_34)       93fb9b3846bf0de34125b9b556d73dbe88c0175a Backport of clang svn@r211688
-toolchain/llvm.git (release_34)        b575a08d23ced75e304869d9e3f06b15c5368ab7 Backport of clang svn@r216114
+toolchain/clang.git (release_34)       a284801985744bd9667b9d14f079b3a2e8b19130 [ndk] Define __USER_LABEL_PREFIX__ to empty string.
+toolchain/llvm.git (release_34)        b2631bf0dc9579ddfb4bc1afdf7998c12fa268af Merge "python: AC_PATH_PROG -> AC_PATH_PROGS and fix search order" into release_34
 toolchain/compiler-rt.git (release_34) 4f9b4718e8d836317c224955a1e87b7bb5252ae1 Update clear_cache to trunk@208591
 toolchain/clang.git (release_33)       605eefd99fed56bcb7dec02f2776908b1df91646 Align with new GCC options for x86 Android These changes are based on revision 211688 from clang 3.5
-toolchain/llvm.git (release_33)        8609a3469a8126eb6fb99ff65906bcc20c272d95 [ndk] Fix createBranchWeights() assertions.
+toolchain/llvm.git (release_33)        947d8f8b536922edc7b5d57275a1e7495df2febe Merge "python: AC_PATH_PROG -> AC_PATH_PROGS and fix search order" into release_33
 toolchain/compiler-rt.git (release_33) c880feaaa8829681a025d29a33704c18e21e87e1 Misc fixes for compiler_rt

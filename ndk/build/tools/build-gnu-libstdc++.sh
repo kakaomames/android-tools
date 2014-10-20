@@ -42,7 +42,8 @@ The output will be placed in appropriate sub-directories of
 <ndk>/$GNUSTL_SUBDIR/<gcc-version>, but you can override this with the --out-dir=<path>
 option.
 "
-GCC_VERSION_LIST=$DEFAULT_GCC_VERSION_LIST
+
+GCC_VERSION_LIST=
 register_var_option "--gcc-version-list=<vers>" GCC_VERSION_LIST "List of GCC versions"
 
 PACKAGE_DIR=
@@ -73,6 +74,13 @@ register_var_option "--with-debug-info" WITH_DEBUG_INFO "Build with -g.  STL is 
 register_jobs_option
 
 extract_parameters "$@"
+
+# set compiler version to any even earlier than default
+EXPLICIT_COMPILER_VERSION=1
+if [ -z "$GCC_VERSION_LIST" ]; then
+    EXPLICIT_COMPILER_VERSION=
+    GCC_VERSION_LIST=$DEFAULT_GCC_VERSION_LIST
+fi
 
 SRCDIR=$(echo $PARAMETERS | sed 1q)
 check_toolchain_src_dir "$SRCDIR"
@@ -205,16 +213,22 @@ build_gnustl_for_abi ()
 
     export LDFLAGS="-lc $EXTRA_FLAGS"
 
-    if [ "$ABI" = "armeabi-v7a" -o "$ABI" = "armeabi-v7a-hard" ]; then
-        CXXFLAGS=$CXXFLAGS" -march=armv7-a -mfpu=vfpv3-d16"
-        LDFLAGS=$LDFLAGS" -Wl,--fix-cortex-a8"
-        if [ "$ABI" != "armeabi-v7a-hard" ]; then
-            CXXFLAGS=$CXXFLAGS" -mfloat-abi=softfp"
-        else
-            CXXFLAGS=$CXXFLAGS" -mhard-float -D_NDK_MATH_NO_SOFTFP=1"
-            LDFLAGS=$LDFLAGS" -Wl,--no-warn-mismatch -lm_hard"
-        fi
-    fi
+    case $ABI in
+        armeabi-v7a|armeabi-v7a-hard)
+            CXXFLAGS=$CXXFLAGS" -march=armv7-a -mfpu=vfpv3-d16"
+            LDFLAGS=$LDFLAGS" -Wl,--fix-cortex-a8"
+            if [ "$ABI" != "armeabi-v7a-hard" ]; then
+                CXXFLAGS=$CXXFLAGS" -mfloat-abi=softfp"
+            else
+                CXXFLAGS=$CXXFLAGS" -mhard-float -D_NDK_MATH_NO_SOFTFP=1"
+                LDFLAGS=$LDFLAGS" -Wl,--no-warn-mismatch -lm_hard"
+            fi
+            ;;
+        arm64-v8a)
+            CFLAGS="$CFLAGS -mfix-cortex-a53-835769"
+            CXXFLAGS=$CXXFLAGS" -mfix-cortex-a53-835769"
+            ;;
+    esac
 
     LIBTYPE_FLAGS=
     if [ $LIBTYPE = "static" ]; then
@@ -378,7 +392,7 @@ for ABI in $ABIS; do
     DEFAULT_GCC_VERSION=$(get_default_gcc_version_for_arch $ARCH)
     for VERSION in $GCC_VERSION_LIST; do
         # Only build for this GCC version if it on or after DEFAULT_GCC_VERSION
-        if [ "${VERSION%%l}" \< "$DEFAULT_GCC_VERSION" ]; then
+        if [ -z "$EXPLICIT_COMPILER_VERSION" ] && version_is_greater_than "$DEFAULT_GCC_VERSION" "${VERSION%%l}"; then
             continue
         fi
 

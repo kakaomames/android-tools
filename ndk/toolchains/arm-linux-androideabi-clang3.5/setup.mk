@@ -56,13 +56,9 @@ TARGET_CFLAGS := \
     -Wno-unused-command-line-argument \
     -no-canonical-prefixes
 
-ifneq ($(HOST_OS),darwin)
-# In darwin clang3.5 is actually clang3.4 (before 3.5 can be built on MacOSX 10.6)
-# clang3.4 doesn't have integrated-as default, and warn about -fno-integrated-as 
-# isn't used, which can be turned into error thanks to Werror
+# Disable integrated-as for better compatibility
 TARGET_CFLAGS += \
     -fno-integrated-as 
-endif
 
 TARGET_LDFLAGS += \
     -gcc-toolchain $(call host-path,$(TOOLCHAIN_PREBUILT_ROOT)) \

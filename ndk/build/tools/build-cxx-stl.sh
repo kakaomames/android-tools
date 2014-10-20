@@ -259,7 +259,9 @@ src/cxa.c"
 LIBCXX_LINKER_SCRIPT=export_symbols.txt
 LIBCXX_CFLAGS="$COMMON_C_CXX_FLAGS $LIBCXX_INCLUDES -Drestrict=__restrict__"
 LIBCXX_CXXFLAGS="$LIBCXX_CFLAGS -DLIBCXXABI=1 -std=c++11"
-LIBCXX_LDFLAGS="-Wl,--version-script,\$_BUILD_SRCDIR/$LIBCXX_LINKER_SCRIPT"
+if [ -f "$_BUILD_SRCDIR/$LIBCXX_LINKER_SCRIPT" ]; then
+    LIBCXX_LDFLAGS="-Wl,--version-script,\$_BUILD_SRCDIR/$LIBCXX_LINKER_SCRIPT"
+fi
 LIBCXX_SOURCES=\
 "libcxx/src/algorithm.cpp \
 libcxx/src/bind.cpp \
@@ -328,16 +330,10 @@ SUPPORT32_SOURCES=\
 ../../android/support/src/locale/localeconv.c \
 ../../android/support/src/locale/newlocale.c \
 ../../android/support/src/locale/uselocale.c \
-../../android/support/src/stdio/fscanf.c \
-../../android/support/src/stdio/scanf.c \
-../../android/support/src/stdio/sscanf.c \
 ../../android/support/src/stdio/stdio_impl.c \
 ../../android/support/src/stdio/strtod.c \
 ../../android/support/src/stdio/vfprintf.c \
-../../android/support/src/stdio/vfscanf.c \
 ../../android/support/src/stdio/vfwprintf.c \
-../../android/support/src/stdio/vscanf.c \
-../../android/support/src/stdio/vsscanf.c \
 ../../android/support/src/msun/e_log2.c \
 ../../android/support/src/msun/e_log2f.c \
 ../../android/support/src/msun/s_nan.c \
@@ -537,12 +533,19 @@ build_stl_libs_for_abi ()
     EXTRA_CFLAGS=""
     EXTRA_CXXFLAGS=""
     EXTRA_LDFLAGS=""
-    if [ "$ABI" = "armeabi-v7a-hard" ]; then
-        EXTRA_CFLAGS="-mhard-float -D_NDK_MATH_NO_SOFTFP=1"
-        EXTRA_CXXFLAGS="-mhard-float -D_NDK_MATH_NO_SOFTFP=1"
-        EXTRA_LDFLAGS="-Wl,--no-warn-mismatch -lm_hard"
-        FLOAT_ABI="hard"
-    fi
+
+    case $ABI in
+        armeabi-v7a-hard)
+            EXTRA_CFLAGS="-mhard-float -D_NDK_MATH_NO_SOFTFP=1"
+            EXTRA_CXXFLAGS="-mhard-float -D_NDK_MATH_NO_SOFTFP=1"
+            EXTRA_LDFLAGS="-Wl,--no-warn-mismatch -lm_hard"
+            FLOAT_ABI="hard"
+            ;;
+        arm64-v8a)
+            EXTRA_CFLAGS="-mfix-cortex-a53-835769"
+            EXTRA_CXXFLAGS="-mfix-cortex-a53-835769"
+            ;;
+    esac
 
     if [ -n "$THUMB" ]; then
         EXTRA_CFLAGS="$EXTRA_CFLAGS -mthumb"
@@ -575,7 +578,7 @@ build_stl_libs_for_abi ()
     # libc++_shared.so and libc++_static.a with undefined __atomic_fetch_add_4
     # Add -latomic.
     if [ -n "$LLVM_VERSION" -a "$CXX_STL_LIB" = "libc++" ]; then
-        # clang3.5 use integrated-as as default, which has trouble compiling 
+        # clang3.5 use integrated-as as default, which has trouble compiling
         # llvm-libc++abi/libcxxabi/src/Unwind/UnwindRegistersRestore.S
         if [ "$LLVM_VERSION" = "3.5" ]; then
             EXTRA_CFLAGS="${EXTRA_CFLAGS} -no-integrated-as"
@@ -590,7 +593,7 @@ build_stl_libs_for_abi ()
                               -mllvm -arm-enable-ehabi"
                 EXTRA_CXXFLAGS="${EXTRA_CXXFLAGS} -mllvm -arm-enable-ehabi-descriptors \
                                 -mllvm -arm-enable-ehabi"
-	    fi
+            fi
             EXTRA_LDFLAGS="$EXTRA_LDFLAGS -latomic"
         fi
     fi

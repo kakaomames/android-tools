@@ -391,11 +391,11 @@ if [ -z "$PREBUILT_NDK" ]; then
         unpack_prebuilt gnu-libstdc++-headers-$VERSION "$REFERENCE"
     done
     for ABI in $ABIS; do
-        unpack_prebuilt gabixx-libs-$ABI "$REFERENCE"
-        unpack_prebuilt stlport-libs-$ABI "$REFERENCE"
-        unpack_prebuilt libcxx-libs-$ABI "$REFERENCE"
+        unpack_prebuilt gabixx-libs-$ABI-g "$REFERENCE"
+        unpack_prebuilt stlport-libs-$ABI-g "$REFERENCE"
+        unpack_prebuilt libcxx-libs-$ABI-g "$REFERENCE"
         for VERSION in $DEFAULT_GCC_VERSION_LIST; do
-            unpack_prebuilt gnu-libstdc++-libs-$VERSION-$ABI "$REFERENCE"
+            unpack_prebuilt gnu-libstdc++-libs-$VERSION-$ABI-g "$REFERENCE"
         done
         unpack_prebuilt libportable-libs-$ABI "$REFERENCE"
         unpack_prebuilt compiler-rt-libs-$ABI "$REFERENCE"
@@ -555,11 +555,13 @@ for SYSTEM in $SYSTEMS; do
         unpack_prebuilt misc "$DSTDIR" "$DSTDIR64"
     fi
 
-    # Remove tests containing duplicated files in case-insensitive file system
+    # Remove duplicated files in case-insensitive file system
     if [ "$SYSTEM" = "windows" -o "$SYSTEM" = "darwin-x86" ]; then
         rm -rf $DSTDIR/tests/build/c++-stl-source-extensions
-        find "$DSTDIR/platforms" "$DSTDIR64/platforms" | sort -f | uniq -di | xargs rm
+        find "$DSTDIR/platforms" | sort -f | uniq -di | xargs rm
+        find "$DSTDIR64/platforms" | sort -f | uniq -di | xargs rm
     fi
+
     # Remove include-fixed/linux/a.out.h.   See b.android.com/73728
     find "$DSTDIR/toolchains" "$DSTDIR64/toolchains" -name a.out.h | grep include-fixed/ | xargs rm
     
