@@ -1,0 +1,9 @@
+Change-Id: I4f723e2a5fa5b7b8a198072ac19b92344be2b271
+Code-Review+2: Armand Navabi <navabi@google.com>
+Verified+1: Armand Navabi <navabi@google.com>
+Code-Review+2: Tommy Nyquist <nyquist@chromium.org>
+Submitted-by: Armand Navabi <navabi@google.com>
+Submitted-at: Mon, 01 Dec 2014 15:13:49 -0800
+Reviewed-on: https://gerrit.chromium.org/gerrit/72270
+Project: android_tools
+Branch: refs/heads/master
