@@ -1,0 +1,9 @@
+Change-Id: I8fe116f93f350dcf73c6fe70db893985bf1b91d5
+Commit-Queue+1: Aurimas Liutikas <aurimas@chromium.org>
+Code-Review+2: Aurimas Liutikas <aurimas@chromium.org>
+Verified+1: Aurimas Liutikas <aurimas@chromium.org>
+Submitted-by: Aurimas Liutikas <aurimas@chromium.org>
+Submitted-at: Tue, 09 Dec 2014 15:52:38 -0800
+Reviewed-on: https://gerrit.chromium.org/gerrit/73195
+Project: android_tools
+Branch: refs/heads/master
