@@ -25,6 +25,8 @@
       'type': 'none',
       'variables': {
         'jar_path': '<(android_sdk)/uiautomator.jar',
+        # uiautomator is provided by the framework.
+        'neverlink': 1,
       },
       'includes': ['../../build/java_prebuilt.gypi'],
     },
