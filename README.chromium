@@ -28,9 +28,8 @@ Local Modifications:
   (see crbug.com/377433)
     sources/cxx-stl/stlport/stlport/stl/_construct.h
     sources/cxx-stl/stlport/stlport/stl/_vector.c
-- Added gyp files
+- Added gyp file
     android_tools_ndk.gyp
-    crazy_linker.gyp
 
 -In sdk/
 - Included the Android support library and required extras packages
