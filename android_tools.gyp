@@ -99,5 +99,18 @@
       ],
       'includes': [ '../../build/java.gypi' ]
     },
+    {
+      # This jar contains the Android support v7 palette library from the
+      # revision 18 of the Android Support library. This library doesn't
+      # contain the resources needed for the library to work.
+      'target_name': 'android_support_v7_palette_javalib',
+      'type' : 'none',
+      'variables': {
+        'jar_path': '<(android_sdk_root)/extras/android/support/v7/palette/libs/android-support-v7-palette.jar',
+      },
+      'dependencies': [
+      ],
+      'includes': ['../../build/java_prebuilt.gypi'],
+    },
   ],
 }
