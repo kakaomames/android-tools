@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "AAAAdn//K6I\u003d",
+        "filename": ".gitignore",
+        "patchSetId": 1
+      },
+      "lineNbr": 3,
+      "author": {
+        "id": 1002144
+      },
+      "writtenOn": "2014-12-31T00:43:12Z",
+      "side": 1,
+      "message": "How about:\nsdk/extras/google_google_play_services_*.zip\n\nor something with a wildcard like that so we don\u0027t have to update this for new versions",
+      "revId": "3a8ca9bc6fb7b9085aa7022ff105581085f66a3b",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
+    }
+  ]
+}
