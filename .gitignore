@@ -1,2 +1,3 @@
 *.pyc
 sdk/extras/google/google_play_services
+sdk/extras/google_google_play_services_*.zip
