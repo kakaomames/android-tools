@@ -114,5 +114,39 @@
       ],
       'includes': ['../../build/java_prebuilt.gypi'],
     },
+    {
+      # This jar contains the Google Play services library without the
+      # resources needed for the library to work. See crbug.com/274697 or
+      # ../third_party/android_tools/android_tools.gyp for more info.
+      # This target will fail to build unless you have a local version
+      # of the Google Play services jar.
+      'target_name': 'google_play_services_javalib_no_res',
+      'type': 'none',
+      'variables': {
+        'jar_path': '<(android_sdk_root)/extras/google/google_play_services/libproject/google-play-services_lib/libs/google-play-services.jar',
+      },
+      'includes': ['../../build/java_prebuilt.gypi'],
+
+    }, # end of target 'google_play_services_javalib_no_res'
+    {
+      # This target contains the Google Play services library with the
+      # resources needed. It will fail to build unless you have a local
+      # version of the Google Play services libary project.
+      # TODO(aiguha): Solve issue of needing to use local version. Also,
+      # watch crbug.com/274697.
+      'target_name': 'google_play_services_javalib',
+      'type': 'none',
+      'variables': {
+        'java_in_dir': '<(android_sdk_root)/extras/google/google_play_services/libproject/google-play-services_lib',
+        'R_package': ['com.google.android.gms'],
+        'R_package_relpath': ['com/google/android/gms'],
+        'has_java_resources': 1,
+        'res_v14_verify_only': 1,
+      },
+      'dependencies': [
+        'google_play_services_javalib_no_res',
+      ],
+      'includes': ['../../build/java.gypi'],
+    }, # end of target 'google_play_services_javalib'
   ],
 }
