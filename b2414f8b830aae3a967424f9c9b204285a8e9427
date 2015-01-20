@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "2bfb5b87_527514e7",
+        "filename": "ndk/platforms/android-18/arch-arm/usr/include/math.h",
+        "patchSetId": 1
+      },
+      "lineNbr": 540,
+      "author": {
+        "id": 1002927
+      },
+      "writtenOn": "2015-01-20T20:47:48Z",
+      "side": 1,
+      "message": "It looks like the upstream commit removes this out-of-date comment, and also adds a new comment to the LLVM PR above.",
+      "revId": "b2414f8b830aae3a967424f9c9b204285a8e9427",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
+    }
+  ]
+}
