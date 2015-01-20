@@ -1,0 +1,9 @@
+Code-Review+2: Ross McIlroy <rmcilroy@chromium.org>
+Verified+1: Fabrice de Gans-Riberi <fdegans@chromium.org>
+Code-Review+1: Fabrice de Gans-Riberi <fdegans@chromium.org>
+Commit-Queue+1: Fabrice de Gans-Riberi <fdegans@chromium.org>
+Submitted-by: Armand Navabi <navabi@chromium.org>
+Submitted-at: Tue, 20 Jan 2015 00:00:26 +0000
+Reviewed-on: https://chromium-review.googlesource.com/241422
+Project: android_tools
+Branch: refs/heads/master
