@@ -30,6 +30,7 @@ Local Modifications:
     sources/cxx-stl/stlport/stlport/stl/_vector.c
 - Added gyp file
     android_tools_ndk.gyp
+- Cherry-picked https://android-review.googlesource.com/#/c/123717/
 
 -In sdk/
 - Included the Android support library and required extras packages
