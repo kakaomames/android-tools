@@ -67,6 +67,21 @@
       'includes': ['../../build/java_prebuilt.gypi'],
     },
     {
+      # This jar contains the Google Play services library without the
+      # resources needed for the library to work. 
+      'target_name': 'google_play_services_default_javalib_no_res',
+      'type': 'none',
+      'variables': {
+        'jar_path': '<(android_sdk_root)/extras/google/google_play_services/libproject/google-play-services_lib/libs/google-play-services.jar',
+        'proguard_preprocess': 1,
+        'proguard_config': '<(android_sdk_root)/extras/google/google_play_services/libproject/google-play-services_lib/proguard.flags',
+      },
+      'dependencies': [
+        'android_support_v13_javalib'
+      ],
+      'includes': ['../../build/java_prebuilt.gypi'],
+    },
+    {
       # This target contains the Android support v7 appcompat library with the
       # resources needed.
       'target_name': 'android_support_v7_appcompat_javalib',
@@ -114,5 +129,39 @@
       ],
       'includes': ['../../build/java_prebuilt.gypi'],
     },
+    {
+      # This target contains the Google Play services library with the
+      # resources needed. It will fail to build unless you have a local
+      # version of the Google Play services library (as installed by 
+      # install_build_deps_android.sh).
+      # This target should never be used directly, since a build may need
+      # to use a conflicting version of Google Play Services. Targets depending
+      # on Google Play Services should depend on google_play_services_javalib to allow
+      # this.
+      'target_name': 'google_play_services_default_javalib',
+      'type': 'none',
+      'variables': {
+        'java_in_dir': '<(android_sdk_root)/extras/google/google_play_services/libproject/google-play-services_lib',
+        'R_package': ['com.google.android.gms'],
+        'R_package_relpath': ['com/google/android/gms'],
+        'has_java_resources': 1,
+        'res_v14_verify_only': 1,
+      },
+      'dependencies': [
+        'google_play_services_default_javalib_no_res',
+      ],
+      'includes': ['../../build/java.gypi'],
+    },
+    {
+      # This target wraps the Google Play Services library, allowing the use of alternative versions of it as
+      # needed. An alternative version can be selected by setting google_play_services_library_target to
+      # a target that provides the alternative version.
+      'target_name': 'google_play_services_javalib',
+      'type': 'none',
+      'dependencies': [
+        '<(google_play_services_library_target)',
+      ],
+    },
   ],
+  'variables': {'google_play_services_library_target%': 'google_play_services_default_javalib'},
 }
