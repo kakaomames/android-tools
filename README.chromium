@@ -28,8 +28,6 @@ Local Modifications:
   (see crbug.com/377433)
     sources/cxx-stl/stlport/stlport/stl/_construct.h
     sources/cxx-stl/stlport/stlport/stl/_vector.c
-- Added gyp file
-    android_tools_ndk.gyp
 - Cherry-picked https://android-review.googlesource.com/#/c/123717/
 
 -In sdk/
