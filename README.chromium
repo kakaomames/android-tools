@@ -29,6 +29,8 @@ Local Modifications:
     sources/cxx-stl/stlport/stlport/stl/_construct.h
     sources/cxx-stl/stlport/stlport/stl/_vector.c
 - Cherry-picked https://android-review.googlesource.com/#/c/123717/
+- Cherry-picked
+    http://llvm.org/viewvc/llvm-project?view=revision&revision=227226
 
 -In sdk/
 - Included the Android support library and required extras packages
