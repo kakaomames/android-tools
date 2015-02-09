@@ -73,8 +73,6 @@
       'type': 'none',
       'variables': {
         'jar_path': '<(android_sdk_root)/extras/google/google_play_services/libproject/google-play-services_lib/libs/google-play-services.jar',
-        'proguard_preprocess': 1,
-        'proguard_config': '<(android_sdk_root)/extras/google/google_play_services/libproject/google-play-services_lib/proguard.flags',
       },
       'dependencies': [
         'android_support_v13_javalib'
