@@ -73,6 +73,14 @@
       'type': 'none',
       'variables': {
         'jar_path': '<(android_sdk_root)/extras/google/google_play_services/libproject/google-play-services_lib/libs/google-play-services.jar',
+        # TODO(aberent): Remove this after some appropriate period of time.
+        '__check_that_google_play_services_is_installed':
+          '<!(test -e <(jar_path) -o -z "                                                            \
+                                                                                                     \
+              google-play-services.jar not found. Please re-run build/install-build-deps-android.sh. \
+              See https://groups.google.com/a/chromium.org/forum/#!topic/chromium-dev/bN0CgZTm3t8    \
+                                                                                                     \
+          ")',
       },
       'dependencies': [
         'android_support_v13_javalib'
