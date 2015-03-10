@@ -16,6 +16,24 @@
       "revId": "78ccfd5f7e4880597fd90c61453a3be0e7aee5f0",
       "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5cf865fa_db3ed3df",
+        "filename": "android_tools.gyp",
+        "patchSetId": 1
+      },
+      "lineNbr": 129,
+      "author": {
+        "id": 1123384
+      },
+      "writtenOn": "2015-03-10T22:18:51Z",
+      "side": 0,
+      "message": "I should have said it in the first place. Yeah it needs to be removed from android_tools since I decided we do not need it.\n\npalette was first introduced in 56b3d3e8ce785e468eac3262cd6b107ebe569e94",
+      "parentUuid": "dcbd35e7_3734f88a",
+      "revId": "78ccfd5f7e4880597fd90c61453a3be0e7aee5f0",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
     }
   ]
 }
