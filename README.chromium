@@ -28,7 +28,7 @@ Local Modifications:
   (see crbug.com/377433)
     sources/cxx-stl/stlport/stlport/stl/_construct.h
     sources/cxx-stl/stlport/stlport/stl/_vector.c
-- Cherry-picked https://android-review.googlesource.com/#/c/123717/
+- Cherry-picked https://android-review.googlesource.com/#/c/123717/ to Arm, Arm64 and Mips
 - Cherry-picked
     http://llvm.org/viewvc/llvm-project?view=revision&revision=227226
 - Added aarch64 Gold linker by building it from source on Ubuntu 14.04.1 LTS:
