@@ -47,6 +47,7 @@ Local Modifications:
   cp gold/ld-new $ndk_toolchain_path/bin/aarch64-linux-android-ld.gold
   cd $ndk_toolchain_path/aarch64-linux-android/bin
   ln -s ld.gold ../../bin/aarch64-linux-android-ld.gold
+- Applied https://android-review.googlesource.com/#/c/123717/ to MIPS
 
 -In sdk/
 - Included the Android support library and required extras packages
