@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a3c5c2ce_a8bbb357",
+        "filename": "ndk/platforms/android-14/arch-mips/usr/include/math.h",
+        "patchSetId": 1
+      },
+      "lineNbr": 532,
+      "author": {
+        "id": 1116524
+      },
+      "writtenOn": "2015-04-09T15:55:54Z",
+      "side": 1,
+      "message": "This bug only seems to refer to the ARM issue. Is it also applicable for MIPS and will fixing this one also fix MIPS?",
+      "revId": "57e04e59d047fad89d8eea44748a57df8f31799f",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
+    }
+  ]
+}
