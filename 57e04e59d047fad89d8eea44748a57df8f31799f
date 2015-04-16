@@ -16,6 +16,24 @@
       "revId": "57e04e59d047fad89d8eea44748a57df8f31799f",
       "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "709c722a_ea8f17fc",
+        "filename": "ndk/platforms/android-14/arch-mips/usr/include/math.h",
+        "patchSetId": 1
+      },
+      "lineNbr": 532,
+      "author": {
+        "id": 1117686
+      },
+      "writtenOn": "2015-04-16T15:05:19Z",
+      "side": 1,
+      "message": "The problem which manifest in compiling Chromium Android for MIPS looks the same as the one reported in the llvm issue record:\n\nIn file included from ../../third_party/android_tools/ndk//sources/cxx-stl/stlport/stlport/math.h:32:\n../../third_party/android_tools/ndk//platforms/android-14/arch-mips/usr/include/../include/math.h:532:5: error: conflicting types for \u0027__builtin_isnan\u0027\nint     __builtin_isnan(double) __NDK_FPABI_MATH__ __pure2;\n        ^\n../../third_party/android_tools/ndk//platforms/android-14/arch-mips/usr/include/../include/math.h:532:5: note: \u0027__builtin_isnan\u0027 is a builtin with type \u0027int ()\u0027 \n\nPlease let me know if you want it to be removed, though.",
+      "parentUuid": "a3c5c2ce_a8bbb357",
+      "revId": "57e04e59d047fad89d8eea44748a57df8f31799f",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
     }
   ]
 }
