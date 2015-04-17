@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "90a1e660_96ab1c00",
+        "filename": "README.chromium",
+        "patchSetId": 2
+      },
+      "lineNbr": 50,
+      "author": {
+        "id": 1002763
+      },
+      "writtenOn": "2015-04-17T16:18:42Z",
+      "side": 1,
+      "message": "instead of adding this line let\u0027s just change the line: \n\"Cherry-picked https://android-review.googlesource.com/#/c/123717/\"\nto\n\"Cherry-picked https://android-review.googlesource.com/#/c/123717/ to Arm, Arm64 and Mips\"",
+      "range": {
+        "startLine": 50,
+        "startChar": 2,
+        "endLine": 50,
+        "endChar": 9
+      },
+      "revId": "c8647b807d827e8011a881bf51267d5e98281c04",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
+    }
+  ]
+}
