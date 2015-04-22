@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 The Android Open Source Project
+ * Copyright (C) 2015 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
-package android.support.v4.view;
+package android.support.v4.view.accessibility;
 
-import android.view.ViewGroup;
+import android.view.accessibility.AccessibilityEvent;
 
-class ViewGroupCompatApi21 {
-
-    public static void setTransitionGroup(ViewGroup group, boolean isTransitionGroup) {
-        group.setTransitionGroup(isTransitionGroup);
+class AccessibilityEventCompatKitKat {
+    public static  void setContentChangeTypes(AccessibilityEvent event, int changeTypes) {
+        event.setContentChangeTypes(changeTypes);
     }
 
-    public static boolean isTransitionGroup(ViewGroup group) {
-        return group.isTransitionGroup();
+    public static int getContentChangeTypes(AccessibilityEvent event) {
+        return event.getContentChangeTypes();
     }
 }
