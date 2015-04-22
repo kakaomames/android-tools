@@ -2,12 +2,12 @@ Name: Android Tools (SDK/NDK)
 URL: http://developer.android.com/sdk/index.html
 Versions:
   NDK r10c
-  Android SDK Platform API 22
+  Android SDK Platform API 22 rev 2
   Android SDK Tools 24.1.2
   Android SDK Platform-tools 22
   Android SDK Build-tools 22
   Android SDK Sources 22
-  Android Support Library 22.0.0
+  Android Support Library 22.1.0
   Google Cloud Messaging 3
 Security Critical: no
 License: Apache Version 2.0
@@ -57,7 +57,7 @@ Local Modifications:
     cd chromium-trace
     ./update.py
     cp script.js style.css $ANDROID_SDK_ROOT/tools/systrace
- - Modified sdk/extras/android/support/v7/appcompat/res/layout/abc_activity_chooser_view.xml
-   by replacing accidental use of layout_marginEnd with layout_marginBottom.
+ - Modified sdk/extras/android/support/v7/appcompat/res/layout/abc_alert_dialog_material.xml
+   by replacing accidental use of *Start *End attributes and making a copy of it in layout-v17/ (see b/20492234)
 
 No other modifications has been made to the public Android SDK/NDK.
