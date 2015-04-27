@@ -34,6 +34,8 @@ Local Modifications:
 - Cherry-picked
     https://android-review.googlesource.com/#/c/146049/
     https://android-review.googlesource.com/#/c/147258/
+- Cherry-picked
+    https://android-review.googlesource.com/#/c/120721/
 - Added aarch64 Gold linker by building it from source on Ubuntu 14.04.1 LTS:
   sudo apt-get install texinfo flex bison libncurses5-dev
   git clone git://sourceware.org/git/binutils-gdb.git
