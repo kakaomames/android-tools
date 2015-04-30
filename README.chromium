@@ -36,22 +36,10 @@ Local Modifications:
     https://android-review.googlesource.com/#/c/147258/
 - Cherry-picked
     https://android-review.googlesource.com/#/c/120721/
-- Added aarch64 Gold linker by building it from source on Ubuntu 14.04.1 LTS:
-  sudo apt-get install texinfo flex bison libncurses5-dev
-  git clone git://sourceware.org/git/binutils-gdb.git
-  cd binutils-gdb
-  git checkout f4b78d18
-  cd ..
-  mkdir binutils-gdb-build
-  cd binutils-gdb-build
-  ../binutils-gdb/configure --enable-plugins --disable-multilib --disable-nls \
-      --enable-threads --enable-gold=yes --enable-targets=aarch64-linux-android
-  make -j16
-  strip gold/ld-new
-  ndk_toolchain_path=/path/to/android_tools/ndk/toolchains/aarch64-linux-android-4.9/prebuilt/linux-x86_64
-  cp gold/ld-new $ndk_toolchain_path/bin/aarch64-linux-android-ld.gold
-  cd $ndk_toolchain_path/aarch64-linux-android/bin
-  ln -s ld.gold ../../bin/aarch64-linux-android-ld.gold
+-Cherry-picked more recent version of the aarch64 toolchain containing
+    https://android-review.googlesource.com/#/c/113144/
+    https://android-review.googlesource.com/#/c/118930/
+    https://android-review.googlesource.com/#/c/144632/
 
 -In sdk/
 - Included the Android support library and required extras packages
