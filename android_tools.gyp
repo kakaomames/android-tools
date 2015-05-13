@@ -97,7 +97,7 @@
         'R_package': ['android.support.v7.appcompat'],
         'R_package_relpath': ['android/support/v7/appcompat'],
         'has_java_resources': 1,
-        'res_v14_verify_only': 1,
+        'res_v14_skip': 1,
       },
       'dependencies': [
         'android_support_v7_appcompat_javalib_no_res',
@@ -114,7 +114,7 @@
         'R_package': ['android.support.v7.mediarouter'],
         'R_package_relpath': ['android/support/v7/mediarouter'],
         'has_java_resources': 1,
-        'res_v14_verify_only': 1,
+        'res_v14_skip': 1,
       },
       'dependencies': [
         'android_support_v7_mediarouter_javalib_no_res',
@@ -151,7 +151,7 @@
         'R_package': ['com.google.android.gms'],
         'R_package_relpath': ['com/google/android/gms'],
         'has_java_resources': 1,
-        'res_v14_verify_only': 1,
+        'res_v14_skip': 1,
       },
       'dependencies': [
         'google_play_services_default_javalib_no_res',
