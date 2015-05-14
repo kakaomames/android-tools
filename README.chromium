@@ -40,6 +40,9 @@ Local Modifications:
     https://android-review.googlesource.com/#/c/113144/
     https://android-review.googlesource.com/#/c/118930/
     https://android-review.googlesource.com/#/c/144632/
+- Cherry-picked
+    https://android-review.googlesource.com/#/c/150680/
+  to fix component build at -Oz.
 
 -In sdk/
 - Included the Android support library and required extras packages
