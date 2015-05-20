@@ -73,6 +73,8 @@
       'type': 'none',
       'variables': {
         'jar_path': '<(android_sdk_root)/extras/google/google_play_services/libproject/google-play-services_lib/libs/google-play-services.jar',
+        'proguard_preprocess': 1,
+        'proguard_config': 'proguard.flags',
         # TODO(aberent): Remove this after some appropriate period of time.
         '__check_that_google_play_services_is_installed':
           '<!(test -e <(jar_path) -o -z "                                                            \
