@@ -43,6 +43,7 @@ Local Modifications:
 
 -In sdk/
 - Included the Android support library and required extras packages
+- Added proguard.flags
 - Removed unused resources from the support library (see crbug.com/372481)
 - Updated trace-viewer script to r220 under sdk/tools/systrace.
   Steps to update to the latest version of trace-viewer:
