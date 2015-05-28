@@ -26,6 +26,35 @@ package android.support.v4.accessibilityservice {
 
 }
 
+package android.support.v4.animation {
+
+  public abstract class AnimatorCompatHelper {
+    method public static android.support.v4.animation.ValueAnimatorCompat emptyValueAnimator();
+  }
+
+  public abstract interface AnimatorListenerCompat {
+    method public abstract void onAnimationCancel(android.support.v4.animation.ValueAnimatorCompat);
+    method public abstract void onAnimationEnd(android.support.v4.animation.ValueAnimatorCompat);
+    method public abstract void onAnimationRepeat(android.support.v4.animation.ValueAnimatorCompat);
+    method public abstract void onAnimationStart(android.support.v4.animation.ValueAnimatorCompat);
+  }
+
+  public abstract interface AnimatorUpdateListenerCompat {
+    method public abstract void onAnimationUpdate(android.support.v4.animation.ValueAnimatorCompat);
+  }
+
+  public abstract interface ValueAnimatorCompat {
+    method public abstract void addListener(android.support.v4.animation.AnimatorListenerCompat);
+    method public abstract void addUpdateListener(android.support.v4.animation.AnimatorUpdateListenerCompat);
+    method public abstract void cancel();
+    method public abstract float getAnimatedFraction();
+    method public abstract void setDuration(long);
+    method public abstract void setTarget(android.view.View);
+    method public abstract void start();
+  }
+
+}
+
 package android.support.v4.app {
 
   public deprecated class ActionBarDrawerToggle implements android.support.v4.widget.DrawerLayout.DrawerListener {
@@ -434,11 +463,11 @@ package android.support.v4.app {
 
   public static class NotificationCompat.Action extends android.support.v4.app.NotificationCompatBase.Action {
     ctor public NotificationCompat.Action(int, java.lang.CharSequence, android.app.PendingIntent);
-    method protected android.app.PendingIntent getActionIntent();
+    method public android.app.PendingIntent getActionIntent();
     method public android.os.Bundle getExtras();
-    method protected int getIcon();
+    method public int getIcon();
     method public android.support.v4.app.RemoteInput[] getRemoteInputs();
-    method protected java.lang.CharSequence getTitle();
+    method public java.lang.CharSequence getTitle();
     field public android.app.PendingIntent actionIntent;
     field public int icon;
     field public java.lang.CharSequence title;
@@ -642,16 +671,17 @@ package android.support.v4.app {
     field public static final int UNSET_ACTION_INDEX = -1; // 0xffffffff
   }
 
-   class NotificationCompatBase {
+  public class NotificationCompatBase {
+    ctor public NotificationCompatBase();
   }
 
   public static abstract class NotificationCompatBase.Action {
     ctor public NotificationCompatBase.Action();
-    method protected abstract android.app.PendingIntent getActionIntent();
-    method protected abstract android.os.Bundle getExtras();
-    method protected abstract int getIcon();
-    method protected abstract android.support.v4.app.RemoteInputCompatBase.RemoteInput[] getRemoteInputs();
-    method protected abstract java.lang.CharSequence getTitle();
+    method public abstract android.app.PendingIntent getActionIntent();
+    method public abstract android.os.Bundle getExtras();
+    method public abstract int getIcon();
+    method public abstract android.support.v4.app.RemoteInputCompatBase.RemoteInput[] getRemoteInputs();
+    method public abstract java.lang.CharSequence getTitle();
   }
 
   public static abstract class NotificationCompatBase.UnreadConversation {
@@ -929,6 +959,24 @@ package android.support.v4.content {
     ctor public WakefulBroadcastReceiver();
     method public static boolean completeWakefulIntent(android.content.Intent);
     method public static android.content.ComponentName startWakefulService(android.content.Context, android.content.Intent);
+  }
+
+}
+
+package android.support.v4.content.pm {
+
+  public class ActivityInfoCompat {
+    field public static final int CONFIG_UI_MODE = 512; // 0x200
+  }
+
+}
+
+package android.support.v4.content.res {
+
+  public class ResourcesCompat {
+    ctor public ResourcesCompat();
+    method public static android.graphics.drawable.Drawable getDrawable(android.content.res.Resources, int, android.content.res.Resources.Theme) throws android.content.res.Resources.NotFoundException;
+    method public static android.graphics.drawable.Drawable getDrawableForDensity(android.content.res.Resources, int, int, android.content.res.Resources.Theme) throws android.content.res.Resources.NotFoundException;
   }
 
 }
@@ -1379,8 +1427,11 @@ package android.support.v4.media.session {
     method public int describeContents();
     method public static android.support.v4.media.session.PlaybackStateCompat fromPlaybackState(java.lang.Object);
     method public long getActions();
+    method public long getActiveQueueItemId();
     method public long getBufferedPosition();
+    method public java.util.List<android.support.v4.media.session.PlaybackStateCompat.CustomAction> getCustomActions();
     method public java.lang.CharSequence getErrorMessage();
+    method public android.os.Bundle getExtras();
     method public long getLastPositionUpdateTime();
     method public float getPlaybackSpeed();
     method public java.lang.Object getPlaybackState();
@@ -1403,6 +1454,7 @@ package android.support.v4.media.session {
     field public static final android.os.Parcelable.Creator<android.support.v4.media.session.PlaybackStateCompat> CREATOR;
     field public static final long PLAYBACK_POSITION_UNKNOWN = -1L; // 0xffffffffffffffffL
     field public static final int STATE_BUFFERING = 6; // 0x6
+    field public static final int STATE_CONNECTING = 8; // 0x8
     field public static final int STATE_ERROR = 7; // 0x7
     field public static final int STATE_FAST_FORWARDING = 4; // 0x4
     field public static final int STATE_NONE = 0; // 0x0
@@ -1411,23 +1463,30 @@ package android.support.v4.media.session {
     field public static final int STATE_REWINDING = 5; // 0x5
     field public static final int STATE_SKIPPING_TO_NEXT = 10; // 0xa
     field public static final int STATE_SKIPPING_TO_PREVIOUS = 9; // 0x9
+    field public static final int STATE_SKIPPING_TO_QUEUE_ITEM = 11; // 0xb
     field public static final int STATE_STOPPED = 1; // 0x1
   }
 
   public static final class PlaybackStateCompat.Builder {
     ctor public PlaybackStateCompat.Builder();
     ctor public PlaybackStateCompat.Builder(android.support.v4.media.session.PlaybackStateCompat);
+    method public android.support.v4.media.session.PlaybackStateCompat.Builder addCustomAction(java.lang.String, java.lang.String, int);
+    method public android.support.v4.media.session.PlaybackStateCompat.Builder addCustomAction(android.support.v4.media.session.PlaybackStateCompat.CustomAction);
     method public android.support.v4.media.session.PlaybackStateCompat build();
     method public android.support.v4.media.session.PlaybackStateCompat.Builder setActions(long);
+    method public android.support.v4.media.session.PlaybackStateCompat.Builder setActiveQueueItemId(long);
     method public android.support.v4.media.session.PlaybackStateCompat.Builder setBufferedPosition(long);
     method public android.support.v4.media.session.PlaybackStateCompat.Builder setErrorMessage(java.lang.CharSequence);
+    method public android.support.v4.media.session.PlaybackStateCompat.Builder setExtras(android.os.Bundle);
     method public android.support.v4.media.session.PlaybackStateCompat.Builder setState(int, long, float);
     method public android.support.v4.media.session.PlaybackStateCompat.Builder setState(int, long, float, long);
   }
 
   public static final class PlaybackStateCompat.CustomAction implements android.os.Parcelable {
     method public int describeContents();
+    method public static android.support.v4.media.session.PlaybackStateCompat.CustomAction fromCustomAction(java.lang.Object);
     method public java.lang.String getAction();
+    method public java.lang.Object getCustomAction();
     method public android.os.Bundle getExtras();
     method public int getIcon();
     method public java.lang.CharSequence getName();
@@ -2150,11 +2209,14 @@ package android.support.v4.view {
     method public static boolean hasAccessibilityDelegate(android.view.View);
     method public static boolean hasNestedScrollingParent(android.view.View);
     method public static boolean hasTransientState(android.view.View);
+    method public static boolean isAttachedToWindow(android.view.View);
     method public static boolean isLaidOut(android.view.View);
     method public static boolean isNestedScrollingEnabled(android.view.View);
     method public static boolean isOpaque(android.view.View);
     method public static boolean isPaddingRelative(android.view.View);
     method public static void jumpDrawablesToCurrentState(android.view.View);
+    method public static void offsetLeftAndRight(android.view.View, int);
+    method public static void offsetTopAndBottom(android.view.View, int);
     method public static android.support.v4.view.WindowInsetsCompat onApplyWindowInsets(android.view.View, android.support.v4.view.WindowInsetsCompat);
     method public static void onInitializeAccessibilityEvent(android.view.View, android.view.accessibility.AccessibilityEvent);
     method public static void onInitializeAccessibilityNodeInfo(android.view.View, android.support.v4.view.accessibility.AccessibilityNodeInfoCompat);
@@ -2248,9 +2310,11 @@ package android.support.v4.view {
   public class ViewPager extends android.view.ViewGroup {
     ctor public ViewPager(android.content.Context);
     ctor public ViewPager(android.content.Context, android.util.AttributeSet);
+    method public void addOnPageChangeListener(android.support.v4.view.ViewPager.OnPageChangeListener);
     method public boolean arrowScroll(int);
     method public boolean beginFakeDrag();
     method protected boolean canScroll(android.view.View, boolean, int, int, int);
+    method public void clearOnPageChangeListeners();
     method public void endFakeDrag();
     method public boolean executeKeyEvent(android.view.KeyEvent);
     method public void fakeDragBy(float);
@@ -2263,11 +2327,12 @@ package android.support.v4.view {
     method protected void onPageScrolled(int, float, int);
     method public void onRestoreInstanceState(android.os.Parcelable);
     method public android.os.Parcelable onSaveInstanceState();
+    method public void removeOnPageChangeListener(android.support.v4.view.ViewPager.OnPageChangeListener);
     method public void setAdapter(android.support.v4.view.PagerAdapter);
     method public void setCurrentItem(int);
     method public void setCurrentItem(int, boolean);
     method public void setOffscreenPageLimit(int);
-    method public void setOnPageChangeListener(android.support.v4.view.ViewPager.OnPageChangeListener);
+    method public deprecated void setOnPageChangeListener(android.support.v4.view.ViewPager.OnPageChangeListener);
     method public void setPageMargin(int);
     method public void setPageMarginDrawable(android.graphics.drawable.Drawable);
     method public void setPageMarginDrawable(int);
@@ -2345,6 +2410,8 @@ package android.support.v4.view {
     method public android.support.v4.view.ViewPropertyAnimatorCompat translationXBy(float);
     method public android.support.v4.view.ViewPropertyAnimatorCompat translationY(float);
     method public android.support.v4.view.ViewPropertyAnimatorCompat translationYBy(float);
+    method public android.support.v4.view.ViewPropertyAnimatorCompat translationZ(float);
+    method public android.support.v4.view.ViewPropertyAnimatorCompat translationZBy(float);
     method public android.support.v4.view.ViewPropertyAnimatorCompat withEndAction(java.lang.Runnable);
     method public android.support.v4.view.ViewPropertyAnimatorCompat withLayer();
     method public android.support.v4.view.ViewPropertyAnimatorCompat withStartAction(java.lang.Runnable);
@@ -2352,6 +2419,8 @@ package android.support.v4.view {
     method public android.support.v4.view.ViewPropertyAnimatorCompat xBy(float);
     method public android.support.v4.view.ViewPropertyAnimatorCompat y(float);
     method public android.support.v4.view.ViewPropertyAnimatorCompat yBy(float);
+    method public android.support.v4.view.ViewPropertyAnimatorCompat z(float);
+    method public android.support.v4.view.ViewPropertyAnimatorCompat zBy(float);
   }
 
   public abstract interface ViewPropertyAnimatorListener {
