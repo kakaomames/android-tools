@@ -22,6 +22,7 @@ import android.graphics.PixelFormat;
 import android.graphics.PorterDuff;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.IdRes;
 import android.support.annotation.IntDef;
@@ -52,7 +53,7 @@ public class ViewCompat {
 
 
     /** @hide */
-    @IntDef({OVER_SCROLL_ALWAYS, OVER_SCROLL_IF_CONTENT_SCROLLS, OVER_SCROLL_IF_CONTENT_SCROLLS})
+    @IntDef({OVER_SCROLL_ALWAYS, OVER_SCROLL_IF_CONTENT_SCROLLS, OVER_SCROLL_NEVER})
     @Retention(RetentionPolicy.SOURCE)
     private @interface OverScroll {}
 
@@ -378,6 +379,7 @@ public class ViewCompat {
         boolean isLaidOut(View view);
         int combineMeasuredStates(int curState, int newState);
         public float getZ(View view);
+        public boolean isAttachedToWindow(View view);
     }
 
     static class BaseViewCompatImpl implements ViewCompatImpl {
@@ -636,12 +638,12 @@ public class ViewCompat {
 
         @Override
         public int getMinimumWidth(View view) {
-            return 0;
+            return ViewCompatBase.getMinimumWidth(view);
         }
 
         @Override
         public int getMinimumHeight(View view) {
-            return 0;
+            return ViewCompatBase.getMinimumHeight(view);
         }
 
         @Override
@@ -937,6 +939,11 @@ public class ViewCompat {
         @Override
         public float getZ(View view) {
             return getTranslationZ(view) + getElevation(view);
+        }
+
+        @Override
+        public boolean isAttachedToWindow(View view) {
+            return ViewCompatBase.isAttachedToWindow(view);
         }
     }
 
@@ -1347,6 +1354,11 @@ public class ViewCompat {
         @Override
         public boolean isLaidOut(View view) {
             return ViewCompatKitKat.isLaidOut(view);
+        }
+
+        @Override
+        public boolean isAttachedToWindow(View view) {
+            return ViewCompatKitKat.isAttachedToWindow(view);
         }
     }
 
@@ -2958,5 +2970,39 @@ public class ViewCompat {
      */
     public static float getZ(View view) {
         return IMPL.getZ(view);
+    }
+
+    /**
+     * Offset this view's vertical location by the specified number of pixels.
+     *
+     * @param offset the number of pixels to offset the view by
+     */
+    public static void offsetTopAndBottom(View view, int offset) {
+        view.offsetTopAndBottom(offset);
+
+        if (offset != 0 && Build.VERSION.SDK_INT < 11) {
+            // We need to manually invalidate pre-honeycomb
+            view.invalidate();
+        }
+    }
+    /**
+     * Offset this view's horizontal location by the specified amount of pixels.
+     *
+     * @param offset the number of pixels to offset the view by
+     */
+    public static void offsetLeftAndRight(View view, int offset) {
+        view.offsetLeftAndRight(offset);
+
+        if (offset != 0 && Build.VERSION.SDK_INT < 11) {
+            // We need to manually invalidate pre-honeycomb
+            view.invalidate();
+        }
+    }
+
+    /**
+     * Returns true if the provided view is currently attached to a window.
+     */
+    public static boolean isAttachedToWindow(View view) {
+        return IMPL.isAttachedToWindow(view);
     }
 }
