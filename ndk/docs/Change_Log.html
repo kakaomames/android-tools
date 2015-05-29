@@ -3,61 +3,35 @@
 <html>
   <head>
  <h2>Change List</h2>
- <h3>Android NDK, Revision 10c</a> <em>(October 2014)</em></h3>
- </p>
-       <dt>Important changes:</dt>
+
+ <h3>Android NDK, Revision 10e</a> <em>(May 2015)</em></h3>
+      <dt>Important changes:</dt>
+      <dl>
       <dd>
       <ul>
- <li>Made the following changes to download structure:</li>
-       <ul>
-       <li>Each package now contains both the 32- and the 64-bit headers, libraries, and tools for
-       its respective platform.</li>
-       <li>STL libraries with debugging info no longer need be downloaded separately.</li>
-       </ul>
-  <li>Changed everything previously called <code>Android-L</code> to the official release
-  designation: <code>android-21</code>.</li>
-  <li>Updated GCC 4.9 by rebasing to the <code>google</code> branch
-  of the GCC repository. Major differences from the upstream version of GCC 4.9 include:</li>
+        <li>Integrated the workaround for Cortex-A53 Erratum 843419 into the
+        <code>aarch64-linux-android-4.9</code> linker. For more information on this workaround, see
+        <a href="https://sourceware.org/ml/binutils/2015-03/msg00446.html">Workaround for cortex-a53
+        erratum 843419.</a></li>
 
-  <ul>
-  <li>The <code>-O2</code> option now turns on vectorization, without loop peeling but with more
-  aggressive unrolling.</li>
-  <li>Enhancements to FDO and <a href="https://gcc.gnu.org/wiki/LightweightIpo#LIPO_-_Profile_Feedback_Based_Lightweight_IPO">
-  LIPO</a></li>
-  <p>For more detailed information, see <em>Important bug fixes</em> below.</p>
-  </ul>
+         <li>Added Clang 3.6; <code>NDK_TOOLCHAIN_VERSION=clang</code> now picks that version
+         of Clang by default.</li>
 
-  <li>Added Clang 3.5 support to all hosts: <code>NDK_TOOLCHAIN_VERSION=clang</code>
-  now picks Clang 3.5. Note that:</li>
-  <ul>
+         <li>Removed Clang 3.4.</li>
 
-  <li>ARM and x86 default to using the integrated assembler. If this causes issues, use
-  <code>-fno-integrated-as</code> as a workaround.</code>
-  <li>Clang 3.5 issues more warnings for unused flags, such as the <code>-finline-functions</code>
-  option that GCC supports.</li>
-  <p>When migrating from projects using GCC, you can use
-  <code>-Wno-invalid-command-line-argument</code> and <code>-Wno-unused-command-line-argument</code>
-  to ignore the unused flags until you're able decide on what to do with them longer-term.</p>
+         <li>Removed GCC 4.6.</li>
 
-     </ul>
-  <li>Made it possible to enter ART debugging mode, when debugging on an Android 5.0 device using
-  ART as its virtual machine, by specifying the <code>art-on</code> option. For more information,
-  see <code>prebuilt/common/gdb/common.setup</code> in the directory containing the NDK.</li>
-  <li>Removed support for Clang 3.3.</li>
-  <li>Deprecated GCC 4.6, and may remove it from future releases.</li>
-  <li>Updated mclinker to 2.8 with Identical Code Folding ("ICF") support. Specify ICF using the
-  <code>--icf</code> option.</li>
-  <li>Broadened <code>arm_neon.h</code> support in x86 and x86_64, attaining coverage of ~93% of
-  NEON intrinsics. For more information about NEON support:
-     <ul>
-     <li>Navigate to the NDK Programmer's Guide (<code>docs/Programmers_Guide/html/</code>), and see
-     Architectures and CPUs > Neon.</li>
-     <li>Examine the updated <code>hello-neon</code> sample in <code>samples/</code>.
-     <li>See Intel's guide to <a href="https://software.intel.com/en-us/blogs/2012/12/12/from-arm-neon-to-intel-mmxsse-automatic-porting-solution-tips-and-tricks"> porting from ARM NEON to Intel SSE.</a></li>
-     </ul>
-  <li>Documented support for <code>_FORTIFY_SOURCE</code> in <code>headers/libs/android-21</code>,
-  which appeared in r10 (when <code>android-21</code> was still called <code>Android-L</code>),
-  but had no documentation.</li>
+         <li>Implemented multithreading support in <code>ld.gold</code> for all architectures. It can
+         now link with or without support for multithreading; the default is to do it without.
+            <ul>
+            <li>To compile with multithreading, use the <code>--threads</code> option.</li>
+            <li>To compile without multithreading:, use the <code>--no-threads</code> option.</li>
+            </ul>
+            </li>
+
+         <li>Upgraded GDB/gdbserver to 7.7 for all architectures.</li>
+
+         <li>Removed the NDK package for 32-bit Darwin.</li>
       </ul>
       </dd>
    <dl>
@@ -66,79 +40,101 @@
      <dt>Important bug fixes:</dt>
      <dd>
      <ul>
-       <li>Fixed an internal compiler error with GCC4.9/aarch64 that was causing the following
-       error message (Issue <a href="http://b.android.com/77564">77564</a>):</li>
+        <li>Fixed a crash that occurred when there were OpenMP loops outside of the main thread.</li>
+
+        <li>Fixed a GCC 4.9 internal compiler error (<i>ICE</i>) that occured when the user declared
+        <code>#pragma GCC optimize ("O0")</code>, but had a different level of optimization specified
+        on the command line. The <code>pragma</code> takes precedence.</li>
+
+        <li>Fixed an error that used to produce a crash with the following error message:
 <pre>
-internal compiler error: in simplify_const_unary_operation, at simplify-rtx.c:1539
+in add_stores, at var-tracking.c:6000
 </pre>
-       <li>Fixed incorrect code generation from GCC4.9/arm. (Issue
-       <a href="http://b.android.com/77567">77567<a>)</li>
-       <li>Fixed an internal compiler error with GCC4.9/mips involving inline-assembly. (Issue
-       <a href="http://b.android.com/77568">77568</a>)</li>
-       <li>Fixed incorrect code that GCC4.9/arm was generating for <code>x = (cond) ? y : x</code>.
-       (Issue <a href="http://b.android.com/77569">77569</a>)</li>
-       <li>Fixed GCC4.9/aarch64 and Clang3.5/aarch64 to work around the
-       <a href="http://lists.cs.uiuc.edu/pipermail/cfe-commits/Week-of-Mon-20141006/116322.html">
-       Cortex-A53 erratum (835769)</a>  by default.  Disable the workaround by specifying
-       <code>-mno-fix-cortex-a53-835769</code>.</li>
+        </li>
+
+        <li>Implemented a workaround for a Clang 3.5 issue in which LLVM auto-vectorization
+        generates <code>llvm.cttz.v2i64()</code>, an instruction with no counterpart in the ARM instruction
+        set. When the compiler generates this instruction, the following error message results:
+
+<pre>
+fatal error: error in backend: Cannot select: 0xd5d9098: v2i64 = cttz 0xd5c4698 [ORD=6] [ID=40] dbg:/path/to/file
+0xd5c4698: v2i64 = bitcast 0xd5fb9d0 [ORD=3] [ID=34] dbg:/path/to/file
+0xd5fb9d0: v2f64,ch = load 0xd1decd0, 0xd5da728, 0xd5da8d8<LD16[%lsr.iv2123](align=1)> [ORD=3] [ID=28] dbg:/path/to/file
+0xd5da728: i32,ch = CopyFromReg 0xd1decd0, 0xd65c7a0 [ORD=2] [ID=23]
+0xd65c7a0: i32 = Register %vreg7 [ID=1]
+0xd5da8d8: i32 = undef [ID=3]
+</pre>
+      </li>
      </ul>
      </dd>
-
 
      <dt>Other bug fixes:</dt>
      <dd>
      <ul>
-     <li>Made the following header and library fixes to <code>android-21</code>:
+        <li>Made the following header and library fixes:</li>
+           <ul>
+           <li>Fixed <code>PROPERTY_*</code> in <code>media/NdkMediaDrm.h</code>.</li>
+           <li>Fixed <code>sys/ucontext.h</code> for <code>mips64</code>.</li>
+           <li>Dropped the Clang version check for <code>__builtin_isnan</code> and
+           <code>__builtin_isinf</code>.</li>
+           <li>Added <code>android-21/arch-mips/usr/include/asm/reg.h</code>
+           and <code>android-21/arch-mips64/usr/include/asm/reg.h</code>.</li>
+           </ul>
+           </li>
+
+        <li>Fixed a spurious array-bounds warning that GCC 4.9 produced for x86, and reenabled the
+        array bounds warning that GCC 4.9 had produced for ARM. The warning for ARM had
+        previously been unconditionally disabled.</li>
+
+        <li>Fixed Clang 3.5 for <code>mips</code> and <code>mips64</code> to create a writable
+            <code>.gcc_except_table</code> section, thus matching GCC behavior. This change allows you
+            to avoid the following linker warning:
+
+<pre>
+.../ld: warning: creating a DT_TEXTREL in a shared object
+</pre>
+            </li>
+
+        <li>Backported a fix for <code>compiler-rt</code> issues that were causing crashes when Clang
+        compiled for <code>mips64</code>. For more information, see LLVM Issue
+        <a href="http://llvm.org/bugs/show_bug.cgi?id=20098">20098</a>.</li>
+
+        <li>Fixed Clang 3.5 crashes that occurred on non-ASCII comments. (Issue
+        <a href="https://code.google.com/p/android/issues/detail?id=81440">81440</a>)</li>
+
+        <li>Fixed <code>stlport collate::compare</code> to return <code>-1</code> and <code>1</code>. Previously,
+        it had returned arbitrary signed numbers.</li>
+
+        <li>Fixed <code>ndk-gdb</code> for 64-bit ABIs. (Issue
+        <a href="https://code.google.com/p/android/issues/detail?id=118300">118300</a>)</li>
+
+        <li>Fixed the crash that the HelloComputeNDK sample for RenderScript was producing on
+        Android 4.4 (Android API level 19). For more information, see
+        <a href="http://stackoverflow.com/questions/28057049/targeting-pre-lollipop-devices-using-renderscript-from-ndk-c">this page</a>.</li>
+
+        <li>Fixed <code>libc++ __wrap_iter</code> for GCC. For more information, see LLVM Issue
+        <a href="http://llvm.org/bugs/show_bug.cgi?id=22355">22355</a>.</li>
+
+        <li>Fixed <code>.asm</code> support for ABI <code>x86_64</code>.</li>
+
+        <li>Implemented a workaround for the GCC 4.8 <code>stlport</code> issue. (Issue
+        <a href="https://android-review.googlesource.com/#/c/127773">127773</a>)</li>
+
+        <li>Removed the trailing directory separator <code>\\</code> from the project path in Windows.
+        (Issue <a href="https://code.google.com/p/android/issues/detail?id=160584">160584</a>)
+        </li>
+
+        <li>Fixed a <code>no rule to make target</code> error that occurred when compiling a single
+        <code>.c</code> file by executing the <code>ndk-build.cmd</code> command from <code>gradle</code>. (Issue
+        <a href="https://code.google.com/p/android/issues/detail?id=66937">66937</a>)</li>
+
+        <li>Added the <code>libatomic.a</code> and <code>libgomp.a</code> libraries that had been missing from
+        the following host toolchains:
         <ul>
-
-        <li>Added more TV keycodes: <code>android/keycodes.h</code></li>
-        <li>Added more constants and six new sensor functions to <code>android/sensor.h</code>:
-        <code>ASensorManager_getDefaultSensorEx</code>, <code>ASensor_getFifoMaxEventCount</code>,
-        <code>ASensor_getFifoReservedEventCount</code>, <code>ASensor_getStringType</code>,
-        <code>ASensor_getReportingMode</code>, and <code>ASensor_isWakeUpSensor</code>.</li>
-        <li>Fixed <code>stdatomic.h</code> to improve compatibility with GCC 4.6, and provide support
-        for the <code>&lt;atomic&gt;</code> header.</li>
-        <li>Added <code>sys/ucontext.h</code> and <code>sys/user.h</code> to all API levels. The
-        <code>signal.h</code> header now includes <code>&lt;sys/ucontext.h&gt;</code>.  You may
-        remove any existing definition of <code>struct ucontext</code>.</li>
-        <li>Added <code>posix_memalign</code> to API levels 17, 18, and 19.</li>
-        <li>Added the following functions to all architectures:
-        <code>android_set_abort_message</code>, <code>posix_fadvise</code>,
-        <code>posix_fadvise64</code>, <code>pthread_gettid_np</code>.</li>
-        <li>Added the required permissions to the <code>native-media/AndroidManifest.xml</code>
-        sample.
-        (Issue <a href="https://android-review.googlesource.com/#/c/106640/">106640</a>)</li>
-        <li>Added <code>clock_nanosleep</code> and <code>clock_settime</code> to API level 21. (Issue
-        <a href="http://b.android.com/77372">77372</a>)
-        <li>Removed the following symbols from all architectures:
-        <code>get_malloc_leak_info</code>, <code>free_malloc_leak_info</code>,
-        <code>__srget</code>, <code>__swbuf</code>, <code>__srefill</code>, <code>__swsetup</code>,
-        <code>__sdidinit</code>, <code>__sflags</code>, <code>__sfp</code>,
-        <code>__sinit</code>, <code>__smakebuf</code>, <code>__sflush</code>, <code>__sread</code>,
-        <code>__swrite</code>, <code>__sseek</code>, <code>__sclose</code>,
-        <code>_fwalk</code>, <code>__sglue</code>, <code>__get_thread</code>, <code>__wait4</code>,
-        <code>__futex_wake</code>, <code>__open</code>, <code>__get_tls</code>,
-        <code>__getdents64</code>, and <code>dlmalloc</code>.</li>
-        <li>Removed the following functions from the 64-bit architectures: <code>basename_r</code>,
-        <code>dirname_r</code>, <code>__isthreaded</code>, <code>_flush_cache</code> (mips64).</li>
-        <li>Removed the following function from the 32-bit architectures:
-        <code>__signalfd4</code>.</li>
-        <li>Changed the type of the third argument from <code>size_t</code> to <code>int</code> in
-        the following functions: <code>strtoll_l</code>, <code>strtoull_l</code>,
-        <code>wcstoll_l</code>, and <code>wcstoull_l</code>.</li>
-        <li>Restored the following functions to the 64-bit architecture: <code>arc4random</code>,
-        <code>arc4random_buf</code>, and <code>arc4random_uniform</code>.</li>
-        <li>Restored MXU support in GCC 4.8 and 4.9 for mips. This support had been absent from
-        r10 and r10b because those versions of GCC had been compiled with binutils-2.24, which did
-        not support MXU. It now does.</li>
-        <li>Moved <code>cxa_*</code> and the <code>new</code> and <code>delete</code> operators back
-        to <code>libstdc++.so</code>. This change restores r9d behavior; previous versions of r10
-        contained dummy files.</li>
-        <li>Fixed <code>--toolchain=</code> in <code>make-standalone-toolchain.sh</code> so that it
-        now properly supports use of a suffix specifying a version of Clang.</li>
-        <li>Fixed the libc++/armeabi <code>strtod()</code> functions.</li>
-        <li>Made fixes to NDK documentation in <code>docs/</code>.</li>
-
+           <li><code>aarch64-linux-android-4.9</code></li>
+           <li><code>mips64el-linux-android-4.9</code></li>
+           <li><code>mipsel-linux-android-4.9</code></li>
+           <li><code>x86_64-4.9</code></li>
         </ul>
      </ul>
      </dd>
@@ -146,60 +142,29 @@ internal compiler error: in simplify_const_unary_operation, at simplify-rtx.c:15
      <dt>Other changes:</dt>
      <dd>
        <ul>
-       <li>Enhanced <code>cpu-features</code> to detect ARMv8 support for the following
-       instruction sets: AES, CRC32, SHA2, SHA1, and 64-bit PMULL/PMULL2. (Issue
-       <a href="https://android-review.googlesource.com/#/c/106360/">106360</a>)</li>
+       <li>Added <code>ld.gold</code> for <code>aarch64</code>. The default linker remains <code>ld.bfd</code>.
+       To explicitly enable <code>ld.gold</code>, add <code>-fuse-ld=gold</code> to the
+       <code>LOCAL_LDFLAGS</code> or <code>APP_LDFLAGS</code> variable.</li>
 
-       <li>Modified ndk-build to use <code>*-gcc-ar</code>, which is available in GCC 4.8, GCC 4.9, and
-       Clang. Clang specifies it, instead of <code>*-ar</code>. This setting brings improved LTO
-       support.</li>
+       <li>Built the MIPS and MIPS64 toolchains with <code>binutils-2.25</code>, which provides improved
+       R6 support.</li>
 
-       <li>Removed the <code>include-fixed/linux/a.out.h</code> and
-       <code>include-fixed/linux/compiler.h</code> headers from the GCC compiler.
-       (Issue <a href ="http://b.android.com/73728">73728</a>)</li>
+       <li>Made <code>-fstandalone-debug</code> (full debug info) a default option for Clang.</li>
 
-       <li>Fixed an issue related to <code>-flto</code> with GCC 4.8 on Mac OS X. The error message
-       read:</li>
+       <li>Replaced <code>-fstack-protector</code> with <code>-fstack-protector-strong</code> for
+       the ARM, AArch64, X86, and X86_64 toolchains for GCC 4.9, Clang 3.5, and
+       Clang 3.6.</li>
 
-       <pre>
-.../ld: error: .../libexec/gcc/arm-linux-androideabi/4.9/liblto_plugin.so
-Symbol not found: _environ
-</pre>
+       <li>Added the <code>--package</code> command-line switch to <code>ndk-gdb</code> to allow the build
+       system to override the package name. (Issue
+       <a href="https://code.google.com/p/android/issues/detail?id=56189">56189</a>)</li>
 
-       <li>Fixed a typo in <code>build-binary.mk.</code> (Issue
-       <a href="http://b.android.com/76992">76992</a>)</li>
-     </ul>
-     </dd>
+       <li> Deprecated <code>-mno-ldc1-stc1</code> for MIPS.  This option may not work with the new
+       <code>-fpxx</code> and <code>-mno-odd-spreg</code> options, or with the FPXX ABI.</li>
 
-   <dt>Important known issues:</dt>
-     <dd>
-     <ul>
-     <li>Specifying -Os (<code>-fauto-profile</code>) in GCC4.9 may cause crashing.
-     (Issue <a href="http://b.android.com/77571">77571</a>)</li>
+       <li>Added MIPS MSA and R6 detection to <code>cpu-features</code>.</li>
+
      </ul>
      </dd>
 
    </dl>
-
-
-A comprehensive change list, going through all previous releases of the NDK, can be found at the <a href="http://developer.android.com/tools/sdk/ndk/index.html">Android developer website.</a><br>
-        <br>
-
-  <div id="copyright">
-
-  Except as noted, this content is
-  licensed under <a href="http://creativecommons.org/licenses/by/2.5/">
-  Creative Commons Attribution 2.5</a>. For details and
-  restrictions, see the <a href="http://developer.android.com/license.html">Content
-  License</a>.
-  <div id="footerlinks">
-
-  <p>
-    <a href="http://developer.android.com/about/index.html">About Android</a>&nbsp;&nbsp;|&nbsp;
-    <a href="http://developer.android.com/legal.html">Legal</a>&nbsp;&nbsp;|&nbsp;
-    <a href="http://developer.android.com/support.html">Support</a>
-  </p>
-  </div>
-  </div>
-</body>
-</html>

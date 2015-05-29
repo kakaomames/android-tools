@@ -311,7 +311,7 @@ builder_sources ()
 
 builder_static_library ()
 {
-    local lib libname
+    local lib libname arflags
     libname=$1
     if [ -z "$_BUILD_DSTDIR" ]; then
         panic "Destination directory not set"
@@ -327,7 +327,16 @@ builder_static_library ()
     fi
     builder_log "${_BUILD_PREFIX}Archive: $libname"
     rm -f "$lib"
-    builder_command ${_BUILD_AR} crsD "$lib" "$_BUILD_OBJECTS"
+    arflags="crs"
+    case $HOST_TAG in
+        darwin*)
+            # XCode 'ar' doesn't support D flag
+            ;;
+        *)
+            arflags="${arflags}D"
+            ;;
+    esac
+    builder_command ${_BUILD_AR} $arflags "$lib" "$_BUILD_OBJECTS"
     fail_panic "Could not archive ${_BUILD_PREFIX}$libname objects!"
 }
 
@@ -553,7 +562,7 @@ builder_begin_android ()
     else
       SYSROOT=$NDK_DIR/platforms/$PLATFORM/arch-$ARCH
     fi
-    LDIR=$SYSROOT"/usr/"$(get_default_libdir_for_arch $ARCH)
+    LDIR=$SYSROOT"/usr/"$(get_default_libdir_for_abi $ABI)
 
     CRTBEGIN_EXE_O=$LDIR/crtbegin_dynamic.o
     CRTEND_EXE_O=$LDIR/crtend_android.o
@@ -589,7 +598,7 @@ builder_begin_android ()
             x86_64)
                 LLVM_TRIPLE=x86_64-none-linux-android
                 ;;
-            mips)
+            mips|mips32r6)
                 LLVM_TRIPLE=mipsel-none-linux-android
                 ;;
             mips64)
@@ -606,9 +615,15 @@ builder_begin_android ()
                 ;;
         esac
         SCRATCH_FLAGS="-target $LLVM_TRIPLE $FLAGS"
+        builder_ldflags "$SCRATCH_FLAGS"
+        if [ "$LLVM_VERSION" \> "3.4" ]; then
+            # Turn off integrated-as for clang >= 3.5 due to ill-formed object it produces
+            # involving inline-assembly .pushsection/.popsection which crashes ld.gold
+            # BUG=18589643
+            SCRATCH_FLAGS="$SCRATCH_FLAGS -fno-integrated-as"
+        fi
         builder_cflags  "$SCRATCH_FLAGS"
         builder_cxxflags "$SCRATCH_FLAGS"
-        builder_ldflags "$SCRATCH_FLAGS"
         if [ ! -z $GCC_TOOLCHAIN ]; then
             SCRATCH_FLAGS="-gcc-toolchain $GCC_TOOLCHAIN"
             builder_cflags "$SCRATCH_FLAGS"

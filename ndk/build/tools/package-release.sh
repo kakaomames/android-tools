@@ -148,7 +148,7 @@ UNKNOWN_ABIS=$(convert_archs_to_abis $UNKNOWN_ARCH)
 # Convert comma-separated list to space-separated list
 LLVM_VERSION_LIST=$(commas_to_spaces $LLVM_VERSION_LIST)
 
-# If --arch is used to list x86 as a target architecture, Add x86-4.6 to
+# If --arch is used to list x86 as a target architecture, Add x86-4.8 to
 # the list of default toolchains to package. That is, unless you also
 # explicitely use --toolchains=<list>
 #
@@ -433,6 +433,11 @@ for SYSTEM in $SYSTEMS; do
     copy_directory "$REFERENCE" "$DSTDIR"
     fail_panic "Could not copy reference. Aborting."
 
+    if [ "$DSTDIR" != "$DSTDIR64" ]; then
+        copy_directory "$DSTDIR" "$DSTDIR64"
+        echo "$RELEASE (64-bit)" > $DSTDIR64/RELEASE.TXT
+    fi
+
     if [ "$PREBUILT_NDK" ]; then
         cd $UNZIP_DIR/android-ndk-* && cp -rP toolchains/* $DSTDIR/toolchains/
         fail_panic "Could not copy toolchain files from $PREBUILT_NDK"
@@ -509,10 +514,14 @@ for SYSTEM in $SYSTEMS; do
         echo "Remove ld.mcld deployed/packaged earlier by accident "
         find $DSTDIR/toolchains $DSTDIR64/toolchains  -name "*ld.mcld*" -exec rm -f {} \;
 
-        # Unpack llvm and clang
+        # Unpack clang/llvm
         for LLVM_VERSION in $LLVM_VERSION_LIST; do
             unpack_prebuilt llvm-$LLVM_VERSION-$SYSTEM "$DSTDIR" "$DSTDIR64"
         done
+
+        # Unpack sanitizer headers/libraries
+        unpack_prebuilt libsanitizer-3.5-$SYSTEM "$DSTDIR" "$DSTDIR64"
+        unpack_prebuilt libsanitizer-3.6-$SYSTEM "$DSTDIR" "$DSTDIR64"
 
         # Unpack mclinker
         if [ -n "$LLVM_VERSION_LIST" ]; then
@@ -558,6 +567,7 @@ for SYSTEM in $SYSTEMS; do
     # Remove duplicated files in case-insensitive file system
     if [ "$SYSTEM" = "windows" -o "$SYSTEM" = "darwin-x86" ]; then
         rm -rf $DSTDIR/tests/build/c++-stl-source-extensions
+        rm -rf $DSTDIR64/tests/build/c++-stl-source-extensions
         find "$DSTDIR/platforms" | sort -f | uniq -di | xargs rm
         find "$DSTDIR64/platforms" | sort -f | uniq -di | xargs rm
     fi
@@ -565,17 +575,29 @@ for SYSTEM in $SYSTEMS; do
     # Remove include-fixed/linux/a.out.h.   See b.android.com/73728
     find "$DSTDIR/toolchains" "$DSTDIR64/toolchains" -name a.out.h | grep include-fixed/ | xargs rm
     
-    # Remove llvm-3.3
-    rm -rf $DSTDIR/toolchains/*clang3.3
-    rm -rf $DSTDIR/toolchains/llvm-3.3
-    rm -rf $DSTDIR64/toolchains/*clang3.3
-    rm -rf $DSTDIR64/toolchains/llvm-3.3
-
     # Remove redundant pretty-printers/libstdcxx
     rm -rf $DSTDIR/prebuilt/*/share/pretty-printers/libstdcxx/gcc-l*
     rm -rf $DSTDIR/prebuilt/*/share/pretty-printers/libstdcxx/gcc-4.9-*
     rm -rf $DSTDIR64/prebuilt/*/share/pretty-printers/libstdcxx/gcc-l*
     rm -rf $DSTDIR64/prebuilt/*/share/pretty-printers/libstdcxx/gcc-4.9-*
+
+    # Remove python tests
+    find $DSTDIR/prebuilt/*/lib/python* -name test -exec rm -rf {} \;
+    find $DSTDIR64/prebuilt/*/lib/python* -name test -exec rm -rf {} \;
+
+    # Remove python *.pyc and *.pyo files
+    find $DSTDIR/prebuilt/*/lib/python* -name "*.pyc" -exec rm -rf {} \;
+    find $DSTDIR/prebuilt/*/lib/python* -name "*.pyo" -exec rm -rf {} \;
+    find $DSTDIR64/prebuilt/*/lib/python* -name "*.pyc"  -exec rm -rf {} \;
+    find $DSTDIR64/prebuilt/*/lib/python* -name "*.pyo"  -exec rm -rf {} \;
+
+    # Remove obsolete toolchains
+    rm -rf $DSTDIR/toolchains/*3.4
+    rm -rf $DSTDIR64/toolchains/*3.4
+    
+    # Remove .git*
+    find $DSTDIR -name ".git*" -exec rm -rf {} \;
+    find $DSTDIR64 -name ".git*" -exec rm -rf {} \;
 
     # Create an archive for the final package. Extension depends on the
     # host system.
@@ -587,14 +609,19 @@ for SYSTEM in $SYSTEMS; do
     fi
     case "$SYSTEM" in
         windows)
-            ARCHIVE64="$ARCHIVE-64bit-tools.zip"
-            ARCHIVE="$ARCHIVE.zip"
+            ARCHIVE64="${ARCHIVE}_64.tar.bz2"
+
+            ARCHIVE="$ARCHIVE.tar.bz2"
+            dereference_symlink "$TMPDIR/$RELEASE_PREFIX" "$TMPDIR/64/$RELEASE_PREFIX" 
             ;;
         *)
-            ARCHIVE64="$ARCHIVE-64bit-tools.tar.bz2"
+            ARCHIVE64="${ARCHIVE}_64.tar.bz2"
             ARCHIVE="$ARCHIVE.tar.bz2"
             ;;
     esac
+    if [ "$TRY64" = "yes" ]; then
+        ARCHIVE=$ARCHIVE64
+    fi
     echo "Creating $ARCHIVE"
     # make all file universally readable, and all executable (including directory)
     # universally executable, punt intended
