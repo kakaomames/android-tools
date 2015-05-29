@@ -71,7 +71,11 @@ register_var_option "--visible-libgnustl-static" VISIBLE_LIBGNUSTL_STATIC "Do no
 WITH_DEBUG_INFO=
 register_var_option "--with-debug-info" WITH_DEBUG_INFO "Build with -g.  STL is still built with optimization but with debug info"
 
+WITH_LIBSUPPORT=
+register_var_option "--with-libsupport" WITH_LIBSUPPORT "Build with -landroid_support."
+
 register_jobs_option
+register_try64_option
 
 extract_parameters "$@"
 
@@ -167,6 +171,13 @@ build_gnustl_for_abi ()
         exit 1
     fi
 
+    EXTRA_CFLAGS="-ffunction-sections -fdata-sections"
+    EXTRA_LDFLAGS=
+    if [ -n "$THUMB" ] ; then
+        EXTRA_CFLAGS="$EXTRA_CFLAGS -mthumb"
+        EXTRA_LDFLAGS="$EXTRA_LDFLAGS -mthumb"
+    fi
+
     case $ARCH in
         arm)
             BUILD_HOST=arm-linux-androideabi
@@ -176,9 +187,15 @@ build_gnustl_for_abi ()
             ;;
         x86)
             BUILD_HOST=i686-linux-android
+            # ToDo: remove the following once all x86-based device call JNI function with
+            #       stack aligned to 16-byte
+            EXTRA_CFLAGS="$EXTRA_CFLAGS -mstackrealign"
             ;;
         x86_64)
             BUILD_HOST=x86_64-linux-android
+            # ToDo: remove the following once all x86-based device call JNI function with
+            #       stack aligned to 16-byte
+            EXTRA_CFLAGS="$EXTRA_CFLAGS -mstackrealign"
             ;;
         mips)
             BUILD_HOST=mipsel-linux-android
@@ -188,16 +205,17 @@ build_gnustl_for_abi ()
             ;;
     esac
 
-    EXTRA_FLAGS="-ffunction-sections -fdata-sections"
-    if [ -n "$THUMB" ] ; then
-        EXTRA_FLAGS="-mthumb"
-    fi
-    CFLAGS="-fPIC $CFLAGS --sysroot=$SYSROOT -fexceptions -funwind-tables -D__BIONIC__ -O2 $EXTRA_FLAGS"
-    CXXFLAGS="-fPIC $CXXFLAGS --sysroot=$SYSROOT -fexceptions -frtti -funwind-tables -D__BIONIC__ -O2 $EXTRA_FLAGS"
+    CFLAGS="-fPIC $CFLAGS --sysroot=$SYSROOT -fexceptions -funwind-tables -D__BIONIC__ -O2 $EXTRA_CFLAGS"
+    CXXFLAGS="-fPIC $CXXFLAGS --sysroot=$SYSROOT -fexceptions -frtti -funwind-tables -D__BIONIC__ -O2 $EXTRA_CFLAGS"
     CPPFLAGS="$CPPFLAGS --sysroot=$SYSROOT"
     if [ "$WITH_DEBUG_INFO" ]; then
         CFLAGS="$CFLAGS -g"
         CXXFLAGS="$CXXFLAGS -g"
+    fi
+    if [ "$WITH_LIBSUPPORT" ]; then
+        CFLAGS="$CFLAGS -I$NDK_DIR/$SUPPORT_SUBDIR/include"
+        CXXFLAGS="$CXXFLAGS -I$NDK_DIR/$SUPPORT_SUBDIR/include"
+        EXTRA_LDFLAGS="$EXTRA_LDFLAGS -L$NDK_DIR/$SUPPORT_SUBDIR/libs/$ABI -landroid_support"
     fi
     export CFLAGS CXXFLAGS CPPFLAGS
 
@@ -211,7 +229,7 @@ build_gnustl_for_abi ()
 
     setup_ccache
 
-    export LDFLAGS="-lc $EXTRA_FLAGS"
+    export LDFLAGS="$EXTRA_LDFLAGS -lc"
 
     case $ABI in
         armeabi-v7a|armeabi-v7a-hard)
@@ -229,6 +247,11 @@ build_gnustl_for_abi ()
             CXXFLAGS=$CXXFLAGS" -mfix-cortex-a53-835769"
             ;;
     esac
+
+    if [ "$ABI" = "armeabi" -o "$ABI" = "armeabi-v7a" -o "$ABI" = "armeabi-v7a-hard" ]; then
+        CFLAGS=$CFLAGS" -minline-thumb1-jumptable"
+        CXXFLAGS=$CXXFLAGS" -minline-thumb1-jumptable"
+    fi
 
     LIBTYPE_FLAGS=
     if [ $LIBTYPE = "static" ]; then
@@ -248,9 +271,9 @@ build_gnustl_for_abi ()
         #LDFLAGS=$LDFLAGS" -lsupc++"
     fi
 
-    if [ "$ARCH" == "x86_64" -o "$ARCH" == "mips64" -o "$ARCH" == "mips" ] ; then
+    if [ "$ARCH" = "x86_64" -o "$ARCH" = "mips64" -o "$ARCH" = "mips" ] ; then
         MULTILIB_FLAGS=
-    elif [ "$ARCH" == "mips" -a $GCC_VERSION == "4.9" ] ; then
+    elif [ "$ARCH" = "mips" -a $GCC_VERSION = "4.9" ] ; then
         MULTILIB_FLAGS=
     else
         MULTILIB_FLAGS=--disable-multilib
@@ -335,8 +358,10 @@ copy_gnustl_libs ()
     esac
 
     LDIR=lib
-    if [ "$ARCH" != "${ARCH%%64*}" ]; then
-        #Can't call $(get_default_libdir_for_arch $ARCH) which contain hack for arm64 and mips64
+    if [ "$ABI" = "mips32r6" ]; then
+        LDIR=libr6
+    elif [ "$ARCH" != "${ARCH%%64*}" ]; then
+        #Can't call $(get_default_libdir_for_arch $ARCH) which contain hack for arm64
         LDIR=lib64
     fi
 
@@ -389,10 +414,10 @@ copy_gnustl_libs ()
 GCC_VERSION_LIST=$(commas_to_spaces $GCC_VERSION_LIST)
 for ABI in $ABIS; do
     ARCH=$(convert_abi_to_arch $ABI)
-    DEFAULT_GCC_VERSION=$(get_default_gcc_version_for_arch $ARCH)
+    FIRST_GCC_VERSION=$(get_first_gcc_version_for_arch $ARCH)
     for VERSION in $GCC_VERSION_LIST; do
-        # Only build for this GCC version if it on or after DEFAULT_GCC_VERSION
-        if [ -z "$EXPLICIT_COMPILER_VERSION" ] && version_is_greater_than "$DEFAULT_GCC_VERSION" "${VERSION%%l}"; then
+        # Only build for this GCC version if it on or after FIRST_GCC_VERSION
+        if [ -z "$EXPLICIT_COMPILER_VERSION" ] && version_is_at_least "${VERSION%%l}" "$FIRST_GCC_VERSION"; then
             continue
         fi
 
@@ -436,8 +461,8 @@ if [ -n "$PACKAGE_DIR" ] ; then
                               lib64/libsupc++.a lib64/libgnustl_static.a lib64/libgnustl_shared.so
                               lib64r2/libsupc++.a lib64r2/libgnustl_static.a lib64r2/libgnustl_shared.so"
                     ;;
-                mips)
-                    if [ "$VERSION" == "4.9" ]; then
+                mips|mips32r6)
+                    if [ "$VERSION" = "4.9" ]; then
                         MULTILIB="include/mips-r2/bits include/mips-r6/bits include/bits
                                   lib/libsupc++.a lib/libgnustl_static.a lib/libgnustl_shared.so
                                   libr2/libsupc++.a libr2/libgnustl_static.a libr2/libgnustl_shared.so

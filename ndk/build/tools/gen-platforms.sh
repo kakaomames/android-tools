@@ -76,7 +76,7 @@ OPTION_ARCH=
 OPTION_ABI=
 OPTION_DEBUG_LIBS=
 OPTION_OVERLAY=
-OPTION_GCC_VERSION=
+OPTION_GCC_VERSION="default"
 OPTION_LLVM_VERSION=$DEFAULT_LLVM_VERSION
 PACKAGE_DIR=
 
@@ -380,13 +380,13 @@ get_default_compiler_for_arch()
                 break;
             fi
         done
-        EXTRA_CFLAGS="-emit-llvm"
+        EXTRA_CFLAGS=
     else
-        if [ -n "$OPTION_GCC_VERSION" ]; then
-            GCC_VERSION=$OPTION_GCC_VERSION
-        elif [ "$ARCH" = "mips" ]; then
+        if [ "$ARCH" = "mips" ]; then
             # Support for mips32r6 in the new multilib mipsel-* toolchain is only available from 4.9
             GCC_VERSION=4.9
+        elif [ -n "$OPTION_GCC_VERSION" -a "$OPTION_GCC_VERSION" != "default" ]; then
+            GCC_VERSION=$OPTION_GCC_VERSION
         else
             GCC_VERSION=$(get_default_gcc_version_for_arch $ARCH)
         fi
@@ -781,8 +781,8 @@ for ARCH in $ARCHS; do
 
             # Generate shared libraries from symbol files
             if [ "$(arch_in_unknown_archs $ARCH)" = "yes" ]; then
-                gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/lib "-target le32-none-ndk"
-                gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/lib64 "-target le64-none-ndk"
+                gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/lib "-target le32-none-ndk -emit-llvm"
+                gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/lib64 "-target le64-none-ndk -emit-llvm"
             else
                 case "$ARCH" in
                     x86_64)

@@ -296,7 +296,6 @@ $(call ndk_log,HOST_TAG set to $(HOST_TAG))
 HOST_PREBUILT_ROOT := $(call host-prebuilt-tag, $(NDK_ROOT))
 HOST_PREBUILT := $(strip $(wildcard $(HOST_PREBUILT_ROOT)/bin))
 HOST_AWK := $(strip $(NDK_HOST_AWK))
-HOST_SED  := $(strip $(NDK_HOST_SED))
 HOST_MAKE := $(strip $(NDK_HOST_MAKE))
 HOST_PYTHON := $(strip $(NDK_HOST_PYTHON))
 ifdef HOST_PREBUILT
@@ -306,9 +305,6 @@ ifdef HOST_PREBUILT
     ifneq ($(HOST_OS),cygwin)
         ifndef HOST_AWK
             HOST_AWK := $(wildcard $(HOST_PREBUILT)/awk$(HOST_EXEEXT))
-        endif
-        ifndef HOST_SED
-            HOST_SED  := $(wildcard $(HOST_PREBUILT)/sed$(HOST_EXEEXT))
         endif
         ifndef HOST_MAKE
             HOST_MAKE := $(wildcard $(HOST_PREBUILT)/make$(HOST_EXEEXT))
@@ -513,7 +509,7 @@ $(call ndk_log,Found max platform level: $(NDK_MAX_PLATFORM_LEVEL))
 # in build/toolchains/<name>/ that will be included here.
 #
 # Each one of these files should define the following variables:
-#   TOOLCHAIN_NAME   toolchain name (e.g. arm-linux-androideabi-4.6)
+#   TOOLCHAIN_NAME   toolchain name (e.g. arm-linux-androideabi-4.9)
 #   TOOLCHAIN_ABIS   list of target ABIs supported by the toolchain.
 #
 # Then, it should include $(ADD_TOOLCHAIN) which will perform
@@ -597,13 +593,13 @@ endif
 # version number. Unlike NDK_TOOLCHAIN, this only changes the suffix of
 # the toolchain path we're using.
 #
-# For example, if GCC 4.6 is the default, defining NDK_TOOLCHAIN_VERSION=4.8
+# For example, if GCC 4.8 is the default, defining NDK_TOOLCHAIN_VERSION=4.9
 # will ensure that ndk-build uses the following toolchains, depending on
 # the target architecture:
 #
-#    arm -> arm-linux-androideabi-4.8
-#    x86 -> x86-android-linux-4.8
-#    mips -> mipsel-linux-android-4.8
+#    arm -> arm-linux-androideabi-4.9
+#    x86 -> x86-android-linux-4.9
+#    mips -> mipsel-linux-android-4.9
 #
 # This is used in setup-toolchain.mk
 #

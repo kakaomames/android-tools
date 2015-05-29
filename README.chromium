@@ -1,7 +1,7 @@
 Name: Android Tools (SDK/NDK)
 URL: http://developer.android.com/sdk/index.html
 Versions:
-  NDK r10c
+  NDK r10e-rc4
   Android SDK Platform API 22 rev 2
   Android SDK Tools 24.3
   Android SDK Platform-tools 22
@@ -20,26 +20,7 @@ Local Modifications:
 
 -In ndk/
 - Removed old android platforms in platforms/
-  (anything under android-14)
-- Removed GCC 4.6 toolchains in toolchains/
-  as they are deprecated and no longer used in Chromium.
-- Also deleted sources/cxx-stl/gnu-libstdc++/4.6/ for the same reason.
-- Edited stlport to force GCC to do "proper" inlining decisions
-  (see crbug.com/377433)
-    sources/cxx-stl/stlport/stlport/stl/_construct.h
-    sources/cxx-stl/stlport/stlport/stl/_vector.c
-- Cherry-picked https://android-review.googlesource.com/#/c/123717/ to Arm, Arm64 and Mips
-- Cherry-picked
-    http://llvm.org/viewvc/llvm-project?view=revision&revision=227226
-- Cherry-picked
-    https://android-review.googlesource.com/#/c/146049/
-    https://android-review.googlesource.com/#/c/147258/
-- Cherry-picked
-    https://android-review.googlesource.com/#/c/120721/
--Cherry-picked more recent version of the aarch64 toolchain containing
-    https://android-review.googlesource.com/#/c/113144/
-    https://android-review.googlesource.com/#/c/118930/
-    https://android-review.googlesource.com/#/c/144632/
+  (anything under android-16)
 - Cherry-picked
     https://android-review.googlesource.com/#/c/150680/
   to fix component build at -Oz.

@@ -80,23 +80,15 @@ register_var_option "--visible-static" VISIBLE_STATIC "Do not use hidden visibil
 WITH_DEBUG_INFO=
 register_var_option "--with-debug-info" WITH_DEBUG_INFO "Build with -g.  STL is still built with optimization but with debug info"
 
-EXPLICIT_COMPILER_VERSION=
-
 GCC_VERSION=
-register_option "--gcc-version=<ver>" do_gcc_version "Specify GCC version"
-do_gcc_version() {
-    GCC_VERSION=$1
-    EXPLICIT_COMPILER_VERSION=true
-}
+register_var_option "--gcc-version=<ver>" GCC_VERSION "Specify GCC version"
 
 LLVM_VERSION=
-register_option "--llvm-version=<ver>" do_llvm_version "Specify LLVM version"
-do_llvm_version() {
-    LLVM_VERSION=$1
-    EXPLICIT_COMPILER_VERSION=true
-}
+register_var_option "--llvm-version=<ver>" LLVM_VERSION "Specify LLVM version"
 
 register_jobs_option
+
+register_try64_option
 
 extract_parameters "$@"
 
@@ -107,7 +99,7 @@ fi
 ABIS=$(commas_to_spaces $ABIS)
 UNKNOWN_ABIS=
 if [ "$ABIS" = "${ABIS%%64*}" ]; then
-    UNKNOWN_ABIS="$(filter_out "$PREBUILT_ABIS" "$ABIS" )"
+    UNKNOWN_ABIS="$(filter_out "$PREBUILT_ABIS mips32r6" "$ABIS" )"
     if [ -n "$UNKNOWN_ABIS" ] && [ -n "$(find_ndk_unknown_archs)" ]; then
         ABIS="$(filter_out "$UNKNOWN_ABIS" "$ABIS")"
         ABIS="$ABIS $(find_ndk_unknown_archs)"
@@ -198,7 +190,7 @@ fi
 
 if [ "$CXX_STL" = "libc++" ]; then
     # Use clang to build libc++ by default.
-    if [ "$EXPLICIT_COMPILER_VERSION" != "true" ]; then
+    if [ -z "$LLVM_VERSION" -a -z "$GCC_VERSION" ]; then
         LLVM_VERSION=$DEFAULT_LLVM_VERSION
     fi
 fi
@@ -502,14 +494,14 @@ HIDDEN_VISIBILITY_FLAGS="-fvisibility=hidden -fvisibility-inlines-hidden"
 # By default, all static libraries include hidden ELF symbols, except
 # if one uses the --visible-static option.
 if [ -z "$VISIBLE_STATIC" ]; then
+    STATIC_CONLYFLAGS="$HIDDEN_VISIBILITY_FLAGS"
     STATIC_CXXFLAGS="$HIDDEN_VISIBILITY_FLAGS"
 else
+    STATIC_CONLYFLAGS=
     STATIC_CXXFLAGS=
 fi
-SHARED_CXXFLAGS=
-# Mainlly deal with android_support.a
-STATIC_CONLYFLAGS="$HIDDEN_VISIBILITY_FLAGS"
 SHARED_CONLYFLAGS="$HIDDEN_VISIBILITY_FLAGS"
+SHARED_CXXFLAGS=
 
 
 # build_stl_libs_for_abi
@@ -545,6 +537,17 @@ build_stl_libs_for_abi ()
             EXTRA_CFLAGS="-mfix-cortex-a53-835769"
             EXTRA_CXXFLAGS="-mfix-cortex-a53-835769"
             ;;
+        x86|x86_64)
+            # ToDo: remove the following once all x86-based device call JNI function with
+            #       stack aligned to 16-byte
+            EXTRA_CFLAGS="-mstackrealign"
+            EXTRA_CXXFLAGS="-mstackrealign"
+            ;;
+        mips32r6)
+            EXTRA_CFLAGS="-mips32r6"
+            EXTRA_CXXFLAGS="-mips32r6"
+            EXTRA_LDFLAGS="-mips32r6"
+            ;;
     esac
 
     if [ -n "$THUMB" ]; then
@@ -578,14 +581,14 @@ build_stl_libs_for_abi ()
     # libc++_shared.so and libc++_static.a with undefined __atomic_fetch_add_4
     # Add -latomic.
     if [ -n "$LLVM_VERSION" -a "$CXX_STL_LIB" = "libc++" ]; then
-        # clang3.5 use integrated-as as default, which has trouble compiling
+        # clang3.5+ use integrated-as as default, which has trouble compiling
         # llvm-libc++abi/libcxxabi/src/Unwind/UnwindRegistersRestore.S
-        if [ "$LLVM_VERSION" = "3.5" ]; then
+        if [ "$LLVM_VERSION" \> "3.4" ]; then
             EXTRA_CFLAGS="${EXTRA_CFLAGS} -no-integrated-as"
             EXTRA_CXXFLAGS="${EXTRA_CXXFLAGS} -no-integrated-as"
         fi
         if [ "$ABI" = "armeabi" ]; then
-            # EHABI tables were added as experimental flags in llvm 3.4. In 3.5, these
+            # EHABI tables were added as experimental flags in llvm 3.4. In clang3.5+, these
             # are now the defaults and the flags have been removed. Add these flags
             # explicitly only for llvm 3.4.
             if [ "$LLVM_VERSION" = "3.4" ]; then
@@ -628,7 +631,7 @@ build_stl_libs_for_abi ()
       builder_cxxflags "$DEFAULT_CXXFLAGS $CXX_STL_CXXFLAGS $EXTRA_CXXFLAGS"
       builder_ldflags "$CXX_STL_LDFLAGS $EXTRA_LDFLAGS"
       builder_sources $CXX_STL_SOURCES
-      if [ "$CXX_SUPPORT_LIB" == "libc++abi" ]; then
+      if [ "$CXX_SUPPORT_LIB" = "libc++abi" ]; then
           builder_sources $LIBCXXABI_SOURCES
           builder_ldflags "-ldl"
       fi
@@ -662,12 +665,12 @@ build_stl_libs_for_abi ()
 }
 
 for ABI in $ABIS; do
-    build_stl_libs_for_abi $ABI "$BUILD_DIR/$ABI/shared" "shared" "$OUT_DIR"
     build_stl_libs_for_abi $ABI "$BUILD_DIR/$ABI/static" "static" "$OUT_DIR"
+    build_stl_libs_for_abi $ABI "$BUILD_DIR/$ABI/shared" "shared" "$OUT_DIR"
     # build thumb version of libraries for 32-bit arm
     if [ "$ABI" != "${ABI%%arm*}" -a "$ABI" = "${ABI%%64*}" ] ; then
-        build_stl_libs_for_abi $ABI "$BUILD_DIR/$ABI/shared" "shared" "$OUT_DIR" thumb
         build_stl_libs_for_abi $ABI "$BUILD_DIR/$ABI/static" "static" "$OUT_DIR" thumb
+        build_stl_libs_for_abi $ABI "$BUILD_DIR/$ABI/shared" "shared" "$OUT_DIR" thumb
     fi
 done
 
