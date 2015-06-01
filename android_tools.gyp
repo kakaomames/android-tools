@@ -128,7 +128,7 @@
       # This jar contains the Android support v7 recyclerview library from the
       # revision 21 of the Android Support library. This library doesn't
       # contain the resources needed for the library to work.
-      'target_name': 'android_support_v7_recyclerview_javalib',
+      'target_name': 'android_support_v7_recyclerview_javalib_no_res',
       'type' : 'none',
       'variables': {
         'jar_path': '<(android_sdk_root)/extras/android/support/v7/recyclerview/libs/android-support-v7-recyclerview.jar',
@@ -136,6 +136,23 @@
       'dependencies': [
       ],
       'includes': ['../../build/java_prebuilt.gypi'],
+    },
+    {
+      # This target contains the Android support v7 recyclerview library with the
+      # resources needed.
+      'target_name': 'android_support_v7_recyclerview_javalib',
+      'type': 'none',
+      'variables': {
+        'java_in_dir': '<(android_sdk_root)/extras/android/support/v7/recyclerview',
+        'R_package': ['android.support.v7.recyclerview'],
+        'R_package_relpath': ['android/support/v7/recyclerview'],
+        'has_java_resources': 1,
+        'res_v14_skip': 1,
+      },
+      'dependencies': [
+        'android_support_v7_recyclerview_javalib_no_res',
+      ],
+      'includes': [ '../../build/java.gypi' ]
     },
     {
       # This target contains the Google Play services library with the
