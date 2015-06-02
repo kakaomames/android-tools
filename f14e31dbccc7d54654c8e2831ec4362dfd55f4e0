@@ -34,6 +34,24 @@
       "revId": "f14e31dbccc7d54654c8e2831ec4362dfd55f4e0",
       "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d9ae2c65_a98cb908",
+        "filename": "README.chromium",
+        "patchSetId": 1
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1117686
+      },
+      "writtenOn": "2015-06-02T12:48:20Z",
+      "side": 1,
+      "message": "Even though the change is already merged, just to confirm that it is verified for MIPS/MIPS64.",
+      "parentUuid": "8d470d3e_768b3def",
+      "revId": "f14e31dbccc7d54654c8e2831ec4362dfd55f4e0",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
     }
   ]
 }
