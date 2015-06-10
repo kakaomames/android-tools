@@ -85,7 +85,8 @@
           ")',
       },
       'dependencies': [
-        'android_support_v13_javalib'
+        'android_support_v13_javalib',
+        'android_support_v7_mediarouter_javalib'
       ],
       'includes': ['../../build/java_prebuilt.gypi'],
     },
