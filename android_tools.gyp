@@ -156,6 +156,33 @@
       'includes': [ '../../build/java.gypi' ]
     },
     {
+      # This jar contains the Android support design library. This library doesn't
+      # contain the resources needed for the library to work.
+      'target_name': 'android_support_design_javalib_no_res',
+      'type' : 'none',
+      'variables': {
+        'jar_path': '<(android_sdk_root)/extras/android/support/design/libs/android-support-design.jar',
+      },
+      'includes': ['../../build/java_prebuilt.gypi'],
+    },
+    {
+      # This target contains the Android support design library with the
+      # resources needed.
+      'target_name': 'android_support_design_javalib',
+      'type': 'none',
+      'variables': {
+        'java_in_dir': '<(android_sdk_root)/extras/android/support/design',
+        'R_package': ['android.support.design'],
+        'R_package_relpath': ['android/support/design/'],
+        'has_java_resources': 1,
+        'res_v14_skip': 1,
+      },
+      'dependencies': [
+        'android_support_design_javalib_no_res',
+      ],
+      'includes': [ '../../build/java.gypi' ]
+    },
+    {
       # This target contains the Google Play services library with the
       # resources needed. It will fail to build unless you have a local
       # version of the Google Play services library (as installed by
