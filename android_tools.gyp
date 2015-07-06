@@ -4,7 +4,6 @@
 {
   'targets': [
     {
-      'target_name': 'android_java',
       'type' : 'none',
       'variables': {
         'jar_path': '<(android_sdk)/android.jar',
