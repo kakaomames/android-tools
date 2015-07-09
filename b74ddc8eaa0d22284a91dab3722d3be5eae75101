@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "586ddaeb_c09c7271",
+        "filename": "android_tools.gyp",
+        "patchSetId": 1
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1115865
+      },
+      "writtenOn": "2015-07-09T18:23:00Z",
+      "side": 1,
+      "message": "Why does this sdk check live in the main repo? Shouldn\u0027t be next to the code that it checks in third_party/android_tools?",
+      "revId": "b74ddc8eaa0d22284a91dab3722d3be5eae75101",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
+    }
+  ]
+}
