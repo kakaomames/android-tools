@@ -16,6 +16,24 @@
       "revId": "b74ddc8eaa0d22284a91dab3722d3be5eae75101",
       "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1840c241_8439b603",
+        "filename": "android_tools.gyp",
+        "patchSetId": 1
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1123275
+      },
+      "writtenOn": "2015-07-09T19:01:31Z",
+      "side": 1,
+      "message": "Most of the build scripts are in there already, including some that deal with android_tools. The file specifying which version is the minimum required also lives there, and the GN equivalent to the current file is also in the main repo.\n\nIt seemed more consistent to leave the check script in src/build",
+      "parentUuid": "586ddaeb_c09c7271",
+      "revId": "b74ddc8eaa0d22284a91dab3722d3be5eae75101",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
     }
   ]
 }
