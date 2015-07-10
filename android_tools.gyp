@@ -175,6 +175,7 @@
       },
       'dependencies': [
         'android_support_design_javalib_no_res',
+        'android_support_v7_appcompat_javalib',
       ],
       'includes': [ '../../build/java.gypi' ]
     },
