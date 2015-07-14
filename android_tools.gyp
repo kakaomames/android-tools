@@ -97,6 +97,7 @@
         'R_package_relpath': ['android/support/v7/appcompat'],
         'has_java_resources': 1,
         'res_v14_skip': 1,
+        'run_findbugs': 0,
       },
       'dependencies': [
         'android_support_v7_appcompat_javalib_no_res',
@@ -114,6 +115,7 @@
         'R_package_relpath': ['android/support/v7/mediarouter'],
         'has_java_resources': 1,
         'res_v14_skip': 1,
+        'run_findbugs': 0,
       },
       'dependencies': [
         'android_support_v7_mediarouter_javalib_no_res',
@@ -145,6 +147,7 @@
         'R_package_relpath': ['android/support/v7/recyclerview'],
         'has_java_resources': 1,
         'res_v14_skip': 1,
+        'run_findbugs': 0,
       },
       'dependencies': [
         'android_support_v7_recyclerview_javalib_no_res',
@@ -172,6 +175,7 @@
         'R_package_relpath': ['android/support/design/'],
         'has_java_resources': 1,
         'res_v14_skip': 1,
+        'run_findbugs': 0,
       },
       'dependencies': [
         'android_support_design_javalib_no_res',
@@ -196,6 +200,7 @@
         'R_package_relpath': ['com/google/android/gms'],
         'has_java_resources': 1,
         'res_v14_skip': 1,
+        'run_findbugs': 0,
       },
       'dependencies': [
         'google_play_services_default_javalib_no_res',
