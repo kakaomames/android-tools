@@ -112,6 +112,14 @@ public class MediaSessionCompat {
             throw new IllegalArgumentException("tag must not be null or empty");
         }
 
+        if (mediaButtonEventReceiver != null && mbrIntent == null) {
+            // construct a PendingIntent for the media button
+            Intent mediaButtonIntent = new Intent(Intent.ACTION_MEDIA_BUTTON);
+            // the associated intent will be handled by the component being registered
+            mediaButtonIntent.setComponent(mediaButtonEventReceiver);
+            mbrIntent = PendingIntent.getBroadcast(context,
+                    0/* requestCode, ignored */, mediaButtonIntent, 0/* flags */);
+        }
         if (android.os.Build.VERSION.SDK_INT >= 21) {
             mImpl = new MediaSessionImplApi21(context, tag);
             mImpl.setMediaButtonReceiver(mbrIntent);
@@ -925,7 +933,6 @@ public class MediaSessionCompat {
         Object getRemoteControlClient();
     }
 
-    // TODO: compatibility implementation
     static class MediaSessionImplBase implements MediaSessionImpl {
         private final Context mContext;
         private final ComponentName mComponentName;
@@ -981,15 +988,6 @@ public class MediaSessionCompat {
             if (mbrComponent == null) {
                 throw new IllegalArgumentException(
                         "MediaButtonReceiver component may not be null.");
-            }
-            if (mbr == null) {
-                // construct a PendingIntent for the media button
-                Intent mediaButtonIntent = new Intent(Intent.ACTION_MEDIA_BUTTON);
-                // the associated intent will be handled by the component being
-                // registered
-                mediaButtonIntent.setComponent(mbrComponent);
-                mbr = PendingIntent.getBroadcast(context,
-                        0/* requestCode, ignored */, mediaButtonIntent, 0/* flags */);
             }
             mContext = context;
             mPackageName = context.getPackageName();
@@ -1779,7 +1777,10 @@ public class MediaSessionCompat {
                         mCallback.onCustomAction((String) msg.obj, msg.getData());
                         break;
                     case MSG_MEDIA_BUTTON:
-                        mCallback.onMediaButtonEvent((Intent) msg.obj);
+                        KeyEvent keyEvent = (KeyEvent) msg.obj;
+                        Intent intent = new Intent(Intent.ACTION_MEDIA_BUTTON);
+                        intent.putExtra(Intent.EXTRA_KEY_EVENT, keyEvent);
+                        mCallback.onMediaButtonEvent(intent);
                         break;
                     case MSG_COMMAND:
                         Command cmd = (Command) msg.obj;
