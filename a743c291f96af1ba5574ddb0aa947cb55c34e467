@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4d70bac3_b9af3f14",
+        "filename": "sdk/sources/preview_sources/src/android/view/ViewStructure.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 3,
+      "author": {
+        "id": 1115865
+      },
+      "writtenOn": "2015-07-21T22:02:24Z",
+      "side": 1,
+      "message": "Should this have Android copyright header?",
+      "revId": "a743c291f96af1ba5574ddb0aa947cb55c34e467",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
+    }
+  ]
+}
