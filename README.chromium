@@ -24,6 +24,8 @@ Local Modifications:
 - Cherry-picked
     https://android-review.googlesource.com/#/c/150680/
   to fix component build at -Oz.
+- Cherry-picked various upstream libc++ fixes, including stack trace fixes.
+    https://android-review.googlesource.com/#/c/152910
 
 -In sdk/
 - Included the Android support library and required extras packages
