@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ed296e86_6ec90f52",
+        "filename": "README.chromium",
+        "patchSetId": 1
+      },
+      "lineNbr": 27,
+      "author": {
+        "id": 1002763
+      },
+      "writtenOn": "2015-07-21T14:53:46Z",
+      "side": 1,
+      "message": "Could you list the revisions which are cherrypicked please?",
+      "range": {
+        "startLine": 27,
+        "startChar": 0,
+        "endLine": 27,
+        "endChar": 75
+      },
+      "revId": "fc12b502535a2c53129f89f6bb5dde2c376ce7c7",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
+    }
+  ]
+}
