@@ -12,6 +12,16 @@
       },
       'includes': ['../../build/java_prebuilt.gypi'],
     },
+    # TODO(sgurun) remove this when M is public. crbug/512264.
+    {
+      'target_name': 'preview_java_sources',
+      'type': 'none',
+        'variables': {
+            'java_in_dir': 'sdk/sources/preview_sources',
+            'has_java_resources': 0,
+      },
+      'includes': [ '../../build/java.gypi' ],
+    },
     {
       'target_name': 'android_gcm',
       'type' : 'none',
