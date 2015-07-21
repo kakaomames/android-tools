@@ -22,6 +22,30 @@
       "revId": "fc12b502535a2c53129f89f6bb5dde2c376ce7c7",
       "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "2df2a655_e0b9a2c4",
+        "filename": "README.chromium",
+        "patchSetId": 1
+      },
+      "lineNbr": 27,
+      "author": {
+        "id": 1116524
+      },
+      "writtenOn": "2015-07-21T15:26:11Z",
+      "side": 1,
+      "message": "There was an upstream merge in aosp, I do not have the exact range but I added an aosp merge as reference.",
+      "parentUuid": "ed296e86_6ec90f52",
+      "range": {
+        "startLine": 27,
+        "startChar": 0,
+        "endLine": 27,
+        "endChar": 75
+      },
+      "revId": "fc12b502535a2c53129f89f6bb5dde2c376ce7c7",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
     }
   ]
 }
