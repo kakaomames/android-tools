@@ -37,3 +37,5 @@ Local Modifications:
     cp script.js style.css $ANDROID_SDK_ROOT/tools/systrace
 
 No other modifications has been made to the public Android SDK/NDK.
+
+kjalsdf
