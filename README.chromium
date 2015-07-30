@@ -38,4 +38,5 @@ Local Modifications:
     ./update.py
     cp script.js style.css $ANDROID_SDK_ROOT/tools/systrace
 
+TEST TEST TEST TEST TEST
 No other modifications has been made to the public Android SDK/NDK.
