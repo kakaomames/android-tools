@@ -5,9 +5,14 @@
 
 # Keep all the classes in packages used by Chrome
 -keep class com.google.android.gms.auth.**,
-            com.google.android.gms.cast.**,
             com.google.android.gms.common.**
             {
+  *;
+}
+
+# Videofling
+-keep class com.google.android.gms.cast.*,
+            com.google.android.gms.cast.internal.* {
   *;
 }
 
