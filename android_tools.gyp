@@ -202,6 +202,15 @@
       'includes': [ '../../build/java.gypi' ]
     },
     {
+      # This target contains the Android support library annotations.
+      'target_name': 'android_support_annotations_javalib',
+      'type': 'none',
+      'variables': {
+        'jar_path': '<(android_sdk_root)/extras/android/support/annotations/android-support-annotations.jar',
+      },
+      'includes': [ '../../build/java_prebuilt.gypi' ]
+    },
+    {
       # This target contains the Google Play services library with the
       # resources needed. It will fail to build unless you have a local
       # version of the Google Play services library (as installed by
