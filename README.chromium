@@ -24,6 +24,7 @@ Local Modifications:
 - Cherry-picked
     https://android-review.googlesource.com/#/c/150680/
   to fix component build at -Oz.
+- Reverted the x86 GCC 4.9 toolchain to r10c.
 
 -In sdk/
 - Included the Android support library and required extras packages
