@@ -1,8 +1,4 @@
 /* Script for ld --shared: link shared library */
-/* Copyright (C) 2014 Free Software Foundation, Inc.
-   Copying and distribution of this script, with or without modification,
-   are permitted in any medium without royalty provided the copyright
-   notice and this notice are preserved.  */
 OUTPUT_FORMAT("elf64-l1om", "elf64-l1om",
 	      "elf64-l1om")
 OUTPUT_ARCH(l1om)
@@ -34,17 +30,20 @@ SECTIONS
   .rela.ldata     : { *(.rela.ldata .rela.ldata.* .rela.gnu.linkonce.l.*) }
   .rela.lbss      : { *(.rela.lbss .rela.lbss.* .rela.gnu.linkonce.lb.*) }
   .rela.lrodata   : { *(.rela.lrodata .rela.lrodata.* .rela.gnu.linkonce.lr.*) }
-  .rela.ifunc     : { *(.rela.ifunc) }
+  .rela.iplt      :
+    {
+      *(.rela.iplt)
+    }
   .rela.plt       :
     {
       *(.rela.plt)
-      *(.rela.iplt)
     }
   .init           :
   {
     KEEP (*(SORT_NONE(.init)))
   }
-  .plt            : { *(.plt) *(.iplt) }
+  .plt            : { *(.plt) }
+  .iplt           : { *(.iplt) }
   .text           :
   {
     *(.text.unlikely .text.*_unlikely .text.unlikely.*)
