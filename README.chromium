@@ -26,7 +26,6 @@ Local Modifications:
   to fix component build at -Oz.
 - Cherry-picked various upstream libc++ fixes, including stack trace fixes.
     https://android-review.googlesource.com/#/c/152910
-- Reverted the x86 GCC 4.9 toolchain to r10c.
 
 -In sdk/
 - Included the Android support library and required extras packages
