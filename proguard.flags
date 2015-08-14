@@ -4,10 +4,16 @@
 -keepattributes Exceptions,InnerClasses,Signature
 
 # Keep all the classes in packages used by Chrome
--keep class com.google.android.gms.auth.**,
-            com.google.android.gms.cast.**,
-            com.google.android.gms.common.**
+-keep class com.google.android.gms.cast.**,
+            com.google.android.gms.common.**,
+            com.google.android.gms.gcm.**,
+            com.google.android.gms.iid.**
             {
+  *;
+}
+
+# Sign in
+-keep class com.google.android.gms.auth.* {
   *;
 }
 
