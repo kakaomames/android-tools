@@ -137,6 +137,7 @@
     <string name="dialog_title">My great dialog</string>
     <string name="dialog_content">My great dialog is great</string>
     <string name="alert_dialog_usage">AppCompat/Dialog/AlertDialog Usage</string>
+    <string name="dialogfragment_usage">AppCompat/Dialog/DialogFragment Usage</string>
 
     <string name="sample_media_route_provider_remote">Remote Playback (Simulated)</string>
     <string name="sample_media_route_activity_local">Local Playback</string>
@@ -146,6 +147,8 @@
     <string name="animated_recycler_view">RecyclerView/AnimatedRecyclerView</string>
     <string name="linear_layout_manager">RecyclerView/Linear Layout Manager</string>
     <string name="grid_layout_manager">RecyclerView/Grid Layout Manager</string>
+    <string name="staggered_grid_layout_manager">RecyclerView/Staggered Grid Layout Manager</string>
+    <string name="async_list_util">RecyclerView/AsyncListUtil</string>
     <string name="checkbox_orientation">Horz.</string>
     <string name="checkbox_reverse">Rev.</string>
     <string name="checkbox_layout_dir">Layout Dir</string>
@@ -178,6 +181,7 @@
     <string name="sorted_list_activity">Sorted List</string>
     <string name="add_new_item">Add New Item</string>
     <string name="start_action_mode">Start Action Mode</string>
+
     <string name="swipe_to_dismiss_activity">RecyclerView/ItemTouchHelper/Swipe To Dismiss</string>
     <string name="drag_and_drop_activity">RecyclerView/ItemTouchHelper/Drag and Drop Activity</string>
     <string name="swipe_start">start</string>
@@ -190,4 +194,5 @@
     <string name="drag">drag me</string>
     <string name="swipe">swipe me</string>
     <string name="swiping">swiping</string>
+    <string name="vertical">vertical</string>
 </resources>
