@@ -2,12 +2,12 @@ Name: Android Tools (SDK/NDK)
 URL: http://developer.android.com/sdk/index.html
 Versions:
   NDK r10e-rc4
-  Android SDK Platform API 22 rev 2
-  Android SDK Tools 24.3.3
-  Android SDK Platform-tools 22
-  Android SDK Build-tools 22
-  Android SDK Sources 22
-  Android Support Library 22.2.1
+  Android SDK Platform API 23
+  Android SDK Tools 24.3.4
+  Android SDK Platform-tools 23
+  Android SDK Build-tools 23
+  Android SDK Sources 23
+  Android Support Library 23.0.0
   Google Cloud Messaging 3
 Security Critical: no
 License: Apache Version 2.0

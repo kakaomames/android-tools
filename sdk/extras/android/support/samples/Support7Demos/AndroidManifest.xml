@@ -316,6 +316,15 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".app.DialogFragmentUsage"
+                  android:label="@string/dialogfragment_usage"
+                  android:theme="@style/Theme.AppCompat.Light">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="com.example.android.supportv7.SAMPLE_CODE" />
+            </intent-filter>
+        </activity>
+
         <provider android:name=".app.RecentSuggestionsProvider"
                   android:authorities="com.example.android.supportv7.RecentSuggestionsProvider" />
 
@@ -359,6 +368,24 @@
 
         <activity android:name=".widget.GridLayoutManagerActivity"
                   android:label="@string/grid_layout_manager"
+                  android:theme="@style/Theme.AppCompat">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="com.example.android.supportv7.SAMPLE_CODE" />
+            </intent-filter>
+        </activity>
+
+        <activity android:name=".widget.StaggeredGridLayoutManagerActivity"
+                  android:label="@string/staggered_grid_layout_manager"
+                  android:theme="@style/Theme.AppCompat">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="com.example.android.supportv7.SAMPLE_CODE" />
+            </intent-filter>
+        </activity>
+
+        <activity android:name=".widget.AsyncListUtilActivity"
+                  android:label="@string/async_list_util"
                   android:theme="@style/Theme.AppCompat">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
