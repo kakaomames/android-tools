@@ -202,6 +202,14 @@
       'includes': [ '../../build/java.gypi' ]
     },
     {
+      'target_name': 'android_support_customtabs_javalib',
+      'type': 'none',
+      'variables': {
+        'jar_path': '<(android_sdk_root)/extras/android/support/customtabs/libs/android-support-customtabs.jar',
+      },
+      'includes': [ '../../build/java_prebuilt.gypi' ]
+    },
+    {
       # This target contains the Android support library annotations.
       'target_name': 'android_support_annotations_javalib',
       'type': 'none',
