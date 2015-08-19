@@ -253,6 +253,7 @@
       'type': 'none',
       'variables': {
         'jar_path': '<(android_sdk)/optional/org.apache.http.legacy.jar',
+        'neverlink': 1,
       },
       'includes': ['../../build/java_prebuilt.gypi'],
     }
