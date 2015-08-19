@@ -244,6 +244,15 @@
         '<(google_play_services_library_target)',
       ],
     },
+    {
+      # TODO(jbudorick): Remove this once net_java_test_support doesn't need it.
+      'target_name': 'legacy_http_javalib',
+      'type': 'none',
+      'variables': {
+        'jar_path': '<(android_sdk)/optional/org.apache.http.legacy.jar',
+      },
+      'includes': ['../../build/java_prebuilt.gypi'],
+    }
   ],
   'variables': {'google_play_services_library_target%': 'google_play_services_default_javalib'},
 }
