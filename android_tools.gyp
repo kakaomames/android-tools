@@ -100,7 +100,10 @@
       },
       'dependencies': [
         'android_support_v13_javalib',
-        'android_support_v7_mediarouter_javalib'
+        'android_support_v7_mediarouter_javalib',
+        # TODO(jbudorick): Remove this once play services doesn't need it.
+        # b/21026243
+        'legacy_http_javalib',
       ],
       'includes': ['../../build/java_prebuilt.gypi'],
     },
