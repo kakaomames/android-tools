@@ -4,21 +4,22 @@
 -keepattributes Exceptions,InnerClasses,Signature
 
 # Keep all the classes in packages used by Chrome
--keep class com.google.android.gms.common.**,
-            com.google.android.gms.gcm.**,
-            com.google.android.gms.iid.**
-            {
-  *;
-}
+-keep public class com.google.android.gms.common.api.Api* {*;}
+-keep public class com.google.android.gms.common.api.CommonStatusCodes {*;}
+-keep public class com.google.android.gms.common.api.GoogleApiClient* {*;}
+-keep public class com.google.android.gms.common.api.PendingResult {*;}
+-keep public class com.google.android.gms.common.api.ResultCallback {*;}
+-keep public class com.google.android.gms.common.api.Status {*;}
+-keep public class com.google.android.gms.common.ConnectionResult {*;}
+-keep public class com.google.android.gms.common.GoogleApiAvailability {*;}
+-keep public class com.google.android.gms.common.GooglePlayServicesUtil {*;}
 
-# Sign in
--keep class com.google.android.gms.auth.* {
-  *;
-}
 
-# Cast
--keep class com.google.android.gms.cast.*,
-            com.google.android.gms.cast.internal.* {
+-keep class com.google.android.gms.auth.*,             # Signin, chromoting
+            com.google.android.gms.cast.*,             # Cast
+            com.google.android.gms.gcm.*,              # GCM for CacheInvalidation
+            com.google.android.gms.iid.*               # GCM Registration for CacheInvalidation
+      {
   *;
 }
 
@@ -26,13 +27,10 @@
 -dontwarn com.google.android.gms.R**
 
 # appears to work. See http://crbug.com/485498
--dontnote com.google.android.gms.common.data.DataBuffer
--dontnote com.google.android.gms.common.internal.**
--dontnote com.google.android.gms.common.images.ImageManager**
+-dontnote com.google.android.gms.cast.**
+-dontnote com.google.android.gms.common.**
 -dontnote com.google.android.gms.dynamic.**
 -dontnote com.google.android.gms.internal.**
--dontnote com.google.android.gms.maps.internal.**
--dontnote com.google.android.gms.wallet.**
 
 # Keep all enum values and valueOf methods. See
 # http://proguard.sourceforge.net/index.html#manual/examples.html
@@ -77,5 +75,4 @@
 
 # TODO(aurimas): remove this when Google Play Services no longer uses setLatestEventInfo call
 # that was deprecated in Android M. It is save to suppress this according to b/18510449.
--dontwarn com.google.android.gms.common.GooglePlayServicesUtil
--dontwarn com.google.android.gms.gcm.zza
+-dontwarn android.app.Notification
