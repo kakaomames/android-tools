@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "24656596_2e7933e7",
+        "filename": "proguard.flags",
+        "patchSetId": 1
+      },
+      "lineNbr": 78,
+      "author": {
+        "id": 1123275
+      },
+      "writtenOn": "2015-08-26T16:32:30Z",
+      "side": 1,
+      "message": "Change from https://chrome-internal-review.googlesource.com/#/c/227317/ that had not be imported previously",
+      "revId": "ed591c3fcbb242763728868427b7fc161c6393b7",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
+    }
+  ]
+}
