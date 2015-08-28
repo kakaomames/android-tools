@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "24656596_f1b0da4b",
+        "filename": "proguard.flags",
+        "patchSetId": 1
+      },
+      "lineNbr": 76,
+      "author": {
+        "id": 1123275
+      },
+      "writtenOn": "2015-08-28T09:32:41Z",
+      "side": 1,
+      "message": "Something in gcm also uses it. I\u0027ll revisit the whole thing later to also cleanup dontnotes, when proguard is updated.",
+      "parentUuid": "849451c2_4af3ebda",
+      "revId": "ed591c3fcbb242763728868427b7fc161c6393b7",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "24656596_2e7933e7",
         "filename": "proguard.flags",
         "patchSetId": 1
