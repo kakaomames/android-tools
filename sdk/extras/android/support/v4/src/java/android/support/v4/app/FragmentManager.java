@@ -428,7 +428,12 @@ final class FragmentManagerImpl extends FragmentManager implements LayoutInflate
         public void onAnimationStart(Animation animation) {
             mShouldRunOnHWLayer = shouldRunOnHWLayer(mView, animation);
             if (mShouldRunOnHWLayer) {
-                ViewCompat.setLayerType(mView, ViewCompat.LAYER_TYPE_HARDWARE, null);
+                mView.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        ViewCompat.setLayerType(mView, ViewCompat.LAYER_TYPE_HARDWARE, null);
+                    }
+                });
             }
         }
 
@@ -436,7 +441,12 @@ final class FragmentManagerImpl extends FragmentManager implements LayoutInflate
         @CallSuper
         public void onAnimationEnd(Animation animation) {
             if (mShouldRunOnHWLayer) {
-                ViewCompat.setLayerType(mView, ViewCompat.LAYER_TYPE_NONE, null);
+                mView.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        ViewCompat.setLayerType(mView, ViewCompat.LAYER_TYPE_NONE, null);
+                    }
+                });
             }
         }
 
@@ -2228,6 +2238,7 @@ final class FragmentManagerImpl extends FragmentManager implements LayoutInflate
             fragment.mTag = tag;
             fragment.mInLayout = true;
             fragment.mFragmentManager = this;
+            fragment.mHost = mHost;
             fragment.onInflate(mHost.getContext(), attrs, fragment.mSavedFragmentState);
             addFragment(fragment, true);
 
