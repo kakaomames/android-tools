@@ -189,6 +189,7 @@
         'run_findbugs': 0,
       },
       'dependencies': [
+        'android_support_v7_recyclerview_javalib',
         'android_support_design_javalib_no_res',
         'android_support_v7_appcompat_javalib',
       ],
