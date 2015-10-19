@@ -5,9 +5,9 @@ Versions:
   Android SDK Platform API 23
   Android SDK Tools 24.3.4
   Android SDK Platform-tools 23.0.1
-  Android SDK Build-tools 23
+  Android SDK Build-tools 23.0.1
   Android SDK Sources 23
-  Android Support Library 23.0.1
+  Android Support Library 23.1
   Google Cloud Messaging 3
 Security Critical: no
 License: Apache Version 2.0
