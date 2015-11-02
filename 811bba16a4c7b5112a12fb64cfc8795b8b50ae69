@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "167c2956_a5958840",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 1
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 1001606
+      },
+      "writtenOn": "2015-11-02T13:43:40Z",
+      "side": 1,
+      "message": "Can you move this line first, and then the one above it to explain why this is needed?",
+      "revId": "811bba16a4c7b5112a12fb64cfc8795b8b50ae69",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "166509c4_1dba1747",
+        "filename": "android_tools.gyp",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1001606
+      },
+      "writtenOn": "2015-11-02T13:43:40Z",
+      "side": 1,
+      "message": "Do you need to do something for GN here?",
+      "revId": "811bba16a4c7b5112a12fb64cfc8795b8b50ae69",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
+    }
+  ]
+}
