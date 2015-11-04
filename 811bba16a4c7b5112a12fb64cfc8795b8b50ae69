@@ -33,6 +33,24 @@
       "revId": "811bba16a4c7b5112a12fb64cfc8795b8b50ae69",
       "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "16a98a5f_ad4e053f",
+        "filename": "android_tools.gyp",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1115982
+      },
+      "writtenOn": "2015-11-04T05:41:29Z",
+      "side": 1,
+      "message": "Yes, but confusingly, the BUILD.gn file to update is in the main source tree at src/build/secondary/third_party/android_tools",
+      "parentUuid": "166509c4_1dba1747",
+      "revId": "811bba16a4c7b5112a12fb64cfc8795b8b50ae69",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
     }
   ]
 }
