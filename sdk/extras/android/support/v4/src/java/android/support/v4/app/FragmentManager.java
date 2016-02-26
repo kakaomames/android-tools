@@ -959,17 +959,6 @@ final class FragmentManagerImpl extends FragmentManager implements LayoutInflate
         }
     }
 
-    void setRetainLoader(boolean retain) {
-        if (mActive != null) {
-            for (int i=0; i<mActive.size(); i++) {
-                Fragment f = mActive.get(i);
-                if (f != null) {
-                    f.mRetainLoader = retain;
-                }
-            }
-        }
-    }
-
     void moveToState(Fragment f, int newState, int transit, int transitionStyle,
             boolean keepActive) {
         // Fragments that are not currently added will sit in the onCreate() state.
@@ -1115,7 +1104,6 @@ final class FragmentManagerImpl extends FragmentManager implements LayoutInflate
                 case Fragment.STARTED:
                     if (newState > Fragment.STARTED) {
                         if (DEBUG) Log.v(TAG, "moveto RESUMED: " + f);
-                        f.mResumed = true;
                         f.performResume();
                         f.mSavedFragmentState = null;
                         f.mSavedViewState = null;
@@ -1127,7 +1115,6 @@ final class FragmentManagerImpl extends FragmentManager implements LayoutInflate
                     if (newState < Fragment.RESUMED) {
                         if (DEBUG) Log.v(TAG, "movefrom RESUMED: " + f);
                         f.performPause();
-                        f.mResumed = false;
                     }
                 case Fragment.STARTED:
                     if (newState < Fragment.STARTED) {
@@ -1207,6 +1194,8 @@ final class FragmentManagerImpl extends FragmentManager implements LayoutInflate
                             if (DEBUG) Log.v(TAG, "movefrom CREATED: " + f);
                             if (!f.mRetaining) {
                                 f.performDestroy();
+                            } else {
+                                f.mState = Fragment.INITIALIZING;
                             }
 
                             f.mCalled = false;
@@ -1229,8 +1218,12 @@ final class FragmentManagerImpl extends FragmentManager implements LayoutInflate
                     }
             }
         }
-        
-        f.mState = newState;
+
+        if (f.mState != newState) {
+            Log.w(TAG, "moveToState: Fragment state for " + f + " not updated inline; "
+                    + "expected state " + newState + " found " + f.mState);
+            f.mState = newState;
+        }
     }
     
     void moveToState(Fragment f) {
@@ -2305,6 +2298,7 @@ final class FragmentManagerImpl extends FragmentManager implements LayoutInflate
             // This fragment was retained from a previous instance; get it
             // going now.
             fragment.mInLayout = true;
+            fragment.mHost = mHost;
             // If this fragment is newly instantiated (either right now, or
             // from last saved state), then give it the attributes to
             // initialize itself.

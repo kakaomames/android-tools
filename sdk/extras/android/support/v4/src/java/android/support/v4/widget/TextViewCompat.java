@@ -18,15 +18,18 @@ package android.support.v4.widget;
 
 import android.graphics.drawable.Drawable;
 import android.os.Build;
+import android.support.annotation.DrawableRes;
+import android.support.annotation.IdRes;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.StyleRes;
 import android.widget.TextView;
 
 /**
  * Helper for accessing features in {@link TextView} introduced after API level
  * 4 in a backwards compatible fashion.
  */
-public class TextViewCompat {
+public final class TextViewCompat {
 
     // Hide constructor
     private TextViewCompat() {}
@@ -39,9 +42,11 @@ public class TextViewCompat {
                 @Nullable Drawable start, @Nullable Drawable top, @Nullable Drawable end,
                 @Nullable Drawable bottom);
         void setCompoundDrawablesRelativeWithIntrinsicBounds(@NonNull TextView textView,
-                int start, int top, int end, int bottom);
+                @DrawableRes int start, @DrawableRes int top, @DrawableRes int end,
+                @DrawableRes int bottom);
         int getMaxLines(TextView textView);
         int getMinLines(TextView textView);
+        void setTextAppearance(@NonNull TextView textView, @StyleRes int resId);
     }
 
     static class BaseTextViewCompatImpl implements TextViewCompatImpl {
@@ -61,7 +66,8 @@ public class TextViewCompat {
 
         @Override
         public void setCompoundDrawablesRelativeWithIntrinsicBounds(@NonNull TextView textView,
-                int start, int top, int end, int bottom) {
+                @DrawableRes int start, @DrawableRes int top, @DrawableRes int end,
+                @DrawableRes int bottom) {
             textView.setCompoundDrawablesWithIntrinsicBounds(start, top, end, bottom);
         }
 
@@ -73,6 +79,11 @@ public class TextViewCompat {
         @Override
         public int getMinLines(TextView textView) {
             return TextViewCompatDonut.getMinLines(textView);
+        }
+
+        @Override
+        public void setTextAppearance(TextView textView, @StyleRes int resId) {
+            TextViewCompatDonut.setTextAppearance(textView, resId);
         }
     }
 
@@ -106,7 +117,8 @@ public class TextViewCompat {
 
         @Override
         public void setCompoundDrawablesRelativeWithIntrinsicBounds(@NonNull TextView textView,
-                int start, int top, int end, int bottom) {
+                @DrawableRes int start, @DrawableRes int top, @DrawableRes int end,
+                @DrawableRes int bottom) {
             TextViewCompatJbMr1.setCompoundDrawablesRelativeWithIntrinsicBounds(textView,
                     start, top, end, bottom);
         }
@@ -131,9 +143,17 @@ public class TextViewCompat {
 
         @Override
         public void setCompoundDrawablesRelativeWithIntrinsicBounds(@NonNull TextView textView,
-                int start, int top, int end, int bottom) {
+                @DrawableRes int start, @DrawableRes int top, @DrawableRes int end,
+                @DrawableRes int bottom) {
             TextViewCompatJbMr2.setCompoundDrawablesRelativeWithIntrinsicBounds(textView,
                     start, top, end, bottom);
+        }
+    }
+
+    static class Api23TextViewCompatImpl extends JbMr2TextViewCompatImpl {
+        @Override
+        public void setTextAppearance(@NonNull TextView textView, @StyleRes int resId) {
+            TextViewCompatApi23.setTextAppearance(textView, resId);
         }
     }
 
@@ -141,7 +161,9 @@ public class TextViewCompat {
 
     static {
         final int version = Build.VERSION.SDK_INT;
-        if (version >= 18) {
+        if (version >= 23) {
+            IMPL = new Api23TextViewCompatImpl();
+        } else if (version >= 18) {
             IMPL = new JbMr2TextViewCompatImpl();
         } else if (version >= 17) {
             IMPL = new JbMr1TextViewCompatImpl();
@@ -212,7 +234,8 @@ public class TextViewCompat {
      * @attr ref android.R.styleable#TextView_drawableBottom
      */
     public static void setCompoundDrawablesRelativeWithIntrinsicBounds(@NonNull TextView textView,
-            int start, int top, int end, int bottom) {
+            @DrawableRes int start, @DrawableRes int top, @DrawableRes int end,
+            @DrawableRes int bottom) {
         IMPL.setCompoundDrawablesRelativeWithIntrinsicBounds(textView, start, top, end, bottom);
     }
 
@@ -230,5 +253,20 @@ public class TextViewCompat {
      */
     public static int getMinLines(@NonNull TextView textView) {
         return IMPL.getMinLines(textView);
+    }
+
+    /**
+     * Sets the text appearance from the specified style resource.
+     * <p>
+     * Use a framework-defined {@code TextAppearance} style like
+     * {@link android.R.style#TextAppearance_Material_Body1 @android:style/TextAppearance.Material.Body1}
+     * or see {@link android.R.styleable#TextAppearance TextAppearance} for the
+     * set of attributes that can be used in a custom style.
+     *
+     * @param textView The TextView against which to invoke the method.
+     * @param resId    The resource identifier of the style to apply.
+     */
+    public static void setTextAppearance(@NonNull TextView textView, @StyleRes int resId) {
+        IMPL.setTextAppearance(textView, resId);
     }
 }

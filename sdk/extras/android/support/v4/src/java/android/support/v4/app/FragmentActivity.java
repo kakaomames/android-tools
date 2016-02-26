@@ -29,6 +29,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.util.SimpleArrayMap;
+import android.support.v4.util.SparseArrayCompat;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -82,6 +83,10 @@ public class FragmentActivity extends BaseFragmentActivityHoneycomb implements
     private static final String TAG = "FragmentActivity";
 
     static final String FRAGMENTS_TAG = "android:support:fragments";
+    static final String NEXT_CANDIDATE_REQUEST_INDEX_TAG = "android:support:next_request_index";
+    static final String ALLOCATED_REQUEST_INDICIES_TAG = "android:support:request_indicies";
+    static final String REQUEST_FRAGMENT_WHO_TAG = "android:support:request_fragment_who";
+    static final int MAX_NUM_PENDING_FRAGMENT_ACTIVITY_RESULTS = 0xffff - 1;
 
     // This is the SDK API version of Honeycomb (3.0).
     private static final int HONEYCOMB = 11;
@@ -119,6 +124,23 @@ public class FragmentActivity extends BaseFragmentActivityHoneycomb implements
     boolean mOptionsMenuInvalidated;
     boolean mRequestedPermissionsFromFragment;
 
+    // A hint for the next candidate request index. Request indicies are ints between 0 and 2^16-1
+    // which are encoded into the upper 16 bits of the requestCode for
+    // Fragment.startActivityForResult(...) calls. This allows us to dispatch onActivityResult(...)
+    // to the appropriate Fragment. Request indicies are allocated by allocateRequestIndex(...).
+    int mNextCandidateRequestIndex;
+    // We need to keep track of whether startActivityForResult originated from a Fragment, so we
+    // can conditionally check whether the requestCode collides with our reserved ID space for the
+    // request index (see above). Unfortunately we can't just call
+    // super.startActivityForResult(...) to bypass the check when the call didn't come from a
+    // fragment, since we need to use the ActivityCompat version for backward compatibility.
+    boolean mStartedActivityFromFragment;
+    // A map from request index to Fragment "who" (i.e. a Fragment's unique identifier). Used to
+    // keep track of the originating Fragment for Fragment.startActivityForResult(...) calls, so we
+    // can dispatch the onActivityResult(...) to the appropriate Fragment. Will only contain entries
+    // for startActivityForResult calls where a result has not yet been delivered.
+    SparseArrayCompat<String> mPendingFragmentActivityResults;
+
     static final class NonConfigurationInstances {
         Object custom;
         List<Fragment> fragments;
@@ -137,23 +159,21 @@ public class FragmentActivity extends BaseFragmentActivityHoneycomb implements
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         mFragments.noteStateNotSaved();
-        int index = requestCode>>16;
-        if (index != 0) {
-            index--;
-            final int activeFragmentsCount = mFragments.getActiveFragmentsCount();
-            if (activeFragmentsCount == 0 || index < 0 || index >= activeFragmentsCount) {
-                Log.w(TAG, "Activity result fragment index out of range: 0x"
-                        + Integer.toHexString(requestCode));
+        int requestIndex = requestCode>>16;
+        if (requestIndex != 0) {
+            requestIndex--;
+
+            String who = mPendingFragmentActivityResults.get(requestIndex);
+            mPendingFragmentActivityResults.remove(requestIndex);
+            if (who == null) {
+                Log.w(TAG, "Activity result delivered for unknown Fragment.");
                 return;
             }
-            final List<Fragment> activeFragments =
-                    mFragments.getActiveFragments(new ArrayList<Fragment>(activeFragmentsCount));
-            Fragment frag = activeFragments.get(index);
-            if (frag == null) {
-                Log.w(TAG, "Activity result no fragment exists for index: 0x"
-                        + Integer.toHexString(requestCode));
+            Fragment targetFragment = mFragments.findFragmentByWho(who);
+            if (targetFragment == null) {
+                Log.w(TAG, "Activity result no fragment exists for who: " + who);
             } else {
-                frag.onActivityResult(requestCode&0xffff, resultCode, data);
+                targetFragment.onActivityResult(requestCode&0xffff, resultCode, data);
             }
             return;
         }
@@ -285,7 +305,30 @@ public class FragmentActivity extends BaseFragmentActivityHoneycomb implements
         if (savedInstanceState != null) {
             Parcelable p = savedInstanceState.getParcelable(FRAGMENTS_TAG);
             mFragments.restoreAllState(p, nc != null ? nc.fragments : null);
+
+            // Check if there are any pending onActivityResult calls to descendent Fragments.
+            if (savedInstanceState.containsKey(NEXT_CANDIDATE_REQUEST_INDEX_TAG)) {
+                mNextCandidateRequestIndex =
+                        savedInstanceState.getInt(NEXT_CANDIDATE_REQUEST_INDEX_TAG);
+                int[] requestCodes = savedInstanceState.getIntArray(ALLOCATED_REQUEST_INDICIES_TAG);
+                String[] fragmentWhos = savedInstanceState.getStringArray(REQUEST_FRAGMENT_WHO_TAG);
+                if (requestCodes == null || fragmentWhos == null ||
+                            requestCodes.length != fragmentWhos.length) {
+                    Log.w(TAG, "Invalid requestCode mapping in savedInstanceState.");
+                } else {
+                    mPendingFragmentActivityResults = new SparseArrayCompat<>(requestCodes.length);
+                    for (int i = 0; i < requestCodes.length; i++) {
+                        mPendingFragmentActivityResults.put(requestCodes[i], fragmentWhos[i]);
+                    }
+                }
+            }
         }
+
+        if (mPendingFragmentActivityResults == null) {
+            mPendingFragmentActivityResults = new SparseArrayCompat<>();
+            mNextCandidateRequestIndex = 0;
+        }
+
         mFragments.dispatchCreate();
     }
 
@@ -523,6 +566,18 @@ public class FragmentActivity extends BaseFragmentActivityHoneycomb implements
         Parcelable p = mFragments.saveAllState();
         if (p != null) {
             outState.putParcelable(FRAGMENTS_TAG, p);
+        }
+        if (mPendingFragmentActivityResults.size() > 0) {
+            outState.putInt(NEXT_CANDIDATE_REQUEST_INDEX_TAG, mNextCandidateRequestIndex);
+
+            int[] requestCodes = new int[mPendingFragmentActivityResults.size()];
+            String[] fragmentWhos = new String[mPendingFragmentActivityResults.size()];
+            for (int i = 0; i < mPendingFragmentActivityResults.size(); i++) {
+                requestCodes[i] = mPendingFragmentActivityResults.keyAt(i);
+                fragmentWhos[i] = mPendingFragmentActivityResults.valueAt(i);
+            }
+            outState.putIntArray(ALLOCATED_REQUEST_INDICIES_TAG, requestCodes);
+            outState.putStringArray(REQUEST_FRAGMENT_WHO_TAG, fragmentWhos);
         }
     }
 
@@ -778,8 +833,12 @@ public class FragmentActivity extends BaseFragmentActivityHoneycomb implements
      */
     @Override
     public void startActivityForResult(Intent intent, int requestCode) {
-        if (requestCode != -1 && (requestCode&0xffff0000) != 0) {
-            throw new IllegalArgumentException("Can only use lower 16 bits for requestCode");
+        // If this was started from a Fragment we've already checked the upper 16 bits were not in
+        // use, and then repurposed them for the Fragment's index.
+        if (!mStartedActivityFromFragment) {
+            if (requestCode != -1 && (requestCode&0xffff0000) != 0) {
+                throw new IllegalArgumentException("Can only use lower 16 bits for requestCode");
+            }
         }
         super.startActivityForResult(intent, requestCode);
     }
@@ -845,14 +904,50 @@ public class FragmentActivity extends BaseFragmentActivityHoneycomb implements
      */
     public void startActivityFromFragment(Fragment fragment, Intent intent,
             int requestCode) {
-        if (requestCode == -1) {
-            super.startActivityForResult(intent, -1);
-            return;
+        startActivityFromFragment(fragment, intent, requestCode, null);
+    }
+
+    /**
+     * Called by Fragment.startActivityForResult() to implement its behavior.
+     */
+    public void startActivityFromFragment(Fragment fragment, Intent intent,
+            int requestCode, @Nullable Bundle options) {
+        mStartedActivityFromFragment = true;
+        try {
+            if (requestCode == -1) {
+                ActivityCompat.startActivityForResult(this, intent, -1, options);
+                return;
+            }
+            if ((requestCode&0xffff0000) != 0) {
+                throw new IllegalArgumentException("Can only use lower 16 bits for requestCode");
+            }
+            int requestIndex = allocateRequestIndex(fragment);
+            ActivityCompat.startActivityForResult(
+                this, intent, ((requestIndex+1)<<16) + (requestCode&0xffff), options);
+        } finally {
+            mStartedActivityFromFragment = false;
         }
-        if ((requestCode&0xffff0000) != 0) {
-            throw new IllegalArgumentException("Can only use lower 16 bits for requestCode");
+    }
+
+    // Allocates the next available startActivityForResult request index.
+    private int allocateRequestIndex(Fragment fragment) {
+        // Sanity check that we havn't exhaused the request index space.
+        if (mPendingFragmentActivityResults.size() >= MAX_NUM_PENDING_FRAGMENT_ACTIVITY_RESULTS) {
+            throw new IllegalStateException("Too many pending Fragment activity results.");
         }
-        super.startActivityForResult(intent, ((fragment.mIndex+1)<<16) + (requestCode&0xffff));
+
+        // Find an unallocated request index in the mPendingFragmentActivityResults map.
+        while (mPendingFragmentActivityResults.indexOfKey(mNextCandidateRequestIndex) >= 0) {
+            mNextCandidateRequestIndex =
+                    (mNextCandidateRequestIndex + 1) % MAX_NUM_PENDING_FRAGMENT_ACTIVITY_RESULTS;
+        }
+
+        int requestIndex = mNextCandidateRequestIndex;
+        mPendingFragmentActivityResults.put(requestIndex, fragment.mWho);
+        mNextCandidateRequestIndex =
+                (mNextCandidateRequestIndex + 1) % MAX_NUM_PENDING_FRAGMENT_ACTIVITY_RESULTS;
+
+        return requestIndex;
     }
 
     /**
@@ -905,6 +1000,12 @@ public class FragmentActivity extends BaseFragmentActivityHoneycomb implements
         @Override
         public void onStartActivityFromFragment(Fragment fragment, Intent intent, int requestCode) {
             FragmentActivity.this.startActivityFromFragment(fragment, intent, requestCode);
+        }
+
+        @Override
+        public void onStartActivityFromFragment(
+                Fragment fragment, Intent intent, int requestCode, @Nullable Bundle options) {
+            FragmentActivity.this.startActivityFromFragment(fragment, intent, requestCode, options);
         }
 
         @Override

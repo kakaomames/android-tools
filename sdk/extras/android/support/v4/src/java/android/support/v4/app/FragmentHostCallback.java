@@ -19,6 +19,7 @@ package android.support.v4.app;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -42,9 +43,14 @@ public abstract class FragmentHostCallback<E> extends FragmentContainer {
     private final Handler mHandler;
     final int mWindowAnimations;
     final FragmentManagerImpl mFragmentManager = new FragmentManagerImpl();
+    /** The loader managers for individual fragments [i.e. Fragment#getLoaderManager()] */
     private SimpleArrayMap<String, LoaderManager> mAllLoaderManagers;
+    /** Whether or not fragment loaders should retain their state */
+    private boolean mRetainLoaders;
+    /** The loader manger for the fragment host [i.e. Activity#getLoaderManager()] */
     private LoaderManagerImpl mLoaderManager;
     private boolean mCheckedForLoaderManager;
+    /** Whether or not the fragment host loader manager was started */
     private boolean mLoadersStarted;
 
     public FragmentHostCallback(Context context, Handler handler, int windowAnimations) {
@@ -110,6 +116,15 @@ public abstract class FragmentHostCallback<E> extends FragmentContainer {
      * See {@link FragmentActivity#startActivityForResult(Intent, int)}.
      */
     public void onStartActivityFromFragment(Fragment fragment, Intent intent, int requestCode) {
+        onStartActivityFromFragment(fragment, intent, requestCode, null);
+    }
+
+    /**
+     * Starts a new {@link Activity} from the given fragment.
+     * See {@link FragmentActivity#startActivityForResult(Intent, int, Bundle)}.
+     */
+    public void onStartActivityFromFragment(
+            Fragment fragment, Intent intent, int requestCode, @Nullable Bundle options) {
         if (requestCode != -1) {
             throw new IllegalStateException(
                     "Starting activity with a requestCode requires a FragmentActivity host");
@@ -197,6 +212,10 @@ public abstract class FragmentHostCallback<E> extends FragmentContainer {
     void onAttachFragment(Fragment fragment) {
     }
 
+    boolean getRetainLoaders() {
+        return mRetainLoaders;
+    }
+
     void doLoaderStart() {
         if (mLoadersStarted) {
             return;
@@ -217,6 +236,8 @@ public abstract class FragmentHostCallback<E> extends FragmentContainer {
 
     // retain -- whether to stop the loader or retain it
     void doLoaderStop(boolean retain) {
+        mRetainLoaders = retain;
+
         if (mLoaderManager == null) {
             return;
         }
