@@ -16,7 +16,9 @@
 
 package android.support.v4.graphics.drawable;
 
+import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
+import android.support.annotation.Nullable;
 
 class DrawableWrapperHoneycomb extends DrawableWrapperDonut {
 
@@ -24,8 +26,29 @@ class DrawableWrapperHoneycomb extends DrawableWrapperDonut {
         super(drawable);
     }
 
+    DrawableWrapperHoneycomb(DrawableWrapperState state, Resources resources) {
+        super(state, resources);
+    }
+
     @Override
     public void jumpToCurrentState() {
         mDrawable.jumpToCurrentState();
+    }
+
+    @Override
+    DrawableWrapperState mutateConstantState() {
+        return new DrawableWrapperStateHoneycomb(mState, null);
+    }
+
+    private static class DrawableWrapperStateHoneycomb extends DrawableWrapperState {
+        DrawableWrapperStateHoneycomb(@Nullable DrawableWrapperState orig,
+                @Nullable Resources res) {
+            super(orig, res);
+        }
+
+        @Override
+        public Drawable newDrawable(@Nullable Resources res) {
+            return new DrawableWrapperHoneycomb(this, res);
+        }
     }
 }

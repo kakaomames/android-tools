@@ -1,4 +1,4 @@
-apply plugin: 'android-library'
+apply plugin: 'com.android.library'
 
 archivesBaseName = 'support-v13'
 
@@ -51,6 +51,9 @@ dependencies {
     compile files(internalJar.archivePath)
 }
 
+sourceCompatibility = JavaVersion.VERSION_1_7
+targetCompatibility = JavaVersion.VERSION_1_7
+
 android {
     compileSdkVersion 13
 
@@ -59,7 +62,6 @@ android {
         // TODO: get target from branch
         //targetSdkVersion 19
     }
-
 
     sourceSets {
         main.manifest.srcFile 'AndroidManifest.xml'
@@ -70,9 +72,19 @@ android {
         androidTest.java.srcDir 'tests/java'
     }
 
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
+    }
+
     lintOptions {
         // TODO: fix errors and reenable.
         abortOnError false
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
     }
 }
 

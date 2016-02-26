@@ -216,9 +216,6 @@ public class Fragment implements ComponentCallbacks, OnCreateContextMenuListener
     
     // If set this fragment is being removed from its activity.
     boolean mRemoving;
-
-    // True if the fragment is in the resumed state.
-    boolean mResumed;
     
     // Set to true if this fragment was instantiated from a layout file.
     boolean mFromLayout;
@@ -272,9 +269,6 @@ public class Fragment implements ComponentCallbacks, OnCreateContextMenuListener
 
     // If set this fragment is being retained across the current config change.
     boolean mRetaining;
-
-    // If set this fragment's loaders are being retained across the current config change.
-    boolean mRetainLoader;
     
     // If set this fragment has menu items to contribute.
     boolean mHasMenu;
@@ -760,7 +754,7 @@ public class Fragment implements ComponentCallbacks, OnCreateContextMenuListener
      * for the duration of {@link #onResume()} and {@link #onPause()} as well.
      */
     final public boolean isResumed() {
-        return mResumed;
+        return mState >= RESUMED;
     }
     
     /**
@@ -913,10 +907,18 @@ public class Fragment implements ComponentCallbacks, OnCreateContextMenuListener
      * containing Activity.
      */
     public void startActivity(Intent intent) {
+        startActivity(intent, null);
+    }
+
+    /**
+     * Call {@link Activity#startActivity(Intent, Bundle)} from the fragment's
+     * containing Activity.
+     */
+    public void startActivity(Intent intent, @Nullable Bundle options) {
         if (mHost == null) {
             throw new IllegalStateException("Fragment " + this + " not attached to Activity");
         }
-        mHost.onStartActivityFromFragment(this /*fragment*/, intent, -1);
+        mHost.onStartActivityFromFragment(this /*fragment*/, intent, -1, options);
     }
 
     /**
@@ -924,10 +926,18 @@ public class Fragment implements ComponentCallbacks, OnCreateContextMenuListener
      * containing Activity.
      */
     public void startActivityForResult(Intent intent, int requestCode) {
+        startActivityForResult(intent, requestCode, null);
+    }
+
+    /**
+     * Call {@link Activity#startActivityForResult(Intent, int, Bundle)} from the fragment's
+     * containing Activity.
+     */
+    public void startActivityForResult(Intent intent, int requestCode, @Nullable Bundle options) {
         if (mHost == null) {
             throw new IllegalStateException("Fragment " + this + " not attached to Activity");
         }
-        mHost.onStartActivityFromFragment(this /*fragment*/, intent, requestCode);
+        mHost.onStartActivityFromFragment(this /*fragment*/, intent, requestCode, options);
     }
 
     /**
@@ -1391,7 +1401,6 @@ public class Fragment implements ComponentCallbacks, OnCreateContextMenuListener
         mWho = null;
         mAdded = false;
         mRemoving = false;
-        mResumed = false;
         mFromLayout = false;
         mInLayout = false;
         mRestored = false;
@@ -1840,7 +1849,6 @@ public class Fragment implements ComponentCallbacks, OnCreateContextMenuListener
                 writer.print(" mBackStackNesting="); writer.println(mBackStackNesting);
         writer.print(prefix); writer.print("mAdded="); writer.print(mAdded);
                 writer.print(" mRemoving="); writer.print(mRemoving);
-                writer.print(" mResumed="); writer.print(mResumed);
                 writer.print(" mFromLayout="); writer.print(mFromLayout);
                 writer.print(" mInLayout="); writer.println(mInLayout);
         writer.print(prefix); writer.print("mHidden="); writer.print(mHidden);
@@ -1938,6 +1946,7 @@ public class Fragment implements ComponentCallbacks, OnCreateContextMenuListener
         if (mChildFragmentManager != null) {
             mChildFragmentManager.noteStateNotSaved();
         }
+        mState = CREATED;
         mCalled = false;
         onCreate(savedInstanceState);
         if (!mCalled) {
@@ -1969,6 +1978,7 @@ public class Fragment implements ComponentCallbacks, OnCreateContextMenuListener
         if (mChildFragmentManager != null) {
             mChildFragmentManager.noteStateNotSaved();
         }
+        mState = ACTIVITY_CREATED;
         mCalled = false;
         onActivityCreated(savedInstanceState);
         if (!mCalled) {
@@ -1985,6 +1995,7 @@ public class Fragment implements ComponentCallbacks, OnCreateContextMenuListener
             mChildFragmentManager.noteStateNotSaved();
             mChildFragmentManager.execPendingActions();
         }
+        mState = STARTED;
         mCalled = false;
         onStart();
         if (!mCalled) {
@@ -2004,6 +2015,7 @@ public class Fragment implements ComponentCallbacks, OnCreateContextMenuListener
             mChildFragmentManager.noteStateNotSaved();
             mChildFragmentManager.execPendingActions();
         }
+        mState = RESUMED;
         mCalled = false;
         onResume();
         if (!mCalled) {
@@ -2122,6 +2134,7 @@ public class Fragment implements ComponentCallbacks, OnCreateContextMenuListener
         if (mChildFragmentManager != null) {
             mChildFragmentManager.dispatchPause();
         }
+        mState = STARTED;
         mCalled = false;
         onPause();
         if (!mCalled) {
@@ -2134,6 +2147,7 @@ public class Fragment implements ComponentCallbacks, OnCreateContextMenuListener
         if (mChildFragmentManager != null) {
             mChildFragmentManager.dispatchStop();
         }
+        mState = STOPPED;
         mCalled = false;
         onStop();
         if (!mCalled) {
@@ -2146,6 +2160,7 @@ public class Fragment implements ComponentCallbacks, OnCreateContextMenuListener
         if (mChildFragmentManager != null) {
             mChildFragmentManager.dispatchReallyStop();
         }
+        mState = ACTIVITY_CREATED;
         if (mLoadersStarted) {
             mLoadersStarted = false;
             if (!mCheckedForLoaderManager) {
@@ -2153,7 +2168,7 @@ public class Fragment implements ComponentCallbacks, OnCreateContextMenuListener
                 mLoaderManager = mHost.getLoaderManager(mWho, mLoadersStarted, false);
             }
             if (mLoaderManager != null) {
-                if (mRetainLoader) {
+                if (mHost.getRetainLoaders()) {
                     mLoaderManager.doRetain();
                 } else {
                     mLoaderManager.doStop();
@@ -2166,6 +2181,7 @@ public class Fragment implements ComponentCallbacks, OnCreateContextMenuListener
         if (mChildFragmentManager != null) {
             mChildFragmentManager.dispatchDestroyView();
         }
+        mState = CREATED;
         mCalled = false;
         onDestroyView();
         if (!mCalled) {
@@ -2181,6 +2197,7 @@ public class Fragment implements ComponentCallbacks, OnCreateContextMenuListener
         if (mChildFragmentManager != null) {
             mChildFragmentManager.dispatchDestroy();
         }
+        mState = INITIALIZING;
         mCalled = false;
         onDestroy();
         if (!mCalled) {
