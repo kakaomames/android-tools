@@ -33,7 +33,7 @@ import static android.os.Build.VERSION.SDK_INT;
  * Helper for accessing features in {@link android.content.res.Resources}
  * introduced after API level 4 in a backwards compatible fashion.
  */
-public class ResourcesCompat {
+public final class ResourcesCompat {
     /**
      * Return a drawable object associated with a particular resource ID and
      * styled for the specified theme. Various types of objects will be
@@ -117,7 +117,7 @@ public class ResourcesCompat {
      */
     @ColorInt
     @SuppressWarnings("deprecation")
-    public int getColor(@NonNull Resources res, @ColorRes int id, @Nullable Theme theme)
+    public static int getColor(@NonNull Resources res, @ColorRes int id, @Nullable Theme theme)
             throws NotFoundException {
         if (SDK_INT >= 23) {
             return ResourcesCompatApi23.getColor(res, id, theme);
@@ -147,7 +147,7 @@ public class ResourcesCompat {
      */
     @Nullable
     @SuppressWarnings("deprecation")
-    public ColorStateList getColorStateList(@NonNull Resources res, @ColorRes int id,
+    public static ColorStateList getColorStateList(@NonNull Resources res, @ColorRes int id,
             @Nullable Theme theme) throws NotFoundException {
         if (SDK_INT >= 23) {
             return ResourcesCompatApi23.getColorStateList(res, id, theme);
@@ -155,4 +155,6 @@ public class ResourcesCompat {
             return res.getColorStateList(id);
         }
     }
+
+    private ResourcesCompat() {}
 }
