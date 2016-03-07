@@ -192,6 +192,34 @@
       'includes': [ '../../build/java.gypi' ]
     },
     {
+      # This target contains the Android support v17 leanback library with the
+      # resources needed.
+      'target_name': 'android_support_v17_leanback_javalib',
+      'type': 'none',
+      'variables': {
+        'java_in_dir': '<(android_sdk_root)/extras/android/support/v17/leanback',
+        'R_package': ['android.support.v17.leanback'],
+        'R_package_relpath': ['android/support/v17/leanback'],
+        'has_java_resources': 1,
+        'res_v14_skip': 1,
+        'run_findbugs': 0,
+      },
+      'dependencies': [
+        'android_support_v17_leanback_javalib_no_res',
+      ],
+      'includes': [ '../../build/java.gypi' ]
+    },
+    {
+      # This jar contains the Android support v17 leanback library. This library
+      # doesn't contain the resources needed for the library to work.
+      'target_name': 'android_support_v17_leanback_javalib_no_res',
+      'type' : 'none',
+      'variables': {
+        'jar_path': '<(android_sdk_root)/extras/android/support/v17/leanback/libs/android-support-v17-leanback.jar',
+      },
+      'includes': ['../../build/java_prebuilt.gypi'],
+    },
+    {
       # This target contains the Android support library annotations.
       'target_name': 'android_support_annotations_javalib',
       'type': 'none',
