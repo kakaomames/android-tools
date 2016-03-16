@@ -75,4 +75,21 @@ limitations under the License.
     <!-- Talkback label for the control button to disable closed captioning -->
     <string name="lb_playback_controls_closed_captioning_disable">Disable Closed Captioning</string>
 
+    <!-- Title of standard Finish action for GuidedStepFragment -->
+    <string name="lb_guidedaction_finish_title">Finish</string>
+    <!-- Title of standard Continue action for GuidedStepFragment -->
+    <string name="lb_guidedaction_continue_title">Continue</string>
+
+    <!-- Separator for date picker [CHAR LIMIT=2] -->
+    <string name="lb_date_separator">/</string>
+    <!-- Separator for time picker [CHAR LIMIT=2] -->
+    <string name="lb_time_separator">:</string>
+
+    <!-- Onboarding screen -->
+    <eat-comment />
+    <!-- Text for "GET STARTED" button. This text should be in ALL CAPS. -->
+    <string name="lb_onboarding_get_started">GET STARTED</string>
+    <!-- Content description for page navigator. -->
+    <string name="lb_onboarding_accessibility_next">Next</string>
+
 </resources>
