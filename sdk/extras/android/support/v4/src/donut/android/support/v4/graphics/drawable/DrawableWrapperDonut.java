@@ -50,14 +50,25 @@ class DrawableWrapperDonut extends Drawable implements Drawable.Callback, Drawab
         mState = state;
         updateLocalState(res);
     }
+
     /**
      * Creates a new wrapper around the specified drawable.
      *
      * @param dr the drawable to wrap
      */
     DrawableWrapperDonut(@Nullable Drawable dr) {
-        mState = mutateConstantState();
-        mDrawable = dr;
+        // The following is workaround for issues for certain DrawableContainers on some API levels.
+        // They expect getConstantState() to always return non-null, which will only happen after
+        // we have been mutated. Since most Drawables provided to us will be from Resources,
+        // they will nearly always have been mutated, so we should act as if we have been too.
+        // This means that we should copy our input's CS to our own state. This satisfies the
+        // canConstantState() check below. If the input does not provide a CS, then there's nothing
+        // we can do anyway.
+        if (dr != null && dr.getConstantState() != null) {
+            mState = mutateConstantState();
+        }
+        // Now set the drawable...
+        setWrappedDrawable(dr);
     }
 
     /**
@@ -220,6 +231,7 @@ class DrawableWrapperDonut extends Drawable implements Drawable.Callback, Drawab
      *
      * @return the new state
      */
+    @NonNull
     DrawableWrapperState mutateConstantState() {
         return new DrawableWrapperStateDonut(mState, null);
     }
@@ -295,14 +307,14 @@ class DrawableWrapperDonut extends Drawable implements Drawable.Callback, Drawab
     /**
      * Returns the wrapped {@link Drawable}
      */
-    public Drawable getWrappedDrawable() {
+    public final Drawable getWrappedDrawable() {
         return mDrawable;
     }
 
     /**
      * Sets the current wrapped {@link Drawable}
      */
-    public void setWrappedDrawable(Drawable dr) {
+    public final void setWrappedDrawable(Drawable dr) {
         if (mDrawable != null) {
             mDrawable.setCallback(null);
         }
