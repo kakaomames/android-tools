@@ -62,6 +62,18 @@
       'includes': ['../../build/java_prebuilt.gypi'],
     },
     {
+      # This jar contains the Android support v7 cardview library. This library
+      # doesn't contain the resources needed for the library to work.
+      # TODO(avayvod): Add the resources directly once crbug.com/274697 is
+      # fixed.
+      'target_name': 'android_support_v7_cardview_javalib_no_res',
+      'type' : 'none',
+      'variables': {
+        'jar_path': '<(android_sdk_root)/extras/android/support/v7/cardview/libs/android-support-v7-cardview.jar',
+      },
+      'includes': ['../../build/java_prebuilt.gypi'],
+    },
+    {
       # This jar contains the Android support v7 mediarouter library from the
       # revision 18 of the Android Support library. This library doesn't
       # contain the resources needed for the library to work.
@@ -108,6 +120,25 @@
       },
       'dependencies': [
         'android_support_v7_appcompat_javalib_no_res',
+      ],
+      'includes': [ '../../build/java.gypi' ]
+    },
+    {
+      # This target contains the Android support v7 appcompat library with the
+      # resources needed.
+      'target_name': 'android_support_v7_cardview_javalib',
+      'type': 'none',
+      'variables': {
+        'java_in_dir': '<(android_sdk_root)/extras/android/support/v7/cardview',
+        'R_package': ['android.support.v7.cardview'],
+        'R_package_relpath': ['android/support/v7/cardview'],
+        'has_java_resources': 1,
+        'res_v14_skip': 1,
+        'run_findbugs': 0,
+      },
+      'dependencies': [
+        'android_support_v7_cardview_javalib_no_res',
+        'android_support_v7_appcompat_javalib',
       ],
       'includes': [ '../../build/java.gypi' ]
     },
