@@ -26,6 +26,8 @@ Local Modifications:
   to fix component build at -Oz.
 - Cherry-picked various upstream libc++ fixes, including stack trace fixes.
     https://android-review.googlesource.com/#/c/152910
+- Cherry-picked crtend_so.o fixes for x64.
+    https://android-review.googlesource.com/#/c/148354/
 
 -In sdk/
 - Included the Android support library and required extras packages
