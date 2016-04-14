@@ -28,6 +28,9 @@ Local Modifications:
     https://android-review.googlesource.com/#/c/152910
 - Cherry-picked crtend_so.o fixes for x64.
     https://android-review.googlesource.com/#/c/148354/
+- Took swap16 definition from android-21 r11 to fix clang 64bit build for ARM64
+    https://android.googlesource.com/platform/prebuilts/ndk/+/master
+    File: /r11/platforms/android-21/arch-arm64/usr/include/sys/endian.h
 
 -In sdk/
 - Included the Android support library and required extras packages
