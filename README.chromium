@@ -39,5 +39,7 @@ Local Modifications:
     cd chromium-trace
     ./update.py
     cp script.js style.css $ANDROID_SDK_ROOT/tools/systrace
+- Included the com.android.support.test package in the Android Support
+    Repository
 
 No other modifications has been made to the public Android SDK/NDK.
