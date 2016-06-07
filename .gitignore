@@ -1,5 +1,4 @@
 *.pyc
-ndk
 sdk/extras/google/google_play_services
 sdk/extras/google_google_play_services_*.zip
 sdk/system-images
