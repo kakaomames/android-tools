@@ -18,7 +18,9 @@
 -keep class com.google.android.gms.auth.*,             # Signin, chromoting
             com.google.android.gms.cast.*,             # Cast
             com.google.android.gms.gcm.*,              # GCM for CacheInvalidation
-            com.google.android.gms.iid.*               # GCM Registration for CacheInvalidation
+            com.google.android.gms.iid.*,              # GCM Registration for CacheInvalidation
+            com.google.android.gms.nearby.*,           # Physical Web
+            com.google.android.gms.nearby.messages.*   # Physical Web
       {
   *;
 }
