@@ -83,6 +83,10 @@
         'jar_path': '<(android_sdk_root)/extras/google/google_play_services/libproject/google-play-services_lib/libs/google-play-services.jar',
         'proguard_preprocess': 1,
         'proguard_config': 'proguard.flags',
+        '__check_that_google_play_services_is_up_to_date': '<!(python \
+            <(DEPTH)/build/check_sdk_extras_version.py \
+            --package-id extra-google-google_play_services \
+            --package-location <(android_sdk_root)/extras/google/google_play_services)',
       },
       'dependencies': [
         'android_support_v13_javalib',
