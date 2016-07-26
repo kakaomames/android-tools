@@ -31,6 +31,8 @@ Local Modifications:
 - Took swap16 definition from android-21 r11 to fix clang 64bit build for ARM64
     https://android.googlesource.com/platform/prebuilts/ndk/+/master
     File: /r11/platforms/android-21/arch-arm64/usr/include/sys/endian.h
+- Cherry-picked __func__ fix from upstream bionic
+    https://android-review.googlesource.com/#/c/250323/2
 
 -In sdk/
 - Included the Android support library and required extras packages
