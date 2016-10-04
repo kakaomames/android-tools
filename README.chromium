@@ -1,13 +1,12 @@
 Name: Android Tools (SDK/NDK)
 URL: http://developer.android.com/sdk/index.html
 Versions:
-  NDK r10e-rc4
-  Android SDK Platform API 23
+  Android SDK Platform API 24
   Android SDK Tools 24.4
-  Android SDK Platform-tools 23.0.1
-  Android SDK Build-tools 23.0.1
+  Android SDK Platform-tools 24.0.1
+  Android SDK Build-tools 24.0.2
   Android SDK Sources 23
-  Android Support Library 23.2.1
+  Android Support Library 24.2.1
   Google Cloud Messaging 3
 Security Critical: no
 License: Apache Version 2.0
@@ -16,24 +15,12 @@ Description:
 The Android SDK/NDK provide API libraries and developer tools necessary to
 build, test and debug for Android.
 
+See ndk/README.chromium for more on the NDK.
+
 Local Modifications:
 
 -In ndk/
-- Removed old android platforms in platforms/
-  (anything under android-16)
-- Cherry-picked
-    https://android-review.googlesource.com/#/c/150680/
-  to fix component build at -Oz.
-- Cherry-picked various upstream libc++ fixes, including stack trace fixes.
-    https://android-review.googlesource.com/#/c/152910
-- Cherry-picked crtend_so.o fixes for x64.
-    https://android-review.googlesource.com/#/c/148354/
-- Took swap16 definition from android-21 r11 to fix clang 64bit build for ARM64
-    https://android.googlesource.com/platform/prebuilts/ndk/+/master
-    File: /r11/platforms/android-21/arch-arm64/usr/include/sys/endian.h
-- Cherry-picked __func__ fix from upstream bionic
-    https://android-review.googlesource.com/#/c/250323/2
-
+- See ndk/README.chromium.
 -In sdk/
 - Included the Android support library and required extras packages
 - Added proguard.flags
