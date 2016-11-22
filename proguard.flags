@@ -20,7 +20,9 @@
             com.google.android.gms.gcm.*,              # GCM for CacheInvalidation
             com.google.android.gms.iid.*,              # GCM Registration for CacheInvalidation
             com.google.android.gms.nearby.*,           # Physical Web
-            com.google.android.gms.nearby.messages.*   # Physical Web
+            com.google.android.gms.nearby.messages.*,  # Physical Web
+            com.google.android.gms.vision.*,           # Computer Vision APIs
+            com.google.android.gms.vision.barcode.*    # Barcode detection
       {
   *;
 }
