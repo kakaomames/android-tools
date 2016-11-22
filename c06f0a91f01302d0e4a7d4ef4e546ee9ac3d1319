@@ -16,6 +16,24 @@
       "revId": "c06f0a91f01302d0e4a7d4ef4e546ee9ac3d1319",
       "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "50197c0d_0c122340",
+        "filename": "proguard.flags",
+        "patchSetId": 1
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1113991
+      },
+      "writtenOn": "2016-11-22T23:42:15Z",
+      "side": 1,
+      "message": "Not at the moment no. Perhaps down the line we\u0027ll\nuse the Text detection capabilities, but we\u0027re\nstill spec\u0027ing that anyway. Note that vision.* is\nused for e.g. Frame class, whereas .barcode.* for\nthe rest of the classes (so both are needed).",
+      "parentUuid": "5067bc9f_cd141d6e",
+      "revId": "c06f0a91f01302d0e4a7d4ef4e546ee9ac3d1319",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
     }
   ]
 }
