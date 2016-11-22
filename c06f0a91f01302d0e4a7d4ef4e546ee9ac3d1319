@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5067bc9f_cd141d6e",
+        "filename": "proguard.flags",
+        "patchSetId": 1
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1114914
+      },
+      "writtenOn": "2016-11-22T23:40:16Z",
+      "side": 1,
+      "message": "I take it that you don\u0027t need any of .vision\u0027s other subpackages?",
+      "revId": "c06f0a91f01302d0e4a7d4ef4e546ee9ac3d1319",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
+    }
+  ]
+}
