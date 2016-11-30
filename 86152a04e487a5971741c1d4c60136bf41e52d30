@@ -16,6 +16,24 @@
       "revId": "86152a04e487a5971741c1d4c60136bf41e52d30",
       "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d01acc56_21fc0b97",
+        "filename": ".gitignore",
+        "patchSetId": 1
+      },
+      "lineNbr": 4,
+      "author": {
+        "id": 1123379
+      },
+      "writtenOn": "2016-11-30T18:53:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "0dc44b28_0d3f111c",
+      "revId": "86152a04e487a5971741c1d4c60136bf41e52d30",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
     }
   ]
 }
