@@ -1,6 +1,6 @@
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-<#if !isLibraryProject && (!(isGradle??) || !isGradle) >
+<#if !isLibraryProject>
     xmlns:app="http://schemas.android.com/apk/res/${packageName}"
 <#else>
     xmlns:app="http://schemas.android.com/apk/res-auto"

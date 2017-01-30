@@ -108,14 +108,10 @@ public class ConnectivityManagerCompat {
      * {@link ConnectivityManager#CONNECTIVITY_ACTION} broadcast. This obtains
      * the current state from {@link ConnectivityManager} instead of using the
      * potentially-stale value from
-     * {@link ConnectivityManager#EXTRA_NETWORK_INFO}. May be {@code null}.
+     * {@link ConnectivityManager#EXTRA_NETWORK_INFO}.
      */
     public static NetworkInfo getNetworkInfoFromBroadcast(ConnectivityManager cm, Intent intent) {
         final NetworkInfo info = intent.getParcelableExtra(ConnectivityManager.EXTRA_NETWORK_INFO);
-        if (info != null) {
-            return cm.getNetworkInfo(info.getType());
-        } else {
-            return null;
-        }
+        return cm.getNetworkInfo(info.getType());
     }
 }

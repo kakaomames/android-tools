@@ -1,110 +1,69 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:gravity="center_horizontal"
-    android:orientation="vertical"
-    android:paddingBottom="@dimen/activity_vertical_margin"
-    android:paddingLeft="@dimen/activity_horizontal_margin"
-    android:paddingRight="@dimen/activity_horizontal_margin"
-    android:paddingTop="@dimen/activity_vertical_margin"
-    tools:context="${relativePackage}.${activityClass}">
+    tools:context=".${activityClass}">
 
     <!-- Login progress -->
-    <ProgressBar
-        android:id="@+id/login_progress"
-        style="?android:attr/progressBarStyleLarge"
+    <LinearLayout android:id="@+id/login_status"
+        android:visibility="gone"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:visibility="gone"/>
+        android:layout_gravity="center"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
+        <ProgressBar style="?android:attr/progressBarStyleLarge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"/>
+        <TextView
+            android:id="@+id/login_status_message"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:fontFamily="sans-serif-light"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:text="@string/login_progress_signing_in" />
+    </LinearLayout>
 
+    <!-- Login form -->
     <ScrollView
         android:id="@+id/login_form"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        >
-<#if includeGooglePlus>
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+        android:layout_height="match_parent">
+
+        <LinearLayout style="@style/LoginFormContainer"
             android:orientation="vertical">
 
-            <com.google.android.gms.common.SignInButton
-                android:id="@+id/plus_sign_in_button"
+            <EditText
+                android:id="@+id/email"
+                android:singleLine="true"
+                android:maxLines="1"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="32dp"/>
+                android:inputType="textEmailAddress"
+                android:hint="@string/prompt_email" />
 
-            <LinearLayout
-                android:id="@+id/plus_sign_out_buttons"
+            <EditText
+                android:id="@+id/password"
+                android:singleLine="true"
+                android:maxLines="1"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:visibility="gone"
-                android:weightSum="2">
+                android:hint="@string/prompt_password"
+                android:inputType="textPassword"
+                android:imeActionLabel="@string/action_sign_in_short"
+                android:imeActionId="@+id/login"
+                android:imeOptions="actionUnspecified" />
 
-                <Button
-                    android:id="@+id/plus_sign_out_button"
-                    style="?android:textAppearanceSmall"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:text="@string/plus_sign_out"/>
-
-                <Button
-                    android:id="@+id/plus_disconnect_button"
-                    style="?android:textAppearanceSmall"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:text="@string/plus_disconnect"/>
-
-            </LinearLayout>
-</#if>
-
-            <LinearLayout
-                android:id="@+id/email_login_form"
-                android:layout_width="match_parent"
+            <Button android:id="@+id/sign_in_button"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:layout_marginTop="16dp"
+                android:text="@string/action_sign_in_register"
+                android:paddingLeft="32dp"
+                android:paddingRight="32dp"
+                android:layout_gravity="right" />
 
-                <AutoCompleteTextView
-                    android:id="@+id/email"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="@string/prompt_email"
-                    android:inputType="textEmailAddress"
-                    android:maxLines="1"
-                    android:singleLine="true"/>
-
-                <EditText
-                    android:id="@+id/password"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="@string/prompt_password"
-                    android:imeActionId="@+id/login"
-                    android:imeActionLabel="@string/action_sign_in_short"
-                    android:imeOptions="actionUnspecified"
-                    android:inputType="textPassword"
-                    android:maxLines="1"
-                    android:singleLine="true"/>
-
-                <Button
-                    android:id="@+id/email_sign_in_button"
-                    style="?android:textAppearanceSmall"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="@string/action_sign_in"
-                    android:textStyle="bold"/>
-
-            </LinearLayout>
-<#if includeGooglePlus>
         </LinearLayout>
-</#if>
+
     </ScrollView>
-
-</LinearLayout>
-
-
-
+</merge>

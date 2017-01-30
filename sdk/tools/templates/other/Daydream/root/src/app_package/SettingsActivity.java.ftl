@@ -5,7 +5,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
-<#if applicationPackage??>import ${applicationPackage}.R;</#if>
 
 /**
  * A settings Activity for {@link ${className}}.

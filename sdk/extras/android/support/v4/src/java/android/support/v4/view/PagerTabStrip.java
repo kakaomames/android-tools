@@ -21,8 +21,6 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
-import android.support.annotation.ColorRes;
-import android.support.annotation.DrawableRes;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
@@ -138,7 +136,7 @@ public class PagerTabStrip extends PagerTitleStrip {
      *
      * @param resId Resource ID of a color resource to load
      */
-    public void setTabIndicatorColorResource(@ColorRes int resId) {
+    public void setTabIndicatorColorResource(int resId) {
         setTabIndicatorColor(getContext().getResources().getColor(resId));
     }
 
@@ -182,7 +180,7 @@ public class PagerTabStrip extends PagerTitleStrip {
     }
 
     @Override
-    public void setBackgroundResource(@DrawableRes int resId) {
+    public void setBackgroundResource(int resId) {
         super.setBackgroundResource(resId);
         if (!mDrawFullUnderlineSet) {
             mDrawFullUnderline = resId == 0;

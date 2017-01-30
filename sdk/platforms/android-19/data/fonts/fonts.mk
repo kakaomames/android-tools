@@ -1,4 +1,4 @@
-# Copyright (C) 2013 The Android Open Source Project
+# Copyright (C) 2008 The Android Open Source Project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,46 +12,39 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# We have to use PRODUCT_PACKAGES (together with BUILD_PREBUILT) instead of
-# PRODUCT_COPY_FILES to install the font files, so that the NOTICE file can
-# get installed too.
+# Warning: this is actually a product definition, to be inherited from
+
+PRODUCT_COPY_FILES := \
+    frameworks/base/data/fonts/system_fonts.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/system_fonts.xml \
+    frameworks/base/data/fonts/fallback_fonts.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/fallback_fonts.xml
 
 PRODUCT_PACKAGES := \
-    NotoColorEmoji.ttf \
-    NotoSansBengali-Regular.ttf \
-    NotoSansBengali-Bold.ttf \
-    NotoSansBengaliUI-Regular.ttf \
-    NotoSansBengaliUI-Bold.ttf \
-    NotoSansDevanagari-Regular.ttf \
-    NotoSansDevanagari-Bold.ttf \
-    NotoSansDevanagariUI-Regular.ttf \
-    NotoSansDevanagariUI-Bold.ttf \
-    NotoSansKannada-Regular.ttf \
-    NotoSansKannada-Bold.ttf \
-    NotoSansKannadaUI-Regular.ttf \
-    NotoSansKannadaUI-Bold.ttf \
-    NotoSansKhmer-Regular.ttf \
-    NotoSansKhmer-Bold.ttf \
-    NotoSansKhmerUI-Regular.ttf \
-    NotoSansKhmerUI-Bold.ttf \
-    NotoSansLao-Regular.ttf \
-    NotoSansLao-Bold.ttf \
-    NotoSansLaoUI-Regular.ttf \
-    NotoSansLaoUI-Bold.ttf \
-    NotoSansMalayalam-Regular.ttf \
-    NotoSansMalayalam-Bold.ttf \
-    NotoSansMalayalamUI-Regular.ttf \
-    NotoSansMalayalamUI-Bold.ttf \
-    NotoSansSymbols-Regular.ttf \
-    NotoSansTamil-Regular.ttf \
-    NotoSansTamil-Bold.ttf \
-    NotoSansTamilUI-Regular.ttf \
-    NotoSansTamilUI-Bold.ttf \
-    NotoSansTelugu-Regular.ttf \
-    NotoSansTelugu-Bold.ttf \
-    NotoSansTeluguUI-Regular.ttf \
-    NotoSansTeluguUI-Bold.ttf \
-    NotoSansThai-Regular.ttf \
-    NotoSansThai-Bold.ttf \
-    NotoSansThaiUI-Regular.ttf \
-    NotoSansThaiUI-Bold.ttf
+    DroidSansFallback.ttf \
+    Roboto-Regular.ttf \
+    Roboto-Bold.ttf \
+    Roboto-Italic.ttf \
+    Roboto-BoldItalic.ttf \
+    Roboto-Light.ttf \
+    Roboto-LightItalic.ttf \
+    Roboto-Thin.ttf \
+    Roboto-ThinItalic.ttf \
+    RobotoCondensed-Regular.ttf \
+    RobotoCondensed-Bold.ttf \
+    RobotoCondensed-Italic.ttf \
+    RobotoCondensed-BoldItalic.ttf \
+    DroidNaskh-Regular.ttf \
+    DroidNaskhUI-Regular.ttf \
+    DroidSansHebrew-Regular.ttf \
+    DroidSansHebrew-Bold.ttf \
+    DroidSerif-Regular.ttf \
+    DroidSerif-Bold.ttf \
+    DroidSerif-Italic.ttf \
+    DroidSerif-BoldItalic.ttf \
+    DroidSansMono.ttf \
+    DroidSansArmenian.ttf \
+    DroidSansGeorgian.ttf \
+    AndroidEmoji.ttf \
+    Clockopia.ttf \
+    AndroidClock.ttf \
+    AndroidClock_Highlight.ttf \
+    AndroidClock_Solid.ttf \

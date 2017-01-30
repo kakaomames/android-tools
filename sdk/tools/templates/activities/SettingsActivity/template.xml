@@ -1,17 +1,15 @@
 <?xml version="1.0"?>
 <template
-    format="4"
-    revision="4"
+    format="3"
+    revision="3"
     name="Settings Activity"
     description="Creates a new application settings activity that presents alternative layouts on handset and tablet-size screens."
     minApi="4"
-    minBuildApi="11"
-    category="Activity">
+    minBuildApi="11">
 
     <dependency name="android-support-v4" revision="8" />
 
-    <category value="Activity" />
-    <formfactor value="Mobile" />
+    <category value="Activities" />
 
     <parameter
         id="activityClass"

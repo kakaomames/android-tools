@@ -16,8 +16,6 @@
 
 package android.support.v4.text;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.v4.view.ViewCompat;
 
 import java.util.Locale;
@@ -29,8 +27,7 @@ public class TextUtilsCompat {
      * @param s the string to be encoded
      * @return the encoded string
      */
-    @NonNull
-    public static String htmlEncode(@NonNull String s) {
+    public static String htmlEncode(String s) {
         StringBuilder sb = new StringBuilder();
         char c;
         for (int i = 0; i < s.length(); i++) {
@@ -72,7 +69,7 @@ public class TextUtilsCompat {
      *
      * Be careful: this code will need to be updated when vertical scripts will be supported
      */
-    public static int getLayoutDirectionFromLocale(@Nullable Locale locale) {
+    public static int getLayoutDirectionFromLocale(Locale locale) {
         if (locale != null && !locale.equals(ROOT)) {
             final String scriptSubtag = ICUCompat.getScript(
                     ICUCompat.addLikelySubtags(locale.toString()));

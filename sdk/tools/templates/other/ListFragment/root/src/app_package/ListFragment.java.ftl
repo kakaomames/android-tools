@@ -3,10 +3,10 @@ package ${packageName};
 import android.app.Activity;
 import android.os.Bundle;
 <#if switchGrid == true>
-import android${SupportPackage}.app.Fragment;
+import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 <#else>
-import android${SupportPackage}.app.ListFragment;
+import android.support.v4.app.ListFragment;
 </#if>
 import android.view.View;
 <#if switchGrid == true>
@@ -21,7 +21,6 @@ import android.widget.TextView;
 <#else>
 import android.widget.ListView;
 </#if>
-<#if applicationPackage??>import ${applicationPackage}.R;</#if>
 
 import ${packageName}.dummy.DummyContent;
 
