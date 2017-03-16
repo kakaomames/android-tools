@@ -1,12 +1,12 @@
 Name: Android Tools (SDK/NDK)
 URL: http://developer.android.com/sdk/index.html
 Versions:
-  Android SDK Platform API 24
-  Android SDK Tools 24.4
-  Android SDK Platform-tools 24.0.1
-  Android SDK Build-tools 24.0.2
-  Android SDK Sources 23
-  Android Support Library 24.2.1
+  Android SDK Platform API 25
+  Android SDK Tools 25.2.5
+  Android SDK Platform-tools 25.0.3
+  Android SDK Build-tools 25.0.2
+  Android SDK Sources 25
+  Android Support Library 23.2.1
   Google Cloud Messaging 3
 Security Critical: no
 License: Apache Version 2.0
@@ -22,15 +22,8 @@ Local Modifications:
 -In ndk/
 - See ndk/README.chromium.
 -In sdk/
-- Cherry-picked previous versions of dx.jar and uiautomator.jar
-- Included the Android support library and required extras packages
-- Added proguard.flags
+- Cherry-picked previous version of dx.jar.
+- Included the Android support library and required extras packages.
 - Removed unused resources from the support library (see crbug.com/372481)
-- Updated trace-viewer script to r220 under sdk/tools/systrace.
-  Steps to update to the latest version of trace-viewer:
-    git clone https://android.googlesource.com/platform/external/chromium-trace
-    cd chromium-trace
-    ./update.py
-    cp script.js style.css $ANDROID_SDK_ROOT/tools/systrace
 
 No other modifications has been made to the public Android SDK/NDK.

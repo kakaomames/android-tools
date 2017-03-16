@@ -458,6 +458,7 @@
 		<field name="colorPressedHighlight" since="14" />
 		<field name="colorPrimary" since="21" />
 		<field name="colorPrimaryDark" since="21" />
+		<field name="colorSecondary" since="25" />
 		<field name="columnCount" since="14" />
 		<field name="columnDelay" />
 		<field name="columnOrderPreserved" since="14" />
@@ -481,7 +482,9 @@
 		<field name="contentInsetStart" since="21" />
 		<field name="contentInsetStartWithNavigation" since="24" />
 		<field name="contextClickable" since="23" />
+		<field name="contextDescription" since="25" />
 		<field name="contextPopupMenuStyle" since="24" />
+		<field name="contextUri" since="25" />
 		<field name="controlX1" since="21" />
 		<field name="controlX2" since="21" />
 		<field name="controlY1" since="21" />
@@ -1100,6 +1103,7 @@
 		<field name="rotation" since="11" />
 		<field name="rotationX" since="11" />
 		<field name="rotationY" since="11" />
+		<field name="roundIcon" since="25" />
 		<field name="rowCount" since="14" />
 		<field name="rowDelay" />
 		<field name="rowEdgeFlags" since="3" />
@@ -1167,11 +1171,16 @@
 		<field name="shareInterpolator" />
 		<field name="sharedUserId" />
 		<field name="sharedUserLabel" since="3" />
+		<field name="shortcutDisabledMessage" since="25" />
+		<field name="shortcutId" since="25" />
+		<field name="shortcutLongLabel" since="25" />
+		<field name="shortcutShortLabel" since="25" />
 		<field name="shouldDisableView" />
 		<field name="showAsAction" since="11" />
 		<field name="showDefault" />
 		<field name="showDividers" since="11" />
 		<field name="showForAllUsers" since="23" />
+		<field name="showMetadataInPreview" since="25" />
 		<field name="showOnLockScreen" since="17" deprecated="23" />
 		<field name="showSilent" />
 		<field name="showText" since="21" />
@@ -3720,6 +3729,7 @@
 		<method name="moveTaskToFront(II)V" since="11" />
 		<method name="moveTaskToFront(IILandroid/os/Bundle;)V" since="16" />
 		<method name="restartPackage(Ljava/lang/String;)V" since="3" deprecated="16" />
+		<method name="setVrThread(I)V" since="25" />
 		<method name="setWatchHeapLimit(J)V" since="23" />
 		<field name="ACTION_REPORT_HEAP_LIMIT" since="23" />
 		<field name="LOCK_TASK_MODE_LOCKED" since="23" />
@@ -5018,12 +5028,14 @@
 		<method name="clone()Landroid/app/Notification$Action$WearableExtender;" />
 		<method name="getCancelLabel()Ljava/lang/CharSequence;" since="22" />
 		<method name="getConfirmLabel()Ljava/lang/CharSequence;" since="22" />
+		<method name="getHintDisplayActionInline()Z" since="25" />
 		<method name="getHintLaunchesActivity()Z" since="24" />
 		<method name="getInProgressLabel()Ljava/lang/CharSequence;" since="22" />
 		<method name="isAvailableOffline()Z" />
 		<method name="setAvailableOffline(Z)Landroid/app/Notification$Action$WearableExtender;" />
 		<method name="setCancelLabel(Ljava/lang/CharSequence;)Landroid/app/Notification$Action$WearableExtender;" since="22" />
 		<method name="setConfirmLabel(Ljava/lang/CharSequence;)Landroid/app/Notification$Action$WearableExtender;" since="22" />
+		<method name="setHintDisplayActionInline(Z)Landroid/app/Notification$Action$WearableExtender;" since="25" />
 		<method name="setHintLaunchesActivity(Z)Landroid/app/Notification$Action$WearableExtender;" since="24" />
 		<method name="setInProgressLabel(Ljava/lang/CharSequence;)Landroid/app/Notification$Action$WearableExtender;" since="22" />
 	</class>
@@ -5741,7 +5753,10 @@
 		<method name="getServiceInfo()Landroid/content/pm/ServiceInfo;" />
 		<method name="getServiceName()Ljava/lang/String;" />
 		<method name="getSettingsActivity()Ljava/lang/String;" />
+		<method name="getShowMetadataInPreview()Z" since="25" />
 		<method name="loadAuthor(Landroid/content/pm/PackageManager;)Ljava/lang/CharSequence;" />
+		<method name="loadContextDescription(Landroid/content/pm/PackageManager;)Ljava/lang/CharSequence;" since="25" />
+		<method name="loadContextUri(Landroid/content/pm/PackageManager;)Landroid/net/Uri;" since="25" />
 		<method name="loadDescription(Landroid/content/pm/PackageManager;)Ljava/lang/CharSequence;" />
 		<method name="loadIcon(Landroid/content/pm/PackageManager;)Landroid/graphics/drawable/Drawable;" />
 		<method name="loadLabel(Landroid/content/pm/PackageManager;)Ljava/lang/CharSequence;" />
@@ -6449,11 +6464,13 @@
 		<method name="getConfiguration()Landroid/content/res/Configuration;" />
 		<method name="getEventType()I" />
 		<method name="getPackageName()Ljava/lang/String;" />
+		<method name="getShortcutId()Ljava/lang/String;" since="25" />
 		<method name="getTimeStamp()J" />
 		<field name="CONFIGURATION_CHANGE" />
 		<field name="MOVE_TO_BACKGROUND" />
 		<field name="MOVE_TO_FOREGROUND" />
 		<field name="NONE" />
+		<field name="SHORTCUT_INVOCATION" since="25" />
 		<field name="USER_INTERACTION" since="23" />
 	</class>
 	<class name="android/app/usage/UsageStats" since="21">
@@ -8137,6 +8154,7 @@
 		<field name="RESTRICTIONS_SERVICE" since="21" />
 		<field name="SEARCH_SERVICE" />
 		<field name="SENSOR_SERVICE" />
+		<field name="SHORTCUT_SERVICE" since="25" />
 		<field name="STORAGE_SERVICE" since="9" />
 		<field name="SYSTEM_HEALTH_SERVICE" since="24" />
 		<field name="TELECOM_SERVICE" since="21" />
@@ -9348,13 +9366,20 @@
 		<extends name="java/lang/Object" />
 		<method name="&lt;init>()V" />
 		<method name="getActivityList(Ljava/lang/String;Landroid/os/UserHandle;)Ljava/util/List;" />
+		<method name="getShortcutBadgedIconDrawable(Landroid/content/pm/ShortcutInfo;I)Landroid/graphics/drawable/Drawable;" since="25" />
+		<method name="getShortcutIconDrawable(Landroid/content/pm/ShortcutInfo;I)Landroid/graphics/drawable/Drawable;" since="25" />
+		<method name="getShortcuts(Landroid/content/pm/LauncherApps$ShortcutQuery;Landroid/os/UserHandle;)Ljava/util/List;" since="25" />
+		<method name="hasShortcutHostPermission()Z" since="25" />
 		<method name="isActivityEnabled(Landroid/content/ComponentName;Landroid/os/UserHandle;)Z" />
 		<method name="isPackageEnabled(Ljava/lang/String;Landroid/os/UserHandle;)Z" />
+		<method name="pinShortcuts(Ljava/lang/String;Ljava/util/List;Landroid/os/UserHandle;)V" since="25" />
 		<method name="registerCallback(Landroid/content/pm/LauncherApps$Callback;)V" />
 		<method name="registerCallback(Landroid/content/pm/LauncherApps$Callback;Landroid/os/Handler;)V" />
 		<method name="resolveActivity(Landroid/content/Intent;Landroid/os/UserHandle;)Landroid/content/pm/LauncherActivityInfo;" />
 		<method name="startAppDetailsActivity(Landroid/content/ComponentName;Landroid/os/UserHandle;Landroid/graphics/Rect;Landroid/os/Bundle;)V" />
 		<method name="startMainActivity(Landroid/content/ComponentName;Landroid/os/UserHandle;Landroid/graphics/Rect;Landroid/os/Bundle;)V" />
+		<method name="startShortcut(Landroid/content/pm/ShortcutInfo;Landroid/graphics/Rect;Landroid/os/Bundle;)V" since="25" />
+		<method name="startShortcut(Ljava/lang/String;Ljava/lang/String;Landroid/graphics/Rect;Landroid/os/Bundle;Landroid/os/UserHandle;)V" since="25" />
 		<method name="unregisterCallback(Landroid/content/pm/LauncherApps$Callback;)V" />
 	</class>
 	<class name="android/content/pm/LauncherApps$Callback" since="21">
@@ -9367,6 +9392,20 @@
 		<method name="onPackagesSuspended([Ljava/lang/String;Landroid/os/UserHandle;)V" since="24" />
 		<method name="onPackagesUnavailable([Ljava/lang/String;Landroid/os/UserHandle;Z)V" />
 		<method name="onPackagesUnsuspended([Ljava/lang/String;Landroid/os/UserHandle;)V" since="24" />
+		<method name="onShortcutsChanged(Ljava/lang/String;Ljava/util/List;Landroid/os/UserHandle;)V" since="25" />
+	</class>
+	<class name="android/content/pm/LauncherApps$ShortcutQuery" since="25">
+		<extends name="java/lang/Object" />
+		<method name="&lt;init>()V" />
+		<method name="setActivity(Landroid/content/ComponentName;)Landroid/content/pm/LauncherApps$ShortcutQuery;" />
+		<method name="setChangedSince(J)Landroid/content/pm/LauncherApps$ShortcutQuery;" />
+		<method name="setPackage(Ljava/lang/String;)Landroid/content/pm/LauncherApps$ShortcutQuery;" />
+		<method name="setQueryFlags(I)Landroid/content/pm/LauncherApps$ShortcutQuery;" />
+		<method name="setShortcutIds(Ljava/util/List;)Landroid/content/pm/LauncherApps$ShortcutQuery;" />
+		<field name="FLAG_GET_KEY_FIELDS_ONLY" />
+		<field name="FLAG_MATCH_DYNAMIC" />
+		<field name="FLAG_MATCH_MANIFEST" />
+		<field name="FLAG_MATCH_PINNED" />
 	</class>
 	<class name="android/content/pm/PackageInfo" since="1">
 		<extends name="java/lang/Object" />
@@ -9897,6 +9936,67 @@
 		<field name="flags" since="14" />
 		<field name="permission" />
 	</class>
+	<class name="android/content/pm/ShortcutInfo" since="25">
+		<extends name="java/lang/Object" />
+		<implements name="android/os/Parcelable" />
+		<method name="&lt;init>()V" />
+		<method name="getActivity()Landroid/content/ComponentName;" />
+		<method name="getCategories()Ljava/util/Set;" />
+		<method name="getDisabledMessage()Ljava/lang/CharSequence;" />
+		<method name="getExtras()Landroid/os/PersistableBundle;" />
+		<method name="getId()Ljava/lang/String;" />
+		<method name="getIntent()Landroid/content/Intent;" />
+		<method name="getIntents()[Landroid/content/Intent;" />
+		<method name="getLastChangedTimestamp()J" />
+		<method name="getLongLabel()Ljava/lang/CharSequence;" />
+		<method name="getPackage()Ljava/lang/String;" />
+		<method name="getRank()I" />
+		<method name="getShortLabel()Ljava/lang/CharSequence;" />
+		<method name="getUserHandle()Landroid/os/UserHandle;" />
+		<method name="hasKeyFieldsOnly()Z" />
+		<method name="isDeclaredInManifest()Z" />
+		<method name="isDynamic()Z" />
+		<method name="isEnabled()Z" />
+		<method name="isImmutable()Z" />
+		<method name="isPinned()Z" />
+		<field name="CREATOR" />
+		<field name="SHORTCUT_CATEGORY_CONVERSATION" />
+	</class>
+	<class name="android/content/pm/ShortcutInfo$Builder" since="25">
+		<extends name="java/lang/Object" />
+		<method name="&lt;init>(Landroid/content/Context;Ljava/lang/String;)V" />
+		<method name="build()Landroid/content/pm/ShortcutInfo;" />
+		<method name="setActivity(Landroid/content/ComponentName;)Landroid/content/pm/ShortcutInfo$Builder;" />
+		<method name="setCategories(Ljava/util/Set;)Landroid/content/pm/ShortcutInfo$Builder;" />
+		<method name="setDisabledMessage(Ljava/lang/CharSequence;)Landroid/content/pm/ShortcutInfo$Builder;" />
+		<method name="setExtras(Landroid/os/PersistableBundle;)Landroid/content/pm/ShortcutInfo$Builder;" />
+		<method name="setIcon(Landroid/graphics/drawable/Icon;)Landroid/content/pm/ShortcutInfo$Builder;" />
+		<method name="setIntent(Landroid/content/Intent;)Landroid/content/pm/ShortcutInfo$Builder;" />
+		<method name="setIntents([Landroid/content/Intent;)Landroid/content/pm/ShortcutInfo$Builder;" />
+		<method name="setLongLabel(Ljava/lang/CharSequence;)Landroid/content/pm/ShortcutInfo$Builder;" />
+		<method name="setRank(I)Landroid/content/pm/ShortcutInfo$Builder;" />
+		<method name="setShortLabel(Ljava/lang/CharSequence;)Landroid/content/pm/ShortcutInfo$Builder;" />
+	</class>
+	<class name="android/content/pm/ShortcutManager" since="25">
+		<extends name="java/lang/Object" />
+		<method name="&lt;init>()V" />
+		<method name="addDynamicShortcuts(Ljava/util/List;)Z" />
+		<method name="disableShortcuts(Ljava/util/List;)V" />
+		<method name="disableShortcuts(Ljava/util/List;Ljava/lang/CharSequence;)V" />
+		<method name="enableShortcuts(Ljava/util/List;)V" />
+		<method name="getDynamicShortcuts()Ljava/util/List;" />
+		<method name="getIconMaxHeight()I" />
+		<method name="getIconMaxWidth()I" />
+		<method name="getManifestShortcuts()Ljava/util/List;" />
+		<method name="getMaxShortcutCountPerActivity()I" />
+		<method name="getPinnedShortcuts()Ljava/util/List;" />
+		<method name="isRateLimitingActive()Z" />
+		<method name="removeAllDynamicShortcuts()V" />
+		<method name="removeDynamicShortcuts(Ljava/util/List;)V" />
+		<method name="reportShortcutUsed(Ljava/lang/String;)V" />
+		<method name="setDynamicShortcuts(Ljava/util/List;)Z" />
+		<method name="updateShortcuts(Ljava/util/List;)Z" />
+	</class>
 	<class name="android/content/pm/Signature" since="1">
 		<extends name="java/lang/Object" />
 		<implements name="android/os/Parcelable" />
@@ -10094,7 +10194,7 @@
 	</class>
 	<class name="android/content/res/Resources" since="1">
 		<extends name="java/lang/Object" />
-		<method name="&lt;init>(Landroid/content/res/AssetManager;Landroid/util/DisplayMetrics;Landroid/content/res/Configuration;)V" />
+		<method name="&lt;init>(Landroid/content/res/AssetManager;Landroid/util/DisplayMetrics;Landroid/content/res/Configuration;)V" deprecated="25" />
 		<method name="finishPreloading()V" />
 		<method name="flushLayoutCache()V" />
 		<method name="getAnimation(I)Landroid/content/res/XmlResourceParser;" />
@@ -10145,7 +10245,7 @@
 		<method name="openRawResourceFd(I)Landroid/content/res/AssetFileDescriptor;" />
 		<method name="parseBundleExtra(Ljava/lang/String;Landroid/util/AttributeSet;Landroid/os/Bundle;)V" since="3" />
 		<method name="parseBundleExtras(Landroid/content/res/XmlResourceParser;Landroid/os/Bundle;)V" since="3" />
-		<method name="updateConfiguration(Landroid/content/res/Configuration;Landroid/util/DisplayMetrics;)V" />
+		<method name="updateConfiguration(Landroid/content/res/Configuration;Landroid/util/DisplayMetrics;)V" deprecated="25" />
 	</class>
 	<class name="android/content/res/Resources$NotFoundException" since="1">
 		<extends name="java/lang/RuntimeException" />
@@ -19278,6 +19378,7 @@
 		<field name="CREATOR" since="24" />
 		<field name="ENCODING_AC3" since="21" />
 		<field name="ENCODING_DEFAULT" />
+		<field name="ENCODING_DOLBY_TRUEHD" since="25" />
 		<field name="ENCODING_DTS" since="23" />
 		<field name="ENCODING_DTS_HD" since="23" />
 		<field name="ENCODING_E_AC3" since="21" />
@@ -28005,6 +28106,7 @@
 		<field name="LOLLIPOP_MR1" since="22" />
 		<field name="M" since="23" />
 		<field name="N" since="24" />
+		<field name="N_MR1" since="25" />
 	</class>
 	<class name="android/os/Bundle" since="1">
 		<extends name="android/os/BaseBundle" since="21" />
@@ -29043,6 +29145,7 @@
 		<method name="getUserRestrictions()Landroid/os/Bundle;" since="18" />
 		<method name="getUserRestrictions(Landroid/os/UserHandle;)Landroid/os/Bundle;" since="18" />
 		<method name="hasUserRestriction(Ljava/lang/String;)Z" since="21" />
+		<method name="isDemoUser()Z" since="25" />
 		<method name="isQuietModeEnabled(Landroid/os/UserHandle;)Z" since="24" />
 		<method name="isSystemUser()Z" since="23" />
 		<method name="isUserAGoat()Z" />
@@ -29281,6 +29384,7 @@
 		<method name="isObbMounted(Ljava/lang/String;)Z" />
 		<method name="mountObb(Ljava/lang/String;Ljava/lang/String;Landroid/os/storage/OnObbStateChangeListener;)Z" />
 		<method name="unmountObb(Ljava/lang/String;ZLandroid/os/storage/OnObbStateChangeListener;)Z" />
+		<field name="ACTION_MANAGE_STORAGE" since="25" />
 	</class>
 	<class name="android/os/storage/StorageVolume" since="24">
 		<extends name="java/lang/Object" />
@@ -30520,6 +30624,7 @@
 		<implements name="android/provider/BaseColumns" />
 		<method name="&lt;init>()V" />
 		<method name="getLastOutgoingCall(Landroid/content/Context;)Ljava/lang/String;" since="8" />
+		<field name="ANSWERED_EXTERNALLY_TYPE" since="25" />
 		<field name="BLOCKED_TYPE" since="24" />
 		<field name="CACHED_FORMATTED_NUMBER" since="21" />
 		<field name="CACHED_LOOKUP_URI" since="21" />
@@ -30542,6 +30647,7 @@
 		<field name="DURATION" />
 		<field name="EXTRA_CALL_TYPE_FILTER" since="21" />
 		<field name="FEATURES" since="21" />
+		<field name="FEATURES_PULLED_EXTERNALLY" since="25" />
 		<field name="FEATURES_VIDEO" since="21" />
 		<field name="GEOCODED_LOCATION" since="21" />
 		<field name="INCOMING_TYPE" />
@@ -32516,6 +32622,7 @@
 		<field name="DATA_ROAMING" />
 		<field name="DEBUG_APP" />
 		<field name="DEVELOPMENT_SETTINGS_ENABLED" />
+		<field name="DEVICE_NAME" since="25" />
 		<field name="DEVICE_PROVISIONED" />
 		<field name="HTTP_PROXY" />
 		<field name="INSTALL_NON_MARKET_APPS" deprecated="21" />
@@ -32525,7 +32632,7 @@
 		<field name="RADIO_CELL" />
 		<field name="RADIO_NFC" />
 		<field name="RADIO_WIFI" />
-		<field name="SHOW_PROCESSES" />
+		<field name="SHOW_PROCESSES" deprecated="25" />
 		<field name="STAY_ON_WHILE_PLUGGED_IN" />
 		<field name="SYS_PROP_SETTING_VERSION" />
 		<field name="TRANSITION_ANIMATION_SCALE" />
@@ -33166,6 +33273,7 @@
 		<field name="ACTION_NEW_VOICEMAIL" />
 		<field name="ACTION_SYNC_VOICEMAIL" since="24" />
 		<field name="AUTHORITY" />
+		<field name="EXTRA_PHONE_ACCOUNT_HANDLE" since="25" />
 		<field name="EXTRA_SELF_CHANGE" />
 		<field name="PARAM_KEY_SOURCE_PACKAGE" />
 	</class>
@@ -33176,6 +33284,9 @@
 		<method name="buildSourceUri(Ljava/lang/String;)Landroid/net/Uri;" />
 		<field name="CONFIGURATION_STATE" />
 		<field name="CONFIGURATION_STATE_CAN_BE_CONFIGURED" />
+		<field name="CONFIGURATION_STATE_CONFIGURING" since="25" />
+		<field name="CONFIGURATION_STATE_DISABLED" since="25" />
+		<field name="CONFIGURATION_STATE_FAILED" since="25" />
 		<field name="CONFIGURATION_STATE_NOT_CONFIGURED" />
 		<field name="CONFIGURATION_STATE_OK" />
 		<field name="CONTENT_URI" />
@@ -33200,6 +33311,7 @@
 		<field name="QUOTA_UNAVAILABLE" since="24" />
 		<field name="SETTINGS_URI" />
 		<field name="SOURCE_PACKAGE" />
+		<field name="SOURCE_TYPE" since="25" />
 		<field name="VOICEMAIL_ACCESS_URI" />
 	</class>
 	<class name="android/provider/VoicemailContract$Voicemails" since="14">
@@ -36439,9 +36551,14 @@
 		<method name="phoneAccountSelected(Landroid/telecom/PhoneAccountHandle;Z)V" />
 		<method name="playDtmfTone(C)V" />
 		<method name="postDialContinue(Z)V" />
+		<method name="pullExternalCall()V" since="25" />
+		<method name="putExtras(Landroid/os/Bundle;)V" since="25" />
 		<method name="registerCallback(Landroid/telecom/Call$Callback;)V" />
 		<method name="registerCallback(Landroid/telecom/Call$Callback;Landroid/os/Handler;)V" />
 		<method name="reject(ZLjava/lang/String;)V" />
+		<method name="removeExtras(Ljava/util/List;)V" since="25" />
+		<method name="removeExtras([Ljava/lang/String;)V" since="25" />
+		<method name="sendCallEvent(Ljava/lang/String;Landroid/os/Bundle;)V" since="25" />
 		<method name="splitFromConference()V" />
 		<method name="stopDtmfTone()V" />
 		<method name="swapConference()V" />
@@ -36455,6 +36572,7 @@
 		<field name="STATE_DISCONNECTING" />
 		<field name="STATE_HOLDING" />
 		<field name="STATE_NEW" />
+		<field name="STATE_PULLING_CALL" since="25" />
 		<field name="STATE_RINGING" />
 		<field name="STATE_SELECT_PHONE_ACCOUNT" />
 	</class>
@@ -36465,6 +36583,7 @@
 		<method name="onCannedTextResponsesLoaded(Landroid/telecom/Call;Ljava/util/List;)V" />
 		<method name="onChildrenChanged(Landroid/telecom/Call;Ljava/util/List;)V" />
 		<method name="onConferenceableCallsChanged(Landroid/telecom/Call;Ljava/util/List;)V" />
+		<method name="onConnectionEvent(Landroid/telecom/Call;Ljava/lang/String;Landroid/os/Bundle;)V" since="25" />
 		<method name="onDetailsChanged(Landroid/telecom/Call;Landroid/telecom/Call$Details;)V" />
 		<method name="onParentChanged(Landroid/telecom/Call;Landroid/telecom/Call;)V" />
 		<method name="onPostDialWait(Landroid/telecom/Call;Ljava/lang/String;)V" />
@@ -36496,6 +36615,7 @@
 		<method name="propertiesToString(I)Ljava/lang/String;" />
 		<field name="CAPABILITY_CANNOT_DOWNGRADE_VIDEO_TO_AUDIO" since="24" />
 		<field name="CAPABILITY_CAN_PAUSE_VIDEO" />
+		<field name="CAPABILITY_CAN_PULL_CALL" since="25" />
 		<field name="CAPABILITY_DISCONNECT_FROM_CONFERENCE" />
 		<field name="CAPABILITY_HOLD" />
 		<field name="CAPABILITY_MANAGE_CONFERENCE" />
@@ -36515,7 +36635,9 @@
 		<field name="PROPERTY_EMERGENCY_CALLBACK_MODE" />
 		<field name="PROPERTY_ENTERPRISE_CALL" since="24" />
 		<field name="PROPERTY_GENERIC_CONFERENCE" />
+		<field name="PROPERTY_HAS_CDMA_VOICE_PRIVACY" since="25" />
 		<field name="PROPERTY_HIGH_DEF_AUDIO" />
+		<field name="PROPERTY_IS_EXTERNAL_CALL" since="25" />
 		<field name="PROPERTY_WIFI" />
 	</class>
 	<class name="android/telecom/CallAudioState" since="23">
@@ -36565,6 +36687,7 @@
 		<method name="getCallAudioState()Landroid/telecom/CallAudioState;" />
 		<method name="getConferenceableConnections()Ljava/util/List;" />
 		<method name="getConnectionCapabilities()I" />
+		<method name="getConnectionProperties()I" since="25" />
 		<method name="getConnectionTime()J" />
 		<method name="getConnections()Ljava/util/List;" />
 		<method name="getDisconnectCause()Landroid/telecom/DisconnectCause;" />
@@ -36577,6 +36700,7 @@
 		<method name="onCallAudioStateChanged(Landroid/telecom/CallAudioState;)V" />
 		<method name="onConnectionAdded(Landroid/telecom/Connection;)V" />
 		<method name="onDisconnect()V" />
+		<method name="onExtrasChanged(Landroid/os/Bundle;)V" since="25" />
 		<method name="onHold()V" />
 		<method name="onMerge()V" />
 		<method name="onMerge(Landroid/telecom/Connection;)V" />
@@ -36585,10 +36709,14 @@
 		<method name="onStopDtmfTone()V" />
 		<method name="onSwap()V" />
 		<method name="onUnhold()V" />
+		<method name="putExtras(Landroid/os/Bundle;)V" since="25" />
 		<method name="removeConnection(Landroid/telecom/Connection;)V" />
+		<method name="removeExtras(Ljava/util/List;)V" since="25" />
+		<method name="removeExtras([Ljava/lang/String;)V" since="25" />
 		<method name="setActive()V" />
 		<method name="setConferenceableConnections(Ljava/util/List;)V" />
 		<method name="setConnectionCapabilities(I)V" />
+		<method name="setConnectionProperties(I)V" since="25" />
 		<method name="setConnectionTime(J)V" />
 		<method name="setDialing()V" />
 		<method name="setDisconnected(Landroid/telecom/DisconnectCause;)V" />
@@ -36619,6 +36747,7 @@
 		<method name="getConference()Landroid/telecom/Conference;" />
 		<method name="getConferenceables()Ljava/util/List;" />
 		<method name="getConnectionCapabilities()I" />
+		<method name="getConnectionProperties()I" since="25" />
 		<method name="getDisconnectCause()Landroid/telecom/DisconnectCause;" />
 		<method name="getExtras()Landroid/os/Bundle;" />
 		<method name="getState()I" />
@@ -36629,16 +36758,24 @@
 		<method name="onAnswer()V" />
 		<method name="onAnswer(I)V" />
 		<method name="onCallAudioStateChanged(Landroid/telecom/CallAudioState;)V" />
+		<method name="onCallEvent(Ljava/lang/String;Landroid/os/Bundle;)V" since="25" />
 		<method name="onDisconnect()V" />
+		<method name="onExtrasChanged(Landroid/os/Bundle;)V" since="25" />
 		<method name="onHold()V" />
 		<method name="onPlayDtmfTone(C)V" />
 		<method name="onPostDialContinue(Z)V" />
+		<method name="onPullExternalCall()V" since="25" />
 		<method name="onReject()V" />
 		<method name="onReject(Ljava/lang/String;)V" since="24" />
 		<method name="onSeparate()V" />
 		<method name="onStateChanged(I)V" />
 		<method name="onStopDtmfTone()V" />
 		<method name="onUnhold()V" />
+		<method name="propertiesToString(I)Ljava/lang/String;" since="25" />
+		<method name="putExtras(Landroid/os/Bundle;)V" since="25" />
+		<method name="removeExtras(Ljava/util/List;)V" since="25" />
+		<method name="removeExtras([Ljava/lang/String;)V" since="25" />
+		<method name="sendConnectionEvent(Ljava/lang/String;Landroid/os/Bundle;)V" since="25" />
 		<method name="setActive()V" />
 		<method name="setAddress(Landroid/net/Uri;I)V" />
 		<method name="setAudioModeIsVoip(Z)V" />
@@ -36646,6 +36783,7 @@
 		<method name="setConferenceableConnections(Ljava/util/List;)V" />
 		<method name="setConferenceables(Ljava/util/List;)V" />
 		<method name="setConnectionCapabilities(I)V" />
+		<method name="setConnectionProperties(I)V" since="25" />
 		<method name="setDialing()V" />
 		<method name="setDisconnected(Landroid/telecom/DisconnectCause;)V" />
 		<method name="setExtras(Landroid/os/Bundle;)V" />
@@ -36654,6 +36792,7 @@
 		<method name="setNextPostDialChar(C)V" />
 		<method name="setOnHold()V" />
 		<method name="setPostDialWait(Ljava/lang/String;)V" />
+		<method name="setPulling()V" since="25" />
 		<method name="setRingbackRequested(Z)V" />
 		<method name="setRinging()V" />
 		<method name="setStatusHints(Landroid/telecom/StatusHints;)V" />
@@ -36662,6 +36801,7 @@
 		<method name="stateToString(I)Ljava/lang/String;" />
 		<field name="CAPABILITY_CANNOT_DOWNGRADE_VIDEO_TO_AUDIO" since="24" />
 		<field name="CAPABILITY_CAN_PAUSE_VIDEO" />
+		<field name="CAPABILITY_CAN_PULL_CALL" since="25" />
 		<field name="CAPABILITY_CAN_SEND_RESPONSE_VIA_CONNECTION" since="24" />
 		<field name="CAPABILITY_CAN_UPGRADE_TO_VIDEO" />
 		<field name="CAPABILITY_DISCONNECT_FROM_CONFERENCE" />
@@ -36679,15 +36819,21 @@
 		<field name="CAPABILITY_SUPPORTS_VT_REMOTE_TX" />
 		<field name="CAPABILITY_SUPPORT_HOLD" />
 		<field name="CAPABILITY_SWAP_CONFERENCE" />
+		<field name="EVENT_CALL_MERGE_FAILED" since="25" />
+		<field name="EVENT_CALL_PULL_FAILED" since="25" />
+		<field name="EXTRA_ANSWERING_DROPS_FG_CALL" since="25" />
 		<field name="EXTRA_CALL_SUBJECT" />
 		<field name="EXTRA_CHILD_ADDRESS" />
 		<field name="EXTRA_LAST_FORWARDED_NUMBER" />
+		<field name="PROPERTY_HAS_CDMA_VOICE_PRIVACY" since="25" />
+		<field name="PROPERTY_IS_EXTERNAL_CALL" since="25" />
 		<field name="STATE_ACTIVE" />
 		<field name="STATE_DIALING" />
 		<field name="STATE_DISCONNECTED" />
 		<field name="STATE_HOLDING" />
 		<field name="STATE_INITIALIZING" />
 		<field name="STATE_NEW" />
+		<field name="STATE_PULLING_CALL" since="25" />
 		<field name="STATE_RINGING" />
 	</class>
 	<class name="android/telecom/Connection$VideoProvider" since="23">
@@ -36762,7 +36908,9 @@
 		<method name="getLabel()Ljava/lang/CharSequence;" />
 		<method name="getReason()Ljava/lang/String;" />
 		<method name="getTone()I" />
+		<field name="ANSWERED_ELSEWHERE" since="25" />
 		<field name="BUSY" />
+		<field name="CALL_PULLED" since="25" />
 		<field name="CANCELED" />
 		<field name="CONNECTION_MANAGER_NOT_SUPPORTED" />
 		<field name="CREATOR" />
@@ -36796,6 +36944,7 @@
 		<method name="onCallAudioStateChanged(Landroid/telecom/CallAudioState;)V" />
 		<method name="onCallRemoved(Landroid/telecom/Call;)V" />
 		<method name="onCanAddCallChanged(Z)V" />
+		<method name="onConnectionEvent(Landroid/telecom/Call;Ljava/lang/String;Landroid/os/Bundle;)V" since="25" />
 		<method name="onSilenceRinger()V" since="24" />
 		<method name="setAudioRoute(I)V" />
 		<method name="setMuted(Z)V" />
@@ -36918,6 +37067,7 @@
 		<method name="onConferenceableConnectionsChanged(Landroid/telecom/RemoteConference;Ljava/util/List;)V" />
 		<method name="onConnectionAdded(Landroid/telecom/RemoteConference;Landroid/telecom/RemoteConnection;)V" />
 		<method name="onConnectionCapabilitiesChanged(Landroid/telecom/RemoteConference;I)V" />
+		<method name="onConnectionPropertiesChanged(Landroid/telecom/RemoteConference;I)V" since="25" />
 		<method name="onConnectionRemoved(Landroid/telecom/RemoteConference;Landroid/telecom/RemoteConnection;)V" />
 		<method name="onDestroyed(Landroid/telecom/RemoteConference;)V" />
 		<method name="onDisconnected(Landroid/telecom/RemoteConference;Landroid/telecom/DisconnectCause;)V" />
@@ -36937,6 +37087,7 @@
 		<method name="getConference()Landroid/telecom/RemoteConference;" />
 		<method name="getConferenceableConnections()Ljava/util/List;" />
 		<method name="getConnectionCapabilities()I" />
+		<method name="getConnectionProperties()I" since="25" />
 		<method name="getDisconnectCause()Landroid/telecom/DisconnectCause;" />
 		<method name="getExtras()Landroid/os/Bundle;" />
 		<method name="getState()I" />
@@ -36948,6 +37099,7 @@
 		<method name="isVoipAudioMode()Z" />
 		<method name="playDtmfTone(C)V" />
 		<method name="postDialContinue(Z)V" />
+		<method name="pullExternalCall()V" since="25" />
 		<method name="registerCallback(Landroid/telecom/RemoteConnection$Callback;)V" />
 		<method name="registerCallback(Landroid/telecom/RemoteConnection$Callback;Landroid/os/Handler;)V" />
 		<method name="reject()V" />
@@ -36964,6 +37116,8 @@
 		<method name="onConferenceChanged(Landroid/telecom/RemoteConnection;Landroid/telecom/RemoteConference;)V" />
 		<method name="onConferenceableConnectionsChanged(Landroid/telecom/RemoteConnection;Ljava/util/List;)V" />
 		<method name="onConnectionCapabilitiesChanged(Landroid/telecom/RemoteConnection;I)V" />
+		<method name="onConnectionEvent(Landroid/telecom/RemoteConnection;Ljava/lang/String;Landroid/os/Bundle;)V" since="25" />
+		<method name="onConnectionPropertiesChanged(Landroid/telecom/RemoteConnection;I)V" since="25" />
 		<method name="onDestroyed(Landroid/telecom/RemoteConnection;)V" />
 		<method name="onDisconnected(Landroid/telecom/RemoteConnection;Landroid/telecom/DisconnectCause;)V" />
 		<method name="onExtrasChanged(Landroid/telecom/RemoteConnection;Landroid/os/Bundle;)V" />
@@ -37061,6 +37215,7 @@
 		<field name="EXTRA_START_CALL_WITH_VIDEO_STATE" since="23" />
 		<field name="GATEWAY_ORIGINAL_ADDRESS" />
 		<field name="GATEWAY_PROVIDER_PACKAGE" />
+		<field name="METADATA_INCLUDE_EXTERNAL_CALLS" since="25" />
 		<field name="METADATA_IN_CALL_SERVICE_RINGING" since="24" />
 		<field name="METADATA_IN_CALL_SERVICE_UI" since="23" />
 		<field name="PRESENTATION_ALLOWED" />
@@ -37110,9 +37265,11 @@
 		<field name="ACTION_CARRIER_CONFIG_CHANGED" />
 		<field name="KEY_ADDITIONAL_CALL_SETTING_BOOL" />
 		<field name="KEY_ALLOW_ADDING_APNS_BOOL" since="24" />
+		<field name="KEY_ALLOW_ADD_CALL_DURING_VIDEO_CALL_BOOL" since="25" />
 		<field name="KEY_ALLOW_EMERGENCY_NUMBERS_IN_CALL_LOG_BOOL" />
 		<field name="KEY_ALLOW_EMERGENCY_VIDEO_CALLS_BOOL" since="24" />
 		<field name="KEY_ALLOW_LOCAL_DTMF_TONES_BOOL" />
+		<field name="KEY_ALLOW_MERGE_WIFI_CALLS_WHEN_VOWIFI_OFF_BOOL" since="25" />
 		<field name="KEY_ALLOW_NON_EMERGENCY_CALLS_IN_ECM_BOOL" since="24" />
 		<field name="KEY_ALWAYS_SHOW_EMERGENCY_ALERT_ONOFF_BOOL" since="24" />
 		<field name="KEY_APN_EXPAND_BOOL" />
@@ -37144,6 +37301,7 @@
 		<field name="KEY_CSP_ENABLED_BOOL" />
 		<field name="KEY_DEFAULT_SIM_CALL_MANAGER_STRING" />
 		<field name="KEY_DISABLE_CDMA_ACTIVATION_CODE_BOOL" />
+		<field name="KEY_DROP_VIDEO_CALL_WHEN_ANSWERING_AUDIO_CALL_BOOL" since="25" />
 		<field name="KEY_DTMF_TYPE_ENABLED_BOOL" />
 		<field name="KEY_DURATION_BLOCKING_DISABLED_AFTER_EMERGENCY_INT" since="24" />
 		<field name="KEY_EDITABLE_ENHANCED_4G_LTE_BOOL" since="24" />
@@ -37201,6 +37359,7 @@
 		<field name="KEY_SUPPORT_CONFERENCE_CALL_BOOL" since="24" />
 		<field name="KEY_SUPPORT_PAUSE_IMS_VIDEO_CALLS_BOOL" />
 		<field name="KEY_SUPPORT_SWAP_AFTER_MERGE_BOOL" />
+		<field name="KEY_TREAT_DOWNGRADED_VIDEO_CALLS_AS_VIDEO_CALLS_BOOL" since="25" />
 		<field name="KEY_USE_HFA_FOR_PROVISIONING_BOOL" />
 		<field name="KEY_USE_OTASP_FOR_PROVISIONING_BOOL" />
 		<field name="KEY_USE_RCS_PRESENCE_BOOL" since="24" />
@@ -37765,12 +37924,15 @@
 		<field name="NETWORK_TYPE_EVDO_A" since="4" />
 		<field name="NETWORK_TYPE_EVDO_B" since="9" />
 		<field name="NETWORK_TYPE_GPRS" />
+		<field name="NETWORK_TYPE_GSM" since="25" />
 		<field name="NETWORK_TYPE_HSDPA" since="5" />
 		<field name="NETWORK_TYPE_HSPA" since="5" />
 		<field name="NETWORK_TYPE_HSPAP" since="13" />
 		<field name="NETWORK_TYPE_HSUPA" since="5" />
 		<field name="NETWORK_TYPE_IDEN" since="8" />
+		<field name="NETWORK_TYPE_IWLAN" since="25" />
 		<field name="NETWORK_TYPE_LTE" since="11" />
+		<field name="NETWORK_TYPE_TD_SCDMA" since="25" />
 		<field name="NETWORK_TYPE_UMTS" />
 		<field name="NETWORK_TYPE_UNKNOWN" />
 		<field name="PHONE_TYPE_CDMA" since="4" />
@@ -40189,7 +40351,10 @@
 		<method name="equals(Landroid/util/DisplayMetrics;)Z" since="17" />
 		<method name="setTo(Landroid/util/DisplayMetrics;)V" />
 		<method name="setToDefaults()V" />
+		<field name="DENSITY_260" since="25" />
 		<field name="DENSITY_280" since="22" />
+		<field name="DENSITY_300" since="25" />
+		<field name="DENSITY_340" since="25" />
 		<field name="DENSITY_360" since="23" />
 		<field name="DENSITY_400" since="19" />
 		<field name="DENSITY_420" since="23" />
@@ -40936,10 +41101,10 @@
 	</class>
 	<class name="android/view/DragAndDropPermissions" since="24">
 		<extends name="java/lang/Object" />
-		<implements name="android/os/Parcelable" />
+		<implements name="android/os/Parcelable" since="25" />
 		<method name="&lt;init>()V" />
 		<method name="release()V" />
-		<field name="CREATOR" />
+		<field name="CREATOR" since="25" />
 	</class>
 	<class name="android/view/DragEvent" since="11">
 		<extends name="java/lang/Object" />
@@ -41538,6 +41703,10 @@
 		<field name="KEYCODE_SWITCH_CHARSET" since="9" />
 		<field name="KEYCODE_SYM" />
 		<field name="KEYCODE_SYSRQ" since="11" />
+		<field name="KEYCODE_SYSTEM_NAVIGATION_DOWN" since="25" />
+		<field name="KEYCODE_SYSTEM_NAVIGATION_LEFT" since="25" />
+		<field name="KEYCODE_SYSTEM_NAVIGATION_RIGHT" since="25" />
+		<field name="KEYCODE_SYSTEM_NAVIGATION_UP" since="25" />
 		<field name="KEYCODE_T" />
 		<field name="KEYCODE_TAB" />
 		<field name="KEYCODE_TV" since="11" />
@@ -42453,6 +42622,7 @@
 		<method name="getPivotY()F" since="11" />
 		<method name="getPointerIcon()Landroid/view/PointerIcon;" since="24" />
 		<method name="getResources()Landroid/content/res/Resources;" />
+		<method name="getRevealOnFocusHint()Z" since="25" />
 		<method name="getRight()I" />
 		<method name="getRightFadingEdgeStrength()F" />
 		<method name="getRightPaddingOffset()I" since="2" />
@@ -42734,6 +42904,7 @@
 		<method name="setPivotY(F)V" since="11" />
 		<method name="setPointerIcon(Landroid/view/PointerIcon;)V" since="24" />
 		<method name="setPressed(Z)V" />
+		<method name="setRevealOnFocusHint(Z)V" since="25" />
 		<method name="setRight(I)V" since="11" />
 		<method name="setRotation(F)V" since="11" />
 		<method name="setRotationX(F)V" since="11" />
@@ -43881,6 +44052,7 @@
 		<field name="TYPE_APPLICATION_SUB_PANEL" />
 		<field name="TYPE_BASE_APPLICATION" />
 		<field name="TYPE_CHANGED" />
+		<field name="TYPE_DRAWN_APPLICATION" since="25" />
 		<field name="TYPE_INPUT_METHOD" since="3" />
 		<field name="TYPE_INPUT_METHOD_DIALOG" since="3" />
 		<field name="TYPE_KEYGUARD" />
@@ -44776,6 +44948,7 @@
 		<field name="IME_NULL" />
 		<field name="actionId" />
 		<field name="actionLabel" />
+		<field name="contentMimeTypes" since="25" />
 		<field name="extras" />
 		<field name="fieldId" />
 		<field name="fieldName" />
@@ -44832,6 +45005,7 @@
 		<method name="clearMetaKeyStates(I)Z" />
 		<method name="closeConnection()V" since="24" />
 		<method name="commitCompletion(Landroid/view/inputmethod/CompletionInfo;)Z" />
+		<method name="commitContent(Landroid/view/inputmethod/InputContentInfo;ILandroid/os/Bundle;)Z" since="25" />
 		<method name="commitCorrection(Landroid/view/inputmethod/CorrectionInfo;)Z" since="11" />
 		<method name="commitText(Ljava/lang/CharSequence;I)Z" />
 		<method name="deleteSurroundingText(II)Z" />
@@ -44857,12 +45031,25 @@
 		<field name="CURSOR_UPDATE_MONITOR" since="21" />
 		<field name="GET_EXTRACTED_TEXT_MONITOR" />
 		<field name="GET_TEXT_WITH_STYLES" />
+		<field name="INPUT_CONTENT_GRANT_READ_URI_PERMISSION" since="25" />
 	</class>
 	<class name="android/view/inputmethod/InputConnectionWrapper" since="3">
 		<extends name="java/lang/Object" />
 		<implements name="android/view/inputmethod/InputConnection" />
 		<method name="&lt;init>(Landroid/view/inputmethod/InputConnection;Z)V" />
 		<method name="setTarget(Landroid/view/inputmethod/InputConnection;)V" />
+	</class>
+	<class name="android/view/inputmethod/InputContentInfo" since="25">
+		<extends name="java/lang/Object" />
+		<implements name="android/os/Parcelable" />
+		<method name="&lt;init>(Landroid/net/Uri;Landroid/content/ClipDescription;)V" />
+		<method name="&lt;init>(Landroid/net/Uri;Landroid/content/ClipDescription;Landroid/net/Uri;)V" />
+		<method name="getContentUri()Landroid/net/Uri;" />
+		<method name="getDescription()Landroid/content/ClipDescription;" />
+		<method name="getLinkUri()Landroid/net/Uri;" />
+		<method name="releasePermission()V" />
+		<method name="requestPermission()V" />
+		<field name="CREATOR" />
 	</class>
 	<class name="android/view/inputmethod/InputMethod" since="3">
 		<extends name="java/lang/Object" />
