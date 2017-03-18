@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "c82195bc_d63499f3",
+        "filename": "README.chromium",
+        "patchSetId": 1
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1124979
+      },
+      "writtenOn": "2017-03-18T00:53:28Z",
+      "side": 0,
+      "message": "And, Im like 99% uiautomator.jar is not used anymore. So we probably dont have to cherry-pick the old uiautomator.jar",
+      "revId": "e429db7f48cd615b0b408cda259ffbc17d3945bb",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "ca0c4e4b_6f67133a",
         "filename": "README.chromium",
         "patchSetId": 1
@@ -13,6 +30,24 @@
       "writtenOn": "2017-03-18T00:08:20Z",
       "side": 0,
       "message": "What happened to this \u0026 proguard.flags?",
+      "revId": "e429db7f48cd615b0b408cda259ffbc17d3945bb",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1558d7ca_49301911",
+        "filename": "README.chromium",
+        "patchSetId": 1
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1124979
+      },
+      "writtenOn": "2017-03-18T00:53:28Z",
+      "side": 0,
+      "message": "proguard.flags file doesnt exist anymore. Was removed in a CL that said something like \"remove unused files\".\n\nhttps://chromium.googlesource.com/android_tools/+/2119e0d270afcdf28cc1b9dba29330efbb4e2d23\n\nThe trace-viewer thing seems to also be outdated documentation. I think, someone was just anxious to update trace-viewer and wanted to do so before an SDK roll.\n\nhttps://chromium.googlesource.com/android_tools/+/02d3db3c400baa959883006dc697c6cbd70c5194",
+      "parentUuid": "ca0c4e4b_6f67133a",
       "revId": "e429db7f48cd615b0b408cda259ffbc17d3945bb",
       "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
       "unresolved": true
