@@ -16,9 +16,12 @@
 
 package com.example.android.supportv7.media;
 
+import com.example.android.supportv7.R;
+
 import android.content.Context;
 import android.content.Intent;
 import android.content.BroadcastReceiver;
+import android.util.Log;
 import android.view.KeyEvent;
 
 /**

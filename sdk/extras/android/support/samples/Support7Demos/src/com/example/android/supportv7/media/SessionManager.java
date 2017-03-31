@@ -349,8 +349,6 @@ public class SessionManager implements Player.Callback {
             if (mCallback != null) {
                 mCallback.onItemChanged(item);
             }
-        } else {
-            mPlayer.initMediaSession();
         }
         updateStatus();
     }

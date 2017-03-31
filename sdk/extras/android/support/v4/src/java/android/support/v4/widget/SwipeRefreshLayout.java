@@ -728,8 +728,7 @@ public class SwipeRefreshLayout extends ViewGroup implements NestedScrollingPare
 
     @Override
     public boolean onStartNestedScroll(View child, View target, int nestedScrollAxes) {
-        if (isEnabled() && !mReturningToStart && !canChildScrollUp() && !mRefreshing
-                && (nestedScrollAxes & ViewCompat.SCROLL_AXIS_VERTICAL) != 0) {
+        if (isEnabled() && (nestedScrollAxes & ViewCompat.SCROLL_AXIS_VERTICAL) != 0) {
             // Dispatch up to the nested parent
             startNestedScroll(nestedScrollAxes & ViewCompat.SCROLL_AXIS_VERTICAL);
             return true;
@@ -758,15 +757,6 @@ public class SwipeRefreshLayout extends ViewGroup implements NestedScrollingPare
 
             }
             moveSpinner(mTotalUnconsumed);
-        }
-
-        // If a client layout is using a custom start position for the circle
-        // view, they mean to hide it again before scrolling the child view
-        // If we get back to mTotalUnconsumed == 0 and there is more to go, hide
-        // the circle so it isn't exposed if its blocking content is moved
-        if (mUsingCustomStart && dy > 0 && mTotalUnconsumed == 0
-                && Math.abs(dy - consumed[1]) > 0) {
-            mCircleView.setVisibility(View.GONE);
         }
 
         // Now let our nested parent consume the leftovers
@@ -810,6 +800,16 @@ public class SwipeRefreshLayout extends ViewGroup implements NestedScrollingPare
     // NestedScrollingChild
 
     @Override
+    public boolean onNestedPreFling(View target, float velocityX, float velocityY) {
+        return false;
+    }
+
+    @Override
+    public boolean onNestedFling(View target, float velocityX, float velocityY, boolean consumed) {
+        return false;
+    }
+
+    @Override
     public void setNestedScrollingEnabled(boolean enabled) {
         mNestedScrollingChildHelper.setNestedScrollingEnabled(enabled);
     }
@@ -844,18 +844,6 @@ public class SwipeRefreshLayout extends ViewGroup implements NestedScrollingPare
     @Override
     public boolean dispatchNestedPreScroll(int dx, int dy, int[] consumed, int[] offsetInWindow) {
         return mNestedScrollingChildHelper.dispatchNestedPreScroll(dx, dy, consumed, offsetInWindow);
-    }
-
-    @Override
-    public boolean onNestedPreFling(View target, float velocityX,
-            float velocityY) {
-        return dispatchNestedPreFling(velocityX, velocityY);
-    }
-
-    @Override
-    public boolean onNestedFling(View target, float velocityX, float velocityY,
-            boolean consumed) {
-        return dispatchNestedFling(velocityX, velocityY, consumed);
     }
 
     @Override
@@ -955,7 +943,6 @@ public class SwipeRefreshLayout extends ViewGroup implements NestedScrollingPare
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
         final int action = MotionEventCompat.getActionMasked(ev);
-        int pointerIndex = -1;
 
         if (mReturningToStart && action == MotionEvent.ACTION_DOWN) {
             mReturningToStart = false;
@@ -973,7 +960,7 @@ public class SwipeRefreshLayout extends ViewGroup implements NestedScrollingPare
                 break;
 
             case MotionEvent.ACTION_MOVE: {
-                pointerIndex = MotionEventCompat.findPointerIndex(ev, mActivePointerId);
+                final int pointerIndex = MotionEventCompat.findPointerIndex(ev, mActivePointerId);
                 if (pointerIndex < 0) {
                     Log.e(LOG_TAG, "Got ACTION_MOVE event but have an invalid active pointer id.");
                     return false;
@@ -991,12 +978,8 @@ public class SwipeRefreshLayout extends ViewGroup implements NestedScrollingPare
                 break;
             }
             case MotionEventCompat.ACTION_POINTER_DOWN: {
-                pointerIndex = MotionEventCompat.getActionIndex(ev);
-                if (pointerIndex < 0) {
-                    Log.e(LOG_TAG, "Got ACTION_POINTER_DOWN event but have an invalid action index.");
-                    return false;
-                }
-                mActivePointerId = MotionEventCompat.getPointerId(ev, pointerIndex);
+                final int index = MotionEventCompat.getActionIndex(ev);
+                mActivePointerId = MotionEventCompat.getPointerId(ev, index);
                 break;
             }
 
@@ -1004,13 +987,15 @@ public class SwipeRefreshLayout extends ViewGroup implements NestedScrollingPare
                 onSecondaryPointerUp(ev);
                 break;
 
-            case MotionEvent.ACTION_UP: {
-                pointerIndex = MotionEventCompat.findPointerIndex(ev, mActivePointerId);
-                if (pointerIndex < 0) {
-                    Log.e(LOG_TAG, "Got ACTION_UP event but don't have an active pointer id.");
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL: {
+                if (mActivePointerId == INVALID_POINTER) {
+                    if (action == MotionEvent.ACTION_UP) {
+                        Log.e(LOG_TAG, "Got ACTION_UP event but don't have an active pointer id.");
+                    }
                     return false;
                 }
-
+                final int pointerIndex = MotionEventCompat.findPointerIndex(ev, mActivePointerId);
                 final float y = MotionEventCompat.getY(ev, pointerIndex);
                 final float overscrollTop = (y - mInitialMotionY) * DRAG_RATE;
                 mIsBeingDragged = false;
@@ -1018,8 +1003,6 @@ public class SwipeRefreshLayout extends ViewGroup implements NestedScrollingPare
                 mActivePointerId = INVALID_POINTER;
                 return false;
             }
-            case MotionEvent.ACTION_CANCEL:
-                return false;
         }
 
         return true;
@@ -1035,6 +1018,18 @@ public class SwipeRefreshLayout extends ViewGroup implements NestedScrollingPare
         }
         mCircleView.clearAnimation();
         mCircleView.startAnimation(mAnimateToCorrectPosition);
+    }
+
+    private void peek(int from, AnimationListener listener) {
+        mFrom = from;
+        mPeek.reset();
+        mPeek.setDuration(500);
+        mPeek.setInterpolator(mDecelerateInterpolator);
+        if (listener != null) {
+            mCircleView.setAnimationListener(listener);
+        }
+        mCircleView.clearAnimation();
+        mCircleView.startAnimation(mPeek);
     }
 
     private void animateOffsetToStartPosition(int from, AnimationListener listener) {
@@ -1063,6 +1058,23 @@ public class SwipeRefreshLayout extends ViewGroup implements NestedScrollingPare
                 endTarget = (int) (mSpinnerFinalOffset - Math.abs(mOriginalOffsetTop));
             } else {
                 endTarget = (int) mSpinnerFinalOffset;
+            }
+            targetTop = (mFrom + (int) ((endTarget - mFrom) * interpolatedTime));
+            int offset = targetTop - mCircleView.getTop();
+            setTargetOffsetTopAndBottom(offset, false /* requires update */);
+            mProgress.setArrowScale(1 - interpolatedTime);
+        }
+    };
+
+    private final Animation mPeek = new Animation() {
+        @Override
+        public void applyTransformation(float interpolatedTime, Transformation t) {
+            int targetTop = 0;
+            int endTarget = 0;
+            if (!mUsingCustomStart) {
+                endTarget = (int) (mSpinnerFinalOffset - Math.abs(mOriginalOffsetTop));
+            } else {
+                endTarget = (int) mSpinnerFinalOffset; //mSpinnerFinalOffset;
             }
             targetTop = (mFrom + (int) ((endTarget - mFrom) * interpolatedTime));
             int offset = targetTop - mCircleView.getTop();

@@ -19,8 +19,10 @@ package com.example.android.supportv7.media;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.media.MediaItemStatus;
+import android.support.v7.media.MediaControlIntent;
 import android.support.v7.media.MediaRouter.ControlRequestCallback;
 import android.support.v7.media.MediaRouter.RouteInfo;
 import android.support.v7.media.MediaSessionStatus;
@@ -138,6 +140,7 @@ public class RemotePlayer extends Player {
                 }
                 if (item.getState() == MediaItemStatus.PLAYBACK_STATE_PAUSED) {
                     pause();
+                    publishState(STATE_PAUSED);
                 } else {
                     publishState(STATE_PLAYING);
                 }
@@ -382,8 +385,6 @@ public class RemotePlayer extends Player {
                 }
                 if (item.getState() == MediaItemStatus.PLAYBACK_STATE_PAUSED) {
                     pause();
-                } else if (item.getState() == MediaItemStatus.PLAYBACK_STATE_PLAYING) {
-                    publishState(STATE_PLAYING);
                 }
                 if (mEnqueuePending) {
                     mEnqueuePending = false;

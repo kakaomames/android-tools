@@ -3,11 +3,11 @@ URL: http://developer.android.com/sdk/index.html
 Versions:
   NDK r10e-rc4
   Android SDK Platform API 23
-  Android SDK Tools 24.4
+  Android SDK Tools 24.3.4
   Android SDK Platform-tools 23.0.1
-  Android SDK Build-tools 23.0.1
+  Android SDK Build-tools 23
   Android SDK Sources 23
-  Android Support Library 23.1
+  Android Support Library 23.0.1
   Google Cloud Messaging 3
 Security Critical: no
 License: Apache Version 2.0

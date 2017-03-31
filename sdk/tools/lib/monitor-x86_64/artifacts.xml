@@ -3,7 +3,7 @@
 <repository name='Bundle pool' type='org.eclipse.equinox.p2.artifact.repository.simpleRepository' version='1'>
   <properties size='2'>
     <property name='p2.system' value='true'/>
-    <property name='p2.timestamp' value='1442599630478'/>
+    <property name='p2.timestamp' value='1439575240731'/>
   </properties>
   <mappings size='3'>
     <rule filter='(&amp; (classifier=osgi.bundle))' output='${repoUrl}/plugins/${id}_${version}.jar'/>
@@ -16,31 +16,20 @@
         <property name='download.size' value='1445067'/>
       </properties>
     </artifact>
-    <artifact classifier='org.eclipse.update.feature' id='com.android.ide.eclipse.gldebugger.feature' version='24.4.0.2265294'>
-      <properties size='1'>
-        <property name='download.size' value='4750'/>
-      </properties>
-      <repositoryProperties size='1'>
-        <property name='artifact.folder' value='true'/>
-      </repositoryProperties>
-    </artifact>
     <artifact classifier='osgi.bundle' id='org.eclipse.equinox.p2.ui.sdk.scheduler' version='1.1.0.v20110815-1744'>
       <properties size='1'>
         <property name='download.size' value='60466'/>
+      </properties>
+    </artifact>
+    <artifact classifier='osgi.bundle' id='com.android.ide.eclipse.monitor' version='24.3.4.2168507'>
+      <properties size='1'>
+        <property name='download.size' value='623969'/>
       </properties>
     </artifact>
     <artifact classifier='osgi.bundle' id='org.eclipse.equinox.app' version='1.3.100.v20120522-1841'>
       <properties size='1'>
         <property name='download.size' value='86390'/>
       </properties>
-    </artifact>
-    <artifact classifier='org.eclipse.update.feature' id='com.android.ide.eclipse.monitor.feature' version='24.4.0.2265294'>
-      <properties size='1'>
-        <property name='download.size' value='4869'/>
-      </properties>
-      <repositoryProperties size='1'>
-        <property name='artifact.folder' value='true'/>
-      </repositoryProperties>
     </artifact>
     <artifact classifier='osgi.bundle' id='com.ibm.icu' version='4.4.2.v20110823'>
       <properties size='1'>
@@ -152,11 +141,6 @@
         <property name='download.size' value='609968'/>
       </properties>
     </artifact>
-    <artifact classifier='osgi.bundle' id='com.android.ide.eclipse.traceview' version='24.4.0.2265294'>
-      <properties size='1'>
-        <property name='download.size' value='141075'/>
-      </properties>
-    </artifact>
     <artifact classifier='osgi.bundle' id='org.eclipse.equinox.p2.repository' version='2.2.0.v20120524-1945'>
       <properties size='1'>
         <property name='download.size' value='131861'/>
@@ -220,11 +204,6 @@
         <property name='download.size' value='13390'/>
       </properties>
     </artifact>
-    <artifact classifier='osgi.bundle' id='com.android.ide.eclipse.gldebugger' version='24.4.0.2265294'>
-      <properties size='1'>
-        <property name='download.size' value='520657'/>
-      </properties>
-    </artifact>
     <artifact classifier='osgi.bundle' id='org.eclipse.emf.ecore.xmi' version='2.8.1.v20130125-0546'>
       <properties size='1'>
         <property name='download.size' value='222823'/>
@@ -235,6 +214,11 @@
         <property name='download.size' value='3808742'/>
       </properties>
     </artifact>
+    <artifact classifier='osgi.bundle' id='org.eclipse.core.filesystem' version='1.3.200.v20130115-145044'>
+      <properties size='1'>
+        <property name='download.size' value='57995'/>
+      </properties>
+    </artifact>
     <artifact classifier='osgi.bundle' id='org.eclipse.equinox.launcher.gtk.linux.x86_64' version='1.1.200.v20120913-144807'>
       <properties size='1'>
         <property name='download.size' value='79587'/>
@@ -242,11 +226,6 @@
       <repositoryProperties size='1'>
         <property name='artifact.folder' value='true'/>
       </repositoryProperties>
-    </artifact>
-    <artifact classifier='osgi.bundle' id='org.eclipse.core.filesystem' version='1.3.200.v20130115-145044'>
-      <properties size='1'>
-        <property name='download.size' value='57995'/>
-      </properties>
     </artifact>
     <artifact classifier='osgi.bundle' id='org.eclipse.ui.ide' version='3.8.2.v20121106-165923'>
       <properties size='1'>
@@ -362,6 +341,22 @@
         <property name='download.size' value='161184'/>
       </properties>
     </artifact>
+    <artifact classifier='org.eclipse.update.feature' id='com.android.ide.eclipse.hierarchyviewer.feature' version='24.3.4.2168507'>
+      <properties size='1'>
+        <property name='download.size' value='4844'/>
+      </properties>
+      <repositoryProperties size='1'>
+        <property name='artifact.folder' value='true'/>
+      </repositoryProperties>
+    </artifact>
+    <artifact classifier='org.eclipse.update.feature' id='com.android.ide.eclipse.gldebugger.feature' version='24.3.4.2168507'>
+      <properties size='1'>
+        <property name='download.size' value='4750'/>
+      </properties>
+      <repositoryProperties size='1'>
+        <property name='artifact.folder' value='true'/>
+      </repositoryProperties>
+    </artifact>
     <artifact classifier='osgi.bundle' id='org.eclipse.ui.intro' version='3.4.200.v20120521-2344'>
       <properties size='1'>
         <property name='download.size' value='309395'/>
@@ -457,6 +452,14 @@
       <properties size='1'>
         <property name='download.size' value='75324'/>
       </properties>
+    </artifact>
+    <artifact classifier='org.eclipse.update.feature' id='com.android.ide.eclipse.monitor.feature' version='24.3.4.2168507'>
+      <properties size='1'>
+        <property name='download.size' value='4868'/>
+      </properties>
+      <repositoryProperties size='1'>
+        <property name='artifact.folder' value='true'/>
+      </repositoryProperties>
     </artifact>
     <artifact classifier='osgi.bundle' id='org.eclipse.search' version='3.8.0.v20120523-1540'>
       <properties size='1'>
@@ -579,6 +582,11 @@
         <property name='download.size' value='216089'/>
       </properties>
     </artifact>
+    <artifact classifier='osgi.bundle' id='com.android.ide.eclipse.base' version='24.3.4.2168507'>
+      <properties size='1'>
+        <property name='download.size' value='4286398'/>
+      </properties>
+    </artifact>
     <artifact classifier='osgi.bundle' id='org.eclipse.help.base' version='3.6.101.v201302041200'>
       <properties size='1'>
         <property name='download.size' value='421642'/>
@@ -612,9 +620,14 @@
         <property name='download.size' value='2578203'/>
       </properties>
     </artifact>
-    <artifact classifier='osgi.bundle' id='com.android.ide.eclipse.hierarchyviewer' version='24.4.0.2265294'>
+    <artifact classifier='osgi.bundle' id='com.android.ide.eclipse.gldebugger' version='24.3.4.2168507'>
       <properties size='1'>
-        <property name='download.size' value='408457'/>
+        <property name='download.size' value='520724'/>
+      </properties>
+    </artifact>
+    <artifact classifier='osgi.bundle' id='com.android.ide.eclipse.traceview' version='24.3.4.2168507'>
+      <properties size='1'>
+        <property name='download.size' value='141097'/>
       </properties>
     </artifact>
     <artifact classifier='osgi.bundle' id='org.eclipse.ltk.core.refactoring' version='3.6.0.v20120523-1543'>
@@ -656,11 +669,6 @@
     <artifact classifier='osgi.bundle' id='org.eclipse.osgi.util' version='3.2.300.v20120913-144807'>
       <properties size='1'>
         <property name='download.size' value='24979'/>
-      </properties>
-    </artifact>
-    <artifact classifier='osgi.bundle' id='com.android.ide.eclipse.base' version='24.4.0.2265294'>
-      <properties size='1'>
-        <property name='download.size' value='4319352'/>
       </properties>
     </artifact>
     <artifact classifier='osgi.bundle' id='org.eclipse.equinox.p2.extensionlocation' version='1.2.100.v20110808-1657'>
@@ -783,18 +791,18 @@
         <property name='download.size' value='584027'/>
       </properties>
     </artifact>
-    <artifact classifier='org.eclipse.update.feature' id='com.android.ide.eclipse.ddms.feature' version='24.4.0.2265294'>
-      <properties size='1'>
-        <property name='download.size' value='5050'/>
-      </properties>
-      <repositoryProperties size='1'>
-        <property name='artifact.folder' value='true'/>
-      </repositoryProperties>
-    </artifact>
     <artifact classifier='osgi.bundle' id='org.eclipse.e4.core.commands' version='0.10.1.v20120523-1955'>
       <properties size='1'>
         <property name='download.size' value='18234'/>
       </properties>
+    </artifact>
+    <artifact classifier='org.eclipse.update.feature' id='com.android.ide.eclipse.traceview.feature' version='24.3.4.2168507'>
+      <properties size='1'>
+        <property name='download.size' value='4828'/>
+      </properties>
+      <repositoryProperties size='1'>
+        <property name='artifact.folder' value='true'/>
+      </repositoryProperties>
     </artifact>
     <artifact classifier='osgi.bundle' id='org.w3c.dom.svg' version='1.1.0.v201011041433'>
       <properties size='1'>
@@ -811,18 +819,18 @@
         <property name='download.size' value='340683'/>
       </properties>
     </artifact>
-    <artifact classifier='org.eclipse.update.feature' id='com.android.ide.eclipse.hierarchyviewer.feature' version='24.4.0.2265294'>
-      <properties size='1'>
-        <property name='download.size' value='4841'/>
-      </properties>
-      <repositoryProperties size='1'>
-        <property name='artifact.folder' value='true'/>
-      </repositoryProperties>
-    </artifact>
     <artifact classifier='osgi.bundle' id='javax.annotation' version='1.0.0.v20101115-0725'>
       <properties size='1'>
         <property name='download.size' value='17480'/>
       </properties>
+    </artifact>
+    <artifact classifier='org.eclipse.update.feature' id='com.android.ide.eclipse.ddms.feature' version='24.3.4.2168507'>
+      <properties size='1'>
+        <property name='download.size' value='5053'/>
+      </properties>
+      <repositoryProperties size='1'>
+        <property name='artifact.folder' value='true'/>
+      </repositoryProperties>
     </artifact>
     <artifact classifier='osgi.bundle' id='org.eclipse.equinox.common' version='3.6.100.v20120522-1841'>
       <properties size='1'>
@@ -872,14 +880,6 @@
         <property name='download.size' value='50374'/>
       </properties>
     </artifact>
-    <artifact classifier='org.eclipse.update.feature' id='com.android.ide.eclipse.traceview.feature' version='24.4.0.2265294'>
-      <properties size='1'>
-        <property name='download.size' value='4829'/>
-      </properties>
-      <repositoryProperties size='1'>
-        <property name='artifact.folder' value='true'/>
-      </repositoryProperties>
-    </artifact>
     <artifact classifier='osgi.bundle' id='org.eclipse.equinox.p2.director' version='2.2.0.v20120524-0542'>
       <properties size='1'>
         <property name='download.size' value='96468'/>
@@ -900,14 +900,14 @@
         <property name='download.size' value='92510'/>
       </properties>
     </artifact>
-    <artifact classifier='osgi.bundle' id='com.android.ide.eclipse.monitor' version='24.4.0.2265294'>
-      <properties size='1'>
-        <property name='download.size' value='625185'/>
-      </properties>
-    </artifact>
     <artifact classifier='osgi.bundle' id='org.eclipse.core.contenttype' version='3.4.200.v20120523-2004'>
       <properties size='1'>
         <property name='download.size' value='93175'/>
+      </properties>
+    </artifact>
+    <artifact classifier='osgi.bundle' id='com.android.ide.eclipse.hierarchyviewer' version='24.3.4.2168507'>
+      <properties size='1'>
+        <property name='download.size' value='407981'/>
       </properties>
     </artifact>
     <artifact classifier='osgi.bundle' id='org.eclipse.help' version='3.6.0.v20120912-134126'>
@@ -953,11 +953,6 @@
     <artifact classifier='osgi.bundle' id='org.eclipse.equinox.p2.transport.ecf' version='1.0.100.v20120913-155635'>
       <properties size='1'>
         <property name='download.size' value='42017'/>
-      </properties>
-    </artifact>
-    <artifact classifier='osgi.bundle' id='com.android.ide.eclipse.ddms' version='24.4.0.2265294'>
-      <properties size='1'>
-        <property name='download.size' value='2619415'/>
       </properties>
     </artifact>
     <artifact classifier='osgi.bundle' id='org.eclipse.jetty.util' version='8.1.3.v20120522'>
@@ -1019,6 +1014,11 @@
     <artifact classifier='osgi.bundle' id='org.eclipse.jetty.servlet' version='8.1.3.v20120522'>
       <properties size='1'>
         <property name='download.size' value='102989'/>
+      </properties>
+    </artifact>
+    <artifact classifier='osgi.bundle' id='com.android.ide.eclipse.ddms' version='24.3.4.2168507'>
+      <properties size='1'>
+        <property name='download.size' value='2613700'/>
       </properties>
     </artifact>
     <artifact classifier='osgi.bundle' id='org.eclipse.ui.externaltools' version='3.2.100.v20120530-1753'>
