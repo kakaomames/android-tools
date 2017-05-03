@@ -18,6 +18,11 @@ build, test and debug for Android.
 
 See ndk/README.chromium for more on the NDK.
 
+Note:
+When updating SDK, be careful of the .knownPackages and package.xml files in SDK
+folder. Outdated stale files causes ./sdkmanager to report incorrect versions
+and lint to fail the build.
+
 Local Modifications:
 
 -In ndk/
