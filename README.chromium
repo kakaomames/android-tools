@@ -1,10 +1,10 @@
 Name: Android Tools (SDK/NDK)
 URL: http://developer.android.com/sdk/index.html
 Versions:
-  Android SDK Platform API 25
-  Android SDK Tools 25.2.5
+  Android SDK Platform API 26
+  Android SDK Tools 26.0.2
   Android SDK Platform-tools 25.0.3
-  Android SDK Build-tools 25.0.2
+  Android SDK Build-tools 26.0.0
   Android SDK Sources 25
   Android Support Library 23.2.1
   Google Cloud Messaging 3
@@ -23,7 +23,7 @@ Local Modifications:
 -In ndk/
 - See ndk/README.chromium.
 -In sdk/
-- Cherry-picked previous version of dx.jar.
+- Cherry-picked previous version of tools/emma_device.jar
 - Included the Android support library and required extras packages.
 - Removed unused resources from the support library (see crbug.com/372481)
 - Included the lint tool from Android SDK Tools 26.0.1 and its dependencies in
