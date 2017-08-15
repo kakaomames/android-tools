@@ -4,6 +4,8 @@
 
 import logging
 
+logger = logging.getLogger(__name__)
+
 _LOCK_SCREEN_SETTINGS_PATH = '/data/system/locksettings.db'
 _ALTERNATE_LOCK_SCREEN_SETTINGS_PATH = (
     '/data/data/com.android.providers.settings/databases/settings.db')
@@ -139,7 +141,8 @@ class ContentSettings(dict):
     # Example row:
     # 'Row: 0 _id=13, name=logging_id2, value=-1fccbaa546705b05'
     for row in self._device.RunShellCommand(
-        'content query --uri content://%s' % self._table, as_root=True):
+        ['content', 'query', '--uri', 'content://%s' % self._table],
+        check_return=True, as_root=True):
       fields = row.split(', ')
       key = None
       value = None
@@ -157,33 +160,29 @@ class ContentSettings(dict):
 
   def __getitem__(self, key):
     return self._device.RunShellCommand(
-        'content query --uri content://%s --where "name=\'%s\'" '
-        '--projection value' % (self._table, key), as_root=True).strip()
+        ['content', 'query', '--uri', 'content://%s' % self._table,
+         '--where', "name='%s'" % key],
+        check_return=True, as_root=True).strip()
 
   def __setitem__(self, key, value):
     if key in self:
       self._device.RunShellCommand(
-          'content update --uri content://%s '
-          '--bind value:%s:%s --where "name=\'%s\'"' % (
-              self._table,
-              self._GetTypeBinding(value), value, key),
-          as_root=True)
+          ['content', 'update', '--uri', 'content://%s' % self._table,
+           '--bind', 'value:%s:%s' % (self._GetTypeBinding(value), value),
+           '--where', "name='%s'" % key],
+          check_return=True, as_root=True)
     else:
       self._device.RunShellCommand(
-          'content insert --uri content://%s '
-          '--bind name:%s:%s --bind value:%s:%s' % (
-              self._table,
-              self._GetTypeBinding(key), key,
-              self._GetTypeBinding(value), value),
-          as_root=True)
+          ['content', 'insert', '--uri', 'content://%s' % self._table,
+           '--bind', 'name:%s:%s' % (self._GetTypeBinding(key), key),
+           '--bind', 'value:%s:%s' % (self._GetTypeBinding(value), value)],
+          check_return=True, as_root=True)
 
   def __delitem__(self, key):
     self._device.RunShellCommand(
-        'content delete --uri content://%s '
-        '--bind name:%s:%s' % (
-            self._table,
-            self._GetTypeBinding(key), key),
-        as_root=True)
+        ['content', 'delete', '--uri', 'content://%s' % self._table,
+         '--bind', 'name:%s:%s' % (self._GetTypeBinding(key), key)],
+        check_return=True, as_root=True)
 
 
 def ConfigureContentSettings(device, desired_settings):
@@ -205,9 +204,9 @@ def ConfigureContentSettings(device, desired_settings):
     settings = ContentSettings(table, device)
     for key, value in key_value:
       settings[key] = value
-    logging.info('\n%s %s', table, (80 - len(table)) * '-')
+    logger.info('\n%s %s', table, (80 - len(table)) * '-')
     for key, value in sorted(settings.iteritems()):
-      logging.info('\t%s: %s', key, value)
+      logger.info('\t%s: %s', key, value)
 
 
 def SetLockScreenSettings(device):
@@ -230,8 +229,8 @@ def SetLockScreenSettings(device):
     Exception if the setting was not properly set.
   """
   if device.build_type not in _COMPATIBLE_BUILD_TYPES:
-    logging.warning('Unable to disable lockscreen on %s builds.',
-                    device.build_type)
+    logger.warning('Unable to disable lockscreen on %s builds.',
+                   device.build_type)
     return
 
   def get_lock_settings(table):
@@ -251,7 +250,7 @@ def SetLockScreenSettings(device):
     columns = ['name', 'value']
     generate_values = lambda k, v: [k, v]
   else:
-    logging.warning('Unable to find database file to set lock screen settings.')
+    logger.warning('Unable to find database file to set lock screen settings.')
     return
 
   for table, key, value in locksettings:
@@ -268,8 +267,7 @@ commit transaction;""" % {
       'columns': ', '.join(columns),
       'values': ', '.join(["'%s'" % value for value in values])
     }
-    output_msg = device.RunShellCommand('sqlite3 %s "%s"' % (db, cmd),
-                                        as_root=True)
+    output_msg = device.RunShellCommand(
+        ['sqlite3', db, cmd], check_return=True, as_root=True)
     if output_msg:
-      logging.info(' '.join(output_msg))
-
+      logger.info(' '.join(output_msg))
