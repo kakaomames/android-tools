@@ -119,7 +119,8 @@ class PerfProfilerAgent(tracing_agents.TracingAgent):
   @classmethod
   def GetCategories(cls, device):
     perf_binary = cls._PrepareDevice(device)
-    return device.RunShellCommand('%s list' % perf_binary)
+    # Perf binary returns non-zero exit status on "list" command.
+    return device.RunShellCommand([perf_binary, 'list'], check_return=False)
 
   @py_utils.Timeout(tracing_agents.START_STOP_TIMEOUT)
   def StartAgentTracing(self, config, timeout=None):
@@ -239,7 +240,6 @@ def add_options(parser):
                      'the available sample types.', action='callback',
                      default='', callback=_OptionalValueCallback('cycles'),
                      metavar='PERF_CATEGORIES', dest='perf_categories')
-  parser.add_option_group(options)
   return options
 
 def get_config(options):
