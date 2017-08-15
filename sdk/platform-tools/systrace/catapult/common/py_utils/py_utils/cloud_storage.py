@@ -12,9 +12,9 @@ import os
 import shutil
 import stat
 import subprocess
+import re
 import sys
 import tempfile
-import time
 
 import py_utils
 from py_utils import lock
@@ -23,6 +23,8 @@ from py_utils import lock
 # by https://cs.chromium.org/chromium/src/build/android/test_runner.pydeps.
 # TODO(nedn, jbudorick): figure out a way to get rid of this ugly hack.
 from py_utils import cloud_storage_global_lock  # pylint: disable=unused-import
+
+logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
 PUBLIC_BUCKET = 'chromium-telemetry'
@@ -54,6 +56,9 @@ _CROS_GSUTIL_HOME_WAR = '/home/chromeos-test/'
 # calls that invoke cloud storage network io will throw exceptions.
 DISABLE_CLOUD_STORAGE_IO = 'DISABLE_CLOUD_STORAGE_IO'
 
+# The maximum number of seconds to wait to acquire the pseudo lock for a cloud
+# storage file before raising an exception.
+LOCK_ACQUISITION_TIMEOUT = 10
 
 
 class CloudStorageError(Exception):
@@ -145,21 +150,27 @@ def _RunCommand(args):
   stdout, stderr = gsutil.communicate()
 
   if gsutil.returncode:
-    if stderr.startswith((
-        'You are attempting to access protected data with no configured',
-        'Failure: No handler was ready to authenticate.')):
-      raise CredentialsError()
-    if ('status=403' in stderr or 'status 403' in stderr or
-        '403 Forbidden' in stderr):
-      raise PermissionError()
-    if (stderr.startswith('InvalidUriError') or 'No such object' in stderr or
-        'No URLs matched' in stderr or 'One or more URLs matched no' in stderr):
-      raise NotFoundError(stderr)
-    if '500 Internal Server Error' in stderr:
-      raise ServerError(stderr)
-    raise CloudStorageError(stderr)
+    raise GetErrorObjectForCloudStorageStderr(stderr)
 
   return stdout
+
+
+def GetErrorObjectForCloudStorageStderr(stderr):
+  if (stderr.startswith((
+      'You are attempting to access protected data with no configured',
+      'Failure: No handler was ready to authenticate.')) or
+      re.match('.*401.*does not have .* access to .*', stderr)):
+    return CredentialsError()
+  if ('status=403' in stderr or 'status 403' in stderr or
+      '403 Forbidden' in stderr or
+      re.match('.*403.*does not have .* access to .*', stderr)):
+    return PermissionError()
+  if (stderr.startswith('InvalidUriError') or 'No such object' in stderr or
+      'No URLs matched' in stderr or 'One or more URLs matched no' in stderr):
+    return NotFoundError(stderr)
+  if '500 Internal Server Error' in stderr:
+    return ServerError(stderr)
+  return CloudStorageError(stderr)
 
 
 def IsNetworkIOEnabled():
@@ -167,7 +178,7 @@ def IsNetworkIOEnabled():
   disable_cloud_storage_env_val = os.getenv(DISABLE_CLOUD_STORAGE_IO)
 
   if disable_cloud_storage_env_val and disable_cloud_storage_env_val != '1':
-    logging.error(
+    logger.error(
         'Unsupported value of environment variable '
         'DISABLE_CLOUD_STORAGE_IO. Expected None or \'1\' but got %s.',
         disable_cloud_storage_env_val)
@@ -192,7 +203,7 @@ def Exists(bucket, remote_path):
 def Move(bucket1, bucket2, remote_path):
   url1 = 'gs://%s/%s' % (bucket1, remote_path)
   url2 = 'gs://%s/%s' % (bucket2, remote_path)
-  logging.info('Moving %s to %s', url1, url2)
+  logger.info('Moving %s to %s', url1, url2)
   _RunCommand(['mv', url1, url2])
 
 
@@ -210,13 +221,13 @@ def Copy(bucket_from, bucket_to, remote_path_from, remote_path_to):
   """
   url1 = 'gs://%s/%s' % (bucket_from, remote_path_from)
   url2 = 'gs://%s/%s' % (bucket_to, remote_path_to)
-  logging.info('Copying %s to %s', url1, url2)
+  logger.info('Copying %s to %s', url1, url2)
   _RunCommand(['cp', url1, url2])
 
 
 def Delete(bucket, remote_path):
   url = 'gs://%s/%s' % (bucket, remote_path)
-  logging.info('Deleting %s', url)
+  logger.info('Deleting %s', url)
   _RunCommand(['rm', url])
 
 
@@ -234,30 +245,88 @@ def _FileLock(base_path):
   pseudo_lock_path = '%s.pseudo_lock' % base_path
   _CreateDirectoryIfNecessary(os.path.dirname(pseudo_lock_path))
 
-  # We need to make sure that there is no other process which is acquiring the
-  # lock on |base_path| and has not finished before proceeding further to create
-  # the |pseudo_lock_path|. Otherwise, |pseudo_lock_path| may be deleted by
-  # that other process after we create it in this process.
-  while os.path.exists(pseudo_lock_path):
-    time.sleep(0.1)
+  # Make sure that we guard the creation, acquisition, release, and removal of
+  # the pseudo lock all with the same guard (_CLOUD_STORAGE_GLOBAL_LOCK).
+  # Otherwise, we can get nasty interleavings that result in multiple processes
+  # thinking they have an exclusive lock, like:
+  #
+  # (Process 1) Create and acquire the pseudo lock
+  # (Process 1) Release the pseudo lock
+  # (Process 1) Release the file lock
+  # (Process 2) Open and acquire the existing pseudo lock
+  # (Process 1) Delete the (existing) pseudo lock
+  # (Process 3) Create and acquire a new pseudo lock
+  #
+  # Using the same guard for creation and removal of the pseudo lock guarantees
+  # that all processes are referring to the same lock.
+  pseudo_lock_fd = None
+  pseudo_lock_fd_return = []
+  py_utils.WaitFor(lambda: _AttemptPseudoLockAcquisition(pseudo_lock_path,
+                                                         pseudo_lock_fd_return),
+                   LOCK_ACQUISITION_TIMEOUT)
+  pseudo_lock_fd = pseudo_lock_fd_return[0]
 
-  # Guard the creation & acquiring lock of |pseudo_lock_path| by the global lock
-  # to make sure that there is no race condition on creating the file.
-  with open(_CLOUD_STORAGE_GLOBAL_LOCK) as global_file:
-    with lock.FileLock(global_file, lock.LOCK_EX):
-      fd = open(pseudo_lock_path, 'w')
-      lock.AcquireFileLock(fd, lock.LOCK_EX)
   try:
     yield
   finally:
-    lock.ReleaseFileLock(fd)
-    try:
-      fd.close()
-      os.remove(pseudo_lock_path)
-    except OSError:
-      # We don't care if the pseudo-lock gets removed elsewhere before we have
-      # a chance to do so.
-      pass
+    py_utils.WaitFor(lambda: _AttemptPseudoLockRelease(pseudo_lock_fd),
+                     LOCK_ACQUISITION_TIMEOUT)
+
+def _AttemptPseudoLockAcquisition(pseudo_lock_path, pseudo_lock_fd_return):
+  """Try to acquire the lock and return a boolean indicating whether the attempt
+  was successful. If the attempt was successful, pseudo_lock_fd_return, which
+  should be an empty array, will be modified to contain a single entry: the file
+  descriptor of the (now acquired) lock file.
+
+  This whole operation is guarded with the global cloud storage lock, which
+  prevents race conditions that might otherwise cause multiple processes to
+  believe they hold the same pseudo lock (see _FileLock for more details).
+  """
+  pseudo_lock_fd = None
+  try:
+    with open(_CLOUD_STORAGE_GLOBAL_LOCK) as global_file:
+      with lock.FileLock(global_file, lock.LOCK_EX | lock.LOCK_NB):
+        # Attempt to acquire the lock in a non-blocking manner. If we block,
+        # then we'll cause deadlock because another process will be unable to
+        # acquire the cloud storage global lock in order to release the pseudo
+        # lock.
+        pseudo_lock_fd = open(pseudo_lock_path, 'w')
+        lock.AcquireFileLock(pseudo_lock_fd, lock.LOCK_EX | lock.LOCK_NB)
+        pseudo_lock_fd_return.append(pseudo_lock_fd)
+        return True
+  except (lock.LockException, IOError):
+    # We failed to acquire either the global cloud storage lock or the pseudo
+    # lock.
+    if pseudo_lock_fd:
+      pseudo_lock_fd.close()
+    return False
+
+
+def _AttemptPseudoLockRelease(pseudo_lock_fd):
+  """Try to release the pseudo lock and return a boolean indicating whether
+  the release was succesful.
+
+  This whole operation is guarded with the global cloud storage lock, which
+  prevents race conditions that might otherwise cause multiple processes to
+  believe they hold the same pseudo lock (see _FileLock for more details).
+  """
+  pseudo_lock_path = pseudo_lock_fd.name
+  try:
+    with open(_CLOUD_STORAGE_GLOBAL_LOCK) as global_file:
+      with lock.FileLock(global_file, lock.LOCK_EX | lock.LOCK_NB):
+        lock.ReleaseFileLock(pseudo_lock_fd)
+        pseudo_lock_fd.close()
+        try:
+          os.remove(pseudo_lock_path)
+        except OSError:
+          # We don't care if the pseudo lock gets removed elsewhere before
+          # we have a chance to do so.
+          pass
+        return True
+  except (lock.LockException, IOError):
+    # We failed to acquire the global cloud storage lock and are thus unable to
+    # release the pseudo lock.
+    return False
 
 
 def _CreateDirectoryIfNecessary(directory):
@@ -267,7 +336,7 @@ def _CreateDirectoryIfNecessary(directory):
 
 def _GetLocked(bucket, remote_path, local_path):
   url = 'gs://%s/%s' % (bucket, remote_path)
-  logging.info('Downloading %s to %s', url, local_path)
+  logger.info('Downloading %s to %s', url, local_path)
   _CreateDirectoryIfNecessary(os.path.dirname(local_path))
   with tempfile.NamedTemporaryFile(
       dir=os.path.dirname(local_path),
@@ -278,7 +347,7 @@ def _GetLocked(bucket, remote_path, local_path):
       try:
         _RunCommand(['cp', url, partial_download_path.name])
       except ServerError:
-        logging.info('Cloud Storage server error, retrying download')
+        logger.info('Cloud Storage server error, retrying download')
         _RunCommand(['cp', url, partial_download_path.name])
       shutil.move(partial_download_path.name, local_path)
     finally:
@@ -305,7 +374,7 @@ def Insert(bucket, remote_path, local_path, publicly_readable=False):
     command_and_args += ['-a', 'public-read']
     extra_info = ' (publicly readable)'
   command_and_args += [local_path, url]
-  logging.info('Uploading %s to %s%s', local_path, url, extra_info)
+  logger.info('Uploading %s to %s%s', local_path, url, extra_info)
   _RunCommand(command_and_args)
   return 'https://console.developers.google.com/m/cloudstorage/b/%s/o/%s' % (
       bucket, remote_path)
@@ -344,7 +413,7 @@ def GetIfChanged(file_path, bucket):
   with _FileLock(file_path):
     hash_path = file_path + '.sha1'
     if not os.path.exists(hash_path):
-      logging.warning('Hash file not found: %s', hash_path)
+      logger.warning('Hash file not found: %s', hash_path)
       return False
 
     expected_hash = ReadHash(hash_path)
