@@ -16,6 +16,24 @@
       "revId": "bfa40dedb5b554ac0e742cab4dc28c97472cf0e0",
       "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "43877978_7a36d83c",
+        "filename": "DEPS",
+        "patchSetId": 1
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1181690
+      },
+      "writtenOn": "2017-11-10T18:32:01Z",
+      "side": 1,
+      "message": "Edited the comment to pare back the explanation \u0026 link to the bug for more context.\n\n(I wrote this primarily as insurance against future me forgetting why it\u0027s here, thinking it\u0027s redundant, and removing it.)",
+      "parentUuid": "34142d90_9f866dd0",
+      "revId": "bfa40dedb5b554ac0e742cab4dc28c97472cf0e0",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": false
     }
   ]
 }
