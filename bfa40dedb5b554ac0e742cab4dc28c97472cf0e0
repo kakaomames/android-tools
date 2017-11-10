@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "34142d90_9f866dd0",
+        "filename": "DEPS",
+        "patchSetId": 1
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1002222
+      },
+      "writtenOn": "2017-11-10T17:56:18Z",
+      "side": 1,
+      "message": "I\u0027m not sure this really needs to be explained, especially since most people probably have no idea what buildspecs even are. Or you could just say it\u0027s an extra precaution, to avoid accidentally trying to checkout in non-android builds (however that might come about).",
+      "revId": "bfa40dedb5b554ac0e742cab4dc28c97472cf0e0",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": true
+    }
+  ]
+}
