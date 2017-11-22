@@ -35,7 +35,7 @@ cd "${oldwd}"
 
 frameworkdir="$progdir"
 libdir="$progdir"
-jarfile=`basename "$APP_HOME/lib/monkeyrunner-25.3.2.jar"`
+jarfile=`basename "$APP_HOME/lib/monkeyrunner-26.0.0-dev.jar"`
 if [ ! -r "$frameworkdir/${jarfile}" ]
 then
     frameworkdir="$progdir"/lib

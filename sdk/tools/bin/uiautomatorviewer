@@ -35,7 +35,7 @@ progdir=`pwd`
 prog="${progdir}"/bin/"${progname}"
 cd "${oldwd}"
 
-jarfile=`basename $APP_HOME/lib/uiautomatorviewer-25.3.2.jar`
+jarfile=`basename $APP_HOME/lib/uiautomatorviewer-26.0.0-dev.jar`
 frameworkdir="$progdir"
 libdir="$progdir"
 if [ ! -r "$frameworkdir/$jarfile" ]
