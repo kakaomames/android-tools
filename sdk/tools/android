@@ -88,6 +88,9 @@ function parse_filter {
       command+=( "$args ndk-bundle" )
     elif [[ $filter =~ ^android- ]]; then
       command+=( "$args platforms;$filter" )
+    elif [[ $filter =~ ^extra- ]]; then
+      tmp=${filter//-/;}
+      command+=( "$args ${tmp/extra/extras}" )
     else
       echo Filter $filter not supported
       exit 2
