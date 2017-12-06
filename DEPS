@@ -1,7 +1,7 @@
 use_relative_paths = True
 
 vars = {
-  'ndk_revision': 'aabf5c8f4b1ce4269be4791b469e27b15d93a3f2',
+  'ndk_revision': '50f4963776c431db65f21e92e4a5e67a4b715920',
 }
 deps = {
   'ndk': {
