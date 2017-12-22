@@ -23,7 +23,7 @@ Local Modifications:
 -In ndk/
 - See ndk/README.chromium.
 -In sdk/
-- Cherry-picked previous version of tools/emma_device.jar
+- Cherry-picked previous version of tools/emma_device.jar, tools/emma.jar
 - Included the Android support library and required extras packages.
 - Removed unused resources from the support library (see crbug.com/372481)
 - Included the lint tool from Android SDK Tools 26.0.1 and its dependencies in
