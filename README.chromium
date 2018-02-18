@@ -8,7 +8,6 @@ Versions:
   Android SDK Sources 25
   Android Support Library 23.2.1
   Google Cloud Messaging 3
-  Android Lint 25.3.1 (Extracted from Android SDK Tools 26.0.1)
 Security Critical: no
 License: Apache Version 2.0
 
@@ -26,7 +25,5 @@ Local Modifications:
 - Cherry-picked previous version of dx.jar.
 - Included the Android support library and required extras packages.
 - Removed unused resources from the support library (see crbug.com/372481)
-- Included the lint tool from Android SDK Tools 26.0.1 and its dependencies in
-  sdk/tools-lint. Removed previous version of lint in sdk/tools.
 
 No other modifications has been made to the public Android SDK/NDK.
