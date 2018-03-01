@@ -3,7 +3,7 @@ URL: http://developer.android.com/sdk/index.html
 Versions:
   Android SDK Platform API 27
   Android SDK Tools 26.1.1
-  Android SDK Platform-tools 26.0.0
+  Android SDK Platform-tools 27.0.1
   Android SDK Build-tools 27.0.1
   Android SDK Sources 25
   Android Support Library 23.2.1
@@ -26,8 +26,6 @@ Local Modifications:
 - Cherry-picked previous version of tools/emma_device.jar, tools/emma.jar
 - Included the Android support library and required extras packages.
 - Removed unused resources from the support library (see crbug.com/372481)
-- Included the lint tool from Android SDK Tools 26.0.1 and its dependencies in
-  sdk/tools-lint. Removed previous version of lint in sdk/tools.
 - Added extras/chromium/.
 
 No other modifications has been made to the public Android SDK/NDK.
