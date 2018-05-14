@@ -9,6 +9,7 @@ Versions:
   Android Support Library 23.2.1
   Google Cloud Messaging 3
   Android Lint 25.3.2
+  CMake 3.6.4111459
 Security Critical: no
 License: Apache Version 2.0
 
