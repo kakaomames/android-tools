@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "11229189_5cd7558d",
+        "filename": "README.chromium",
+        "patchSetId": 2
+      },
+      "lineNbr": 30,
+      "author": {
+        "id": 1126674
+      },
+      "writtenOn": "2018-06-19T13:34:49Z",
+      "side": 1,
+      "message": "nit: add that this is for bytebuddy, which is used by (mockito?)",
+      "revId": "019760ec687d32c93e578833677fefd99e759aac",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": true
+    }
+  ]
+}
