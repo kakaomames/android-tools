@@ -27,5 +27,7 @@ Local Modifications:
 - Included the Android support library and required extras packages.
 - Removed unused resources from the support library (see crbug.com/372481)
 - Added extras/chromium/.
+- Cherry-picked build-tools/25.0.2/lib/dx.jar for byte_buddy, which
+  is used by mockito.
 
 No other modifications has been made to the public Android SDK/NDK.
