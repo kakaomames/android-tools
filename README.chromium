@@ -1,10 +1,10 @@
 Name: Android Tools (SDK/NDK)
 URL: http://developer.android.com/sdk/index.html
 Versions:
-  Android SDK Platform API 27
+  Android SDK Platform API 28
   Android SDK Tools 26.1.1
   Android SDK Platform-tools 27.0.1
-  Android SDK Build-tools 27.0.1
+  Android SDK Build-tools 27.0.3
   Android SDK Sources 25
   Android Support Library 23.2.1
   Google Cloud Messaging 3
