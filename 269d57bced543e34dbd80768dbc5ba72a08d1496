@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f7328e58_0df56a51",
+        "filename": "sdk/tools-lint/source.properties",
+        "patchSetId": 1
+      },
+      "lineNbr": 2,
+      "author": {
+        "id": 1311604
+      },
+      "writtenOn": "2018-11-01T22:08:11Z",
+      "side": 1,
+      "message": "This doesn\u0027t look right; it looks like our build process isn\u0027t updating this revision correctly!\nIt should probably be 26.4.0-alpha04 now. I filed b/118836550 to track this.",
+      "revId": "269d57bced543e34dbd80768dbc5ba72a08d1496",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": true
+    }
+  ]
+}
