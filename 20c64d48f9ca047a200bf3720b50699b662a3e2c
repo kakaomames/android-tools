@@ -16,6 +16,23 @@
       "revId": "20c64d48f9ca047a200bf3720b50699b662a3e2c",
       "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "893376e5_709e5c11",
+        "filename": "README.chromium",
+        "patchSetId": 2
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1250067
+      },
+      "writtenOn": "2018-11-07T15:58:46Z",
+      "side": 1,
+      "message": "nit: Tor -\u003e tnorbye@",
+      "revId": "20c64d48f9ca047a200bf3720b50699b662a3e2c",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba",
+      "unresolved": true
     }
   ]
 }
