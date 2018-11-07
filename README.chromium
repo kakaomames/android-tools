@@ -8,7 +8,7 @@ Versions:
   Android SDK Sources 25
   Android Support Library 23.2.1
   Android Instant Apps 1.3.0
-  Android Lint 25.3.2
+  Android Lint 26.4.0-alpha04
   Google Cloud Messaging 3
 Security Critical: no
 License: Apache Version 2.0
@@ -21,14 +21,23 @@ See ndk/README.chromium for more on the NDK.
 
 Local Modifications:
 
--In ndk/
-- See ndk/README.chromium.
--In sdk/
-- Cherry-picked previous version of tools/emma_device.jar, tools/emma.jar
-- Included the Android support library and required extras packages.
-- Removed unused resources from the support library (see crbug.com/372481)
-- Added extras/chromium/.
-- Cherry-picked build-tools/25.0.2/lib/dx.jar for byte_buddy, which
-  is used by mockito.
+- ndk/
+  - See ndk/README.chromium.
+- sdk/
+  - Cherry-picked previous version of tools/emma_device.jar, tools/emma.jar
+  - Included the Android support library and required extras packages.
+  - Removed unused resources from the support library (see crbug.com/372481)
+  - Added extras/chromium/.
+  - Cherry-picked build-tools/25.0.2/lib/dx.jar for byte_buddy, which
+    is used by mockito.
+- sdk/tools-lint/
+  - Go to go/studio-master-grid
+  - Find the first green build under sdk_tools_linux
+  - Email Tor (cc'ed) or android-devtools@ to determine if the build can be used
+  - Click through to Artifacts
+  - Click the copy icon at the right for sdk-repo-linux-tools-XXXXXXX.zip
+  - Use the copied command to download the zip
+  - Unzip and rename tools to tools-lint and move to the right spot in our repo
+  - Create CL and carbon copy tnorbye@google.com
 
 No other modifications has been made to the public Android SDK/NDK.
