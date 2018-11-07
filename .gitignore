@@ -1,5 +1,4 @@
 *.pyc
-ndk
 sdk/.knownPackages
 sdk/system-images
 sdk/tools/lib/monitor-x86/configuration/org.eclipse.update/platform.xml
