@@ -84,6 +84,23 @@
       "message": "thaiwab11@gmail.com",
       "revId": "347a7c8078a009e98995985b7ab6ec6b35696dea",
       "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "abc25a91_24a9f8e9",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1431050
+      },
+      "writtenOn": "2021-04-25T08:44:24Z",
+      "side": 1,
+      "message": "keep in touch",
+      "revId": "347a7c8078a009e98995985b7ab6ec6b35696dea",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba"
     }
   ]
 }
