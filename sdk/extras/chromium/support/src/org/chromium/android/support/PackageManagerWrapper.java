@@ -9,7 +9,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
-import android.content.pm.ChangedPackages;
 import android.content.pm.FeatureInfo;
 import android.content.pm.InstrumentationInfo;
 import android.content.pm.PackageInfo;
@@ -20,8 +19,6 @@ import android.content.pm.PermissionInfo;
 import android.content.pm.ProviderInfo;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
-import android.content.pm.SharedLibraryInfo;
-import android.content.pm.VersionedPackage;
 import android.content.res.Resources;
 import android.content.res.XmlResourceParser;
 import android.graphics.Rect;
@@ -81,11 +78,6 @@ public class PackageManagerWrapper extends PackageManager {
     @Override
     public int checkSignatures(int uid1, int uid2) {
         return mWrapped.checkSignatures(uid1, uid2);
-    }
-
-    @Override
-    public void clearInstantAppCookie() {
-        mWrapped.clearInstantAppCookie();
     }
 
     @Override
@@ -477,58 +469,5 @@ public class PackageManagerWrapper extends PackageManager {
     @Override
     public PackageInstaller getPackageInstaller() {
         return mWrapped.getPackageInstaller();
-    }
-
-    // O Developer Preview
-
-    @Override
-    public boolean canRequestPackageInstalls() {
-        return mWrapped.canRequestPackageInstalls();
-    }
-
-    @Override
-    public ChangedPackages getChangedPackages(int sequenceNumber) {
-        return mWrapped.getChangedPackages(sequenceNumber);
-    }
-
-    @Override
-    public byte[] getInstantAppCookie() {
-        return mWrapped.getInstantAppCookie();
-    }
-
-    @Override
-    public int getInstantAppCookieMaxBytes() {
-        return mWrapped.getInstantAppCookieMaxBytes();
-    }
-
-    @Override
-    public PackageInfo getPackageInfo(VersionedPackage versionedPackage, int flags)
-            throws PackageManager.NameNotFoundException {
-        return mWrapped.getPackageInfo(versionedPackage, flags);
-    }
-
-    @Override
-    public List<SharedLibraryInfo> getSharedLibraries(int flags) {
-        return mWrapped.getSharedLibraries(flags);
-    }
-
-    @Override
-    public boolean isInstantApp() {
-        return mWrapped.isInstantApp();
-    }
-
-    @Override
-    public boolean isInstantApp(String packageName) {
-        return mWrapped.isInstantApp(packageName);
-    }
-
-    @Override
-    public void setApplicationCategoryHint(String packageName, int categoryHint) {
-        mWrapped.setApplicationCategoryHint(packageName, categoryHint);
-    }
-
-    @Override
-    public void updateInstantAppCookie(byte[] cookie) {
-        mWrapped.updateInstantAppCookie(cookie);
     }
 }
