@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "62dce7f9_0ac3cc3b",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1524774
+      },
+      "writtenOn": "2021-10-10T05:21:45Z",
+      "side": 1,
+      "message": "https://chromium-review.googlesource.com/c/android_tools/+/550585",
+      "revId": "6627312b48980a90ac260bf358fdf22aa9da8b79",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba"
+    }
+  ]
+}
