@@ -9,7 +9,6 @@ import inspect
 import os
 import sys
 import time
-import platform
 
 
 def GetCatapultDir():
@@ -26,21 +25,6 @@ def IsRunningOnCrosDevice():
       if res.count('CHROMEOS_RELEASE_NAME'):
         return True
   return False
-
-
-def GetHostOsName():
-  if IsRunningOnCrosDevice():
-    return 'chromeos'
-  elif sys.platform.startswith('linux'):
-    return 'linux'
-  elif sys.platform == 'darwin':
-    return 'mac'
-  elif sys.platform == 'win32':
-    return 'win'
-
-
-def GetHostArchName():
-  return platform.machine()
 
 
 def _ExecutableExtensions():

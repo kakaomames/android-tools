@@ -36,12 +36,24 @@ def CustomCommandLineFlags(device, cmdline_name, flags):
     cmdline_name: Name of the command line file where to store flags.
     flags: A sequence of command line flags to set.
   """
-  changer = FlagChanger(device, cmdline_name)
+  # On Android N and above, we need to temporarily set SELinux to permissive
+  # so that Chrome is allowed to read the command line file.
+  # TODO(crbug.com/699082): Remove when a solution to avoid this is implemented.
+  needs_permissive = (
+      device.build_version_sdk >= version_codes.NOUGAT and
+      device.GetEnforce())
+  if needs_permissive:
+    device.SetEnforce(enabled=False)
   try:
-    changer.ReplaceFlags(flags)
-    yield
+    changer = FlagChanger(device, cmdline_name)
+    try:
+      changer.ReplaceFlags(flags)
+      yield
+    finally:
+      changer.Restore()
   finally:
-    changer.Restore()
+    if needs_permissive:
+      device.SetEnforce(enabled=True)
 
 
 class FlagChanger(object):
@@ -60,7 +72,6 @@ class FlagChanger(object):
       cmdline_file: Name of the command line file where to store flags.
     """
     self._device = device
-    self._should_reset_enforce = False
 
     if posixpath.sep in cmdline_file:
       raise ValueError(
@@ -70,7 +81,7 @@ class FlagChanger(object):
 
     cmdline_path_legacy = posixpath.join(_CMDLINE_DIR_LEGACY, cmdline_file)
     if self._device.PathExists(cmdline_path_legacy):
-      logger.warning(
+      logging.warning(
             'Removing legacy command line file %r.', cmdline_path_legacy)
       self._device.RemovePath(cmdline_path_legacy, as_root=True)
 
@@ -110,7 +121,6 @@ class FlagChanger(object):
     """
     new_flags = set(flags)
     self._state_stack.append(new_flags)
-    self._SetPermissive()
     return self._UpdateCommandLineFile()
 
   def AddFlags(self, flags):
@@ -167,25 +177,6 @@ class FlagChanger(object):
       new_flags.difference_update(remove)
     return self.ReplaceFlags(new_flags)
 
-  def _SetPermissive(self):
-    """Set SELinux to permissive, if needed.
-
-    On Android N and above this is needed in order to allow Chrome to read the
-    command line file.
-
-    TODO(crbug.com/699082): Remove when a better solution exists.
-    """
-    if (self._device.build_version_sdk >= version_codes.NOUGAT and
-        self._device.GetEnforce()):
-      self._device.SetEnforce(enabled=False)
-      self._should_reset_enforce = True
-
-  def _ResetEnforce(self):
-    """Restore SELinux policy if it had been previously made permissive."""
-    if self._should_reset_enforce:
-      self._device.SetEnforce(enabled=True)
-      self._should_reset_enforce = False
-
   def Restore(self):
     """Restores the flags to their state prior to the last AddFlags or
        RemoveFlags call.
@@ -197,8 +188,6 @@ class FlagChanger(object):
     assert len(self._state_stack) > 1, (
       "Mismatch between calls to Add/RemoveFlags and Restore")
     self._state_stack.pop()
-    if len(self._state_stack) == 1:
-      self._ResetEnforce()
     return self._UpdateCommandLineFile()
 
   def _UpdateCommandLineFile(self):

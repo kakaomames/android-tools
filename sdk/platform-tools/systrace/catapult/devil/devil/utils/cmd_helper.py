@@ -125,7 +125,7 @@ def RunCmd(args, cwd=None):
   return Call(args, cwd=cwd)
 
 
-def GetCmdOutput(args, cwd=None, shell=False, env=None):
+def GetCmdOutput(args, cwd=None, shell=False):
   """Open a subprocess to execute a program and returns its output.
 
   Args:
@@ -134,14 +134,12 @@ def GetCmdOutput(args, cwd=None, shell=False, env=None):
     cwd: If not None, the subprocess's current directory will be changed to
       |cwd| before it's executed.
     shell: Whether to execute args as a shell command.
-    env: If not None, a mapping that defines environment variables for the
-      subprocess.
 
   Returns:
     Captures and returns the command's stdout.
     Prints the command's stderr to logger (which defaults to stdout).
   """
-  (_, output) = GetCmdStatusAndOutput(args, cwd, shell, env)
+  (_, output) = GetCmdStatusAndOutput(args, cwd, shell)
   return output
 
 
@@ -161,7 +159,7 @@ def _ValidateAndLogCommand(args, cwd, shell):
   return args
 
 
-def GetCmdStatusAndOutput(args, cwd=None, shell=False, env=None):
+def GetCmdStatusAndOutput(args, cwd=None, shell=False):
   """Executes a subprocess and returns its exit code and output.
 
   Args:
@@ -171,14 +169,12 @@ def GetCmdStatusAndOutput(args, cwd=None, shell=False, env=None):
       |cwd| before it's executed.
     shell: Whether to execute args as a shell command. Must be True if args
       is a string and False if args is a sequence.
-    env: If not None, a mapping that defines environment variables for the
-      subprocess.
 
   Returns:
-    The 2-tuple (exit code, stdout).
+    The 2-tuple (exit code, output).
   """
   status, stdout, stderr = GetCmdStatusOutputAndError(
-      args, cwd=cwd, shell=shell, env=env)
+      args, cwd=cwd, shell=shell)
 
   if stderr:
     logger.critical('STDERR: %s', stderr)
@@ -187,7 +183,7 @@ def GetCmdStatusAndOutput(args, cwd=None, shell=False, env=None):
   return (status, stdout)
 
 
-def GetCmdStatusOutputAndError(args, cwd=None, shell=False, env=None):
+def GetCmdStatusOutputAndError(args, cwd=None, shell=False):
   """Executes a subprocess and returns its exit code, output, and errors.
 
   Args:
@@ -197,15 +193,13 @@ def GetCmdStatusOutputAndError(args, cwd=None, shell=False, env=None):
       |cwd| before it's executed.
     shell: Whether to execute args as a shell command. Must be True if args
       is a string and False if args is a sequence.
-    env: If not None, a mapping that defines environment variables for the
-      subprocess.
 
   Returns:
-    The 3-tuple (exit code, stdout, stderr).
+    The 2-tuple (exit code, output).
   """
   _ValidateAndLogCommand(args, cwd, shell)
   pipe = Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-               shell=shell, cwd=cwd, env=env)
+               shell=shell, cwd=cwd)
   stdout, stderr = pipe.communicate()
   return (pipe.returncode, stdout, stderr)
 
@@ -257,19 +251,7 @@ def _IterProcessStdoutFcntl(
         if not data:
           break
         yield data
-
       if process.poll() is not None:
-        # If process is closed, keep checking for output data (because of timing
-        # issues).
-        while True:
-          read_fds, _, _ = select.select(
-              [child_fd], [], [], iter_aware_poll_interval)
-          if child_fd in read_fds:
-            data = os.read(child_fd, buffer_size)
-            if data:
-              yield data
-              continue
-          break
         break
   finally:
     try:
@@ -363,7 +345,7 @@ Yields:
 
 
 def GetCmdStatusAndOutputWithTimeout(args, timeout, cwd=None, shell=False,
-                                     logfile=None, env=None):
+                                     logfile=None):
   """Executes a subprocess with a timeout.
 
   Args:
@@ -376,8 +358,6 @@ def GetCmdStatusAndOutputWithTimeout(args, timeout, cwd=None, shell=False,
       is a string and False if args is a sequence.
     logfile: Optional file-like object that will receive output from the
       command as it is running.
-    env: If not None, a mapping that defines environment variables for the
-      subprocess.
 
   Returns:
     The 2-tuple (exit code, output).
@@ -387,7 +367,7 @@ def GetCmdStatusAndOutputWithTimeout(args, timeout, cwd=None, shell=False,
   _ValidateAndLogCommand(args, cwd, shell)
   output = StringIO.StringIO()
   process = Popen(args, cwd=cwd, shell=shell, stdout=subprocess.PIPE,
-                  stderr=subprocess.STDOUT, env=env)
+                  stderr=subprocess.STDOUT)
   try:
     for data in _IterProcessStdout(process, timeout=timeout):
       if logfile:
@@ -403,7 +383,7 @@ def GetCmdStatusAndOutputWithTimeout(args, timeout, cwd=None, shell=False,
 
 
 def IterCmdOutputLines(args, iter_timeout=None, timeout=None, cwd=None,
-                       shell=False, env=None, check_status=True):
+                       shell=False, check_status=True):
   """Executes a subprocess and continuously yields lines from its output.
 
   Args:
@@ -415,8 +395,6 @@ def IterCmdOutputLines(args, iter_timeout=None, timeout=None, cwd=None,
       |cwd| before it's executed.
     shell: Whether to execute args as a shell command. Must be True if args
       is a string and False if args is a sequence.
-    env: If not None, a mapping that defines environment variables for the
-      subprocess.
     check_status: A boolean indicating whether to check the exit status of the
       process after all output has been read.
   Yields:
@@ -427,8 +405,8 @@ def IterCmdOutputLines(args, iter_timeout=None, timeout=None, cwd=None,
       non-zero exit status.
   """
   cmd = _ValidateAndLogCommand(args, cwd, shell)
-  process = Popen(args, cwd=cwd, shell=shell, env=env,
-                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  process = Popen(args, cwd=cwd, shell=shell, stdout=subprocess.PIPE,
+                  stderr=subprocess.STDOUT)
   return _IterCmdOutputLines(
       process, cmd, iter_timeout=iter_timeout, timeout=timeout,
       check_status=check_status)

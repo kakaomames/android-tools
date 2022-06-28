@@ -5,7 +5,6 @@
 # pylint: disable=W0212
 
 import fcntl
-import inspect
 import logging
 import os
 import psutil
@@ -27,11 +26,7 @@ DYNAMIC_DEVICE_PORT = 0
 
 
 def _GetProcessStartTime(pid):
-  p = psutil.Process(pid)
-  if inspect.ismethod(p.create_time):
-    return p.create_time()
-  else:  # Process.create_time is a property in old versions of psutil.
-    return p.create_time
+  return psutil.Process(pid).create_time
 
 
 def _LogMapFailureDiagnostics(device):
@@ -165,7 +160,7 @@ class Forwarder(object):
                   device_errors.DeviceUnreachableError):
             # We don't want the failure to kill the device forwarder to
             # supersede the original failure to map.
-            logger.warning(
+            logging.warning(
                 'Failed to kill the device forwarder after map failure: %s',
                 str(e))
           _LogMapFailureDiagnostics(device)
@@ -350,9 +345,6 @@ class Forwarder(object):
     """
     # See if the host_forwarder daemon was already initialized by a concurrent
     # process or thread (in case multi-process sharding is not used).
-    # TODO(crbug.com/762005): Consider using a different implemention; relying
-    # on matching the string represantion of the process start time seems
-    # fragile.
     pid_for_lock = Forwarder._GetPidForLock()
     fd = os.open(Forwarder._LOCK_PATH, os.O_RDWR | os.O_CREAT)
     with os.fdopen(fd, 'r+') as pid_file:
@@ -422,10 +414,9 @@ class Forwarder(object):
     logger.info('Killing host_forwarder.')
     try:
       kill_cmd = [self._host_forwarder_path, '--kill-server']
-      (exit_code, output) = cmd_helper.GetCmdStatusAndOutputWithTimeout(
+      (exit_code, _o) = cmd_helper.GetCmdStatusAndOutputWithTimeout(
           kill_cmd, Forwarder._TIMEOUT)
       if exit_code != 0:
-        logger.warning('Forwarder unable to shut down:\n%s', output)
         kill_cmd = ['pkill', '-9', 'host_forwarder']
         (exit_code, output) = cmd_helper.GetCmdStatusAndOutputWithTimeout(
             kill_cmd, Forwarder._TIMEOUT)

@@ -37,10 +37,6 @@ class WatchdogTimer(object):
     else:
       return None
 
-  def GetTimeout(self):
-    """Returns the timout of the watchdog."""
-    return self._timeout
-
   def IsTimedOut(self):
     """Whether the watchdog has timed out.
 

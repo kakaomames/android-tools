@@ -14,8 +14,8 @@ if __name__ == '__main__':
       os.path.abspath(os.path.join(os.path.dirname(__file__),
                                    '..', '..', '..')))
 
+from devil import devil_env
 from devil.android import device_utils
-from devil.android.tools import script_common
 from devil.utils import run_tests_helper
 
 
@@ -31,7 +31,13 @@ def main(raw_args):
   args = parser.parse_args(raw_args)
 
   run_tests_helper.SetLogLevel(args.verbose)
-  script_common.InitializeEnvironment(args)
+
+  devil_dynamic_config = devil_env.EmptyConfig()
+  if args.adb_path:
+    devil_dynamic_config['dependencies'].update(
+        devil_env.LocalConfigItem(
+            'adb', devil_env.GetPlatform(), args.adb_path))
+  devil_env.config.Initialize(configs=[devil_dynamic_config])
 
   devices = device_utils.DeviceUtils.HealthyDevices(
       device_arg=args.device_serials)

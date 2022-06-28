@@ -4,7 +4,6 @@
 # found in the LICENSE file.
 
 import argparse
-import logging
 import os
 import re
 import sys
@@ -17,8 +16,6 @@ if __name__ == '__main__':
 from devil.utils import cmd_helper
 from devil.utils import usb_hubs
 from devil.utils import lsusb
-
-logger = logging.getLogger(__name__)
 
 # Note: In the documentation below, "virtual port" refers to the port number
 # as observed by the system (e.g. by usb-devices) and "physical port" refers
@@ -192,9 +189,9 @@ class USBDeviceNode(USBNode):
 
   #override
   def Display(self, port_chain='', info=False):
-    logger.info('%s Device %d (%s)', port_chain, self.device_num, self.desc)
+    print '%s Device %d (%s)' % (port_chain, self.device_num, self.desc)
     if info:
-      logger.info('%s', self.info)
+      print self.info
     for (port, device) in self._port_to_node.iteritems():
       device.Display('%s%d:' % (port_chain, port), info=info)
 
@@ -238,7 +235,7 @@ class USBBusNode(USBNode):
 
   #override
   def Display(self, port_chain='', info=False):
-    logger.info('=== %s ===', self.desc)
+    print "=== %s ===" % self.desc
     for (port, device) in self._port_to_node.iteritems():
       device.Display('%s%d:' % (port_chain, port), info=info)
 
@@ -486,34 +483,29 @@ def GetBusDeviceToTTYMap():
 
 def TestUSBTopologyScript():
   """Test display and hub identification."""
-  # The following makes logger.info behave pretty much like print
-  # during this test script.
-  logging.basicConfig(format='%(message)s', stream=sys.stdout)
-  logger.setLevel(logging.INFO)
-
   # Identification criteria for Plugable 7-Port Hub
-  logger.info('==== USB TOPOLOGY SCRIPT TEST ====')
-  logger.info('')
+  print '==== USB TOPOLOGY SCRIPT TEST ===='
 
   # Display devices
-  logger.info('==== DEVICE DISPLAY ====')
+  print '==== DEVICE DISPLAY ===='
   device_trees = GetBusNumberToDeviceTreeMap()
   for device_tree in device_trees.values():
     device_tree.Display()
-  logger.info('')
+  print
 
   # Display TTY information about devices plugged into hubs.
-  logger.info('==== TTY INFORMATION ====')
+  print '==== TTY INFORMATION ===='
   for port_map in GetAllPhysicalPortToTTYMaps(
       usb_hubs.ALL_HUBS, device_tree_map=device_trees):
-    logger.info('%s', port_map)
-  logger.info('')
+    print port_map
+  print
 
   # Display serial number information about devices plugged into hubs.
-  logger.info('==== SERIAL NUMBER INFORMATION ====')
+  print '==== SERIAL NUMBER INFORMATION ===='
   for port_map in GetAllPhysicalPortToSerialMaps(
       usb_hubs.ALL_HUBS, device_tree_map=device_trees):
-    logger.info('%s', port_map)
+    print port_map
+
 
   return 0
 

@@ -28,7 +28,7 @@ class TimeoutRetryThreadGroup(reraiser_thread.ReraiserThreadGroup):
   def GetElapsedTime(self):
     return self._watcher.GetElapsed()
 
-  def GetRemainingTime(self, required=0, suffix=None):
+  def GetRemainingTime(self, required=0, msg=None):
     """Get the remaining time before the thread times out.
 
     Useful to send as the |timeout| parameter of async IO operations.
@@ -48,9 +48,11 @@ class TimeoutRetryThreadGroup(reraiser_thread.ReraiserThreadGroup):
     """
     remaining = self._watcher.GetRemaining()
     if remaining is not None and remaining < required:
-      msg = 'Timeout of %.1f secs expired' % self._watcher.GetTimeout()
-      if suffix:
-        msg += suffix
+      if msg is None:
+        msg = 'Timeout expired'
+      if remaining > 0:
+        msg += (', wait of %.1f secs required but only %.1f secs left'
+                % (required, remaining))
       raise reraiser_thread.TimeoutError(msg)
     return remaining
 
@@ -108,7 +110,7 @@ def WaitFor(condition, wait_period=5, max_tries=None):
     if timeout_thread_group:
       # pylint: disable=no-member
       timeout_thread_group.GetRemainingTime(wait_period,
-          suffix=' waiting for condition %r' % condition_name)
+          msg='Timed out waiting for %r' % condition_name)
     time.sleep(wait_period)
   return None
 
