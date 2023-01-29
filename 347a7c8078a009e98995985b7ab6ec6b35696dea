@@ -170,6 +170,23 @@
       "message": "git clone https://chromium.googlesource.com/android_tools",
       "revId": "347a7c8078a009e98995985b7ab6ec6b35696dea",
       "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "80dc0f20_4ad82dee",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1569403
+      },
+      "writtenOn": "2023-01-29T15:52:16Z",
+      "side": 1,
+      "message": "RnJvbSAzNDdhN2M4MDc4YTAwOWU5ODk5NTk4NWI3YWI2ZWM2YjM1Njk2ZGVhIE1vbiBTZXAgMTcgMDA6MDA6MDAgMjAwMQpGcm9tOiBEYXZpZCAnRGlnaXQnIFR1cm5lciA8ZGlnaXRAZ29vZ2xlLmNvbT4KRGF0ZTogRnJpLCAwMSBGZWIgMjAxOSAxMjo0Nzo0MCArMDEwMApTdWJqZWN0OiBbUEFUQ0hdIFVwZGF0ZSAuZ2l0aWdub3JlIGZvciBzZGsvcGxhdGZvcm0tdG9vbHMvcGFja2FnZS54bWwKCk90aGVyd2lzZSB0aGUgZmlsZSBhcHBlYXJzIHRvIGJlIHVudHJhY2tlZCB3aGVuZXZlciBvbmUKZ29lcyBpbnRvIHRoaXMgZGlyZWN0b3J5LCB3aGljaCBpcyBhbm5veWluZy4KCkJVRz1OT05FClI9YWdyaWV2ZUBjaHJvbWl1bS5vcmcsamJ1ZG9yaWNrQGNocm9taXVtLm9yZyx5ZnJpZWRtYW5AY2hyb21pdW0ub3JnCgpDaGFuZ2UtSWQ6IEljYWRiNTNjMzM2YmRjM2YxMWRhYWMzZTI5NTk2N2Y3MjJkYTMwN2E1ClJldmlld2VkLW9uOiBodHRwczovL2Nocm9taXVtLXJldmlldy5nb29nbGVzb3VyY2UuY29tL2MvMTQ0OTU3NApSZXZpZXdlZC1ieTogSm9obiBCdWRvcmljayA8amJ1ZG9yaWNrQGNocm9taXVtLm9yZz4KLS0tCgpkaWZmIC0tZ2l0IGEvLmdpdGlnbm9yZSBiLy5naXRpZ25vcmUKaW5kZXggODZhNDVlMy4uNTU5YmZiNyAxMDA2NDQKLS0tIGEvLmdpdGlnbm9yZQorKysgYi8uZ2l0aWdub3JlCkBAIC0xLDUgKzEsNiBAQAogKi5weWMKIHNkay8ua25vd25QYWNrYWdlcworc2RrL3BsYXRmb3JtLXRvb2xzL3BhY2thZ2UueG1sCiBzZGsvc3lzdGVtLWltYWdlcwogc2RrL3Rvb2xzL2xpYi9tb25pdG9yLXg4Ni9jb25maWd1cmF0aW9uL29yZy5lY2xpcHNlLnVwZGF0ZS9wbGF0Zm9ybS54bWwKIHNkay90b29scy9saWIvbW9uaXRvci14ODZfNjQvY29uZmlndXJhdGlvbi9vcmcuZWNsaXBzZS51cGRhdGUvcGxhdGZvcm0ueG1sCg\u003d\u003d",
+      "revId": "347a7c8078a009e98995985b7ab6ec6b35696dea",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba"
     }
   ]
 }
