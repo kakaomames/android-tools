@@ -1,0 +1,3 @@
+[submodule "ndk"]
+	path = ndk
+	url = https://chromium.googlesource.com/android_ndk.git
