@@ -289,6 +289,23 @@
       "message": "partition close it",
       "revId": "347a7c8078a009e98995985b7ab6ec6b35696dea",
       "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "7895fc6e_54146e6a",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 3540728
+      },
+      "writtenOn": "2024-07-17T01:40:55Z",
+      "side": 1,
+      "message": "Link internal revenue",
+      "revId": "347a7c8078a009e98995985b7ab6ec6b35696dea",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba"
     }
   ]
 }
