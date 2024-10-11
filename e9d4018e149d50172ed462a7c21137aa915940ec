@@ -16,6 +16,24 @@
       "message": "550585: Android O SDK. | https://chromium-review.googlesource.com/c/android_tools/+/550585",
       "revId": "e9d4018e149d50172ed462a7c21137aa915940ec",
       "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "a2c2af9a_bdfe1fe7",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 3679913
+      },
+      "writtenOn": "2024-10-11T18:20:12Z",
+      "side": 1,
+      "message": "https://chromium-review.googlesource.com/c/android_tools/+/550585/comments/f35fee86_b38f9aab",
+      "parentUuid": "f35fee86_b38f9aab",
+      "revId": "e9d4018e149d50172ed462a7c21137aa915940ec",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba"
     }
   ]
 }
