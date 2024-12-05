@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "94303fc2_38d16bd1",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 3770953
+      },
+      "writtenOn": "2024-12-05T16:28:28Z",
+      "side": 0,
+      "message": "git push origin HEAD:refs/for/agrieve-inline-tweaks",
+      "revId": "4521cdcd6ada3de6c444bf49186c296bc71ff1a1",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba"
+    }
+  ]
+}
