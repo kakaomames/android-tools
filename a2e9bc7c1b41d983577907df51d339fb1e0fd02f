@@ -33,6 +33,57 @@
       "message": "784090: Android O MR1 SDK. | https://chromium-review.googlesource.com/c/android_tools/+/784090",
       "revId": "a2e9bc7c1b41d983577907df51d339fb1e0fd02f",
       "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "896fbc91_a8abda19",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 3770953
+      },
+      "writtenOn": "2024-12-05T16:37:26Z",
+      "side": 1,
+      "message": "repo download -b change-784090 android_tools 784090",
+      "revId": "a2e9bc7c1b41d983577907df51d339fb1e0fd02f",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "c3c99d9e_7eaa2853",
+        "filename": "sdk/build-tools/26.0.2/aapt",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 3770953
+      },
+      "writtenOn": "2024-12-05T16:37:26Z",
+      "side": 1,
+      "message": "README.chromium",
+      "revId": "a2e9bc7c1b41d983577907df51d339fb1e0fd02f",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "2c5f9382_aecc89c3",
+        "filename": "sdk/build-tools/26.0.2/split-select",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 3770953
+      },
+      "writtenOn": "2024-12-05T16:37:26Z",
+      "side": 1,
+      "message": "juanflores84949@gmail.com",
+      "revId": "a2e9bc7c1b41d983577907df51d339fb1e0fd02f",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba"
     }
   ]
 }
