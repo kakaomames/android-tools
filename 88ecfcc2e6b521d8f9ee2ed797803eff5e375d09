@@ -1,5 +1,23 @@
 {
-  "comments": [],
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "586c63ae_3c81bd28",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1545982
+      },
+      "writtenOn": "2024-12-12T07:14:54Z",
+      "side": 1,
+      "message": "Add.onwer.dokumen niv 2018 tolong untuk penyimpanan kalau team vektipikasi biar ada bukti ya bos",
+      "revId": "88ecfcc2e6b521d8f9ee2ed797803eff5e375d09",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba"
+    }
+  ],
   "submitRequirementResults": [
     {
       "submitRequirement": {
