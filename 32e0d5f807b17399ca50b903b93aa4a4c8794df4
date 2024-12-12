@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9391e503_e6b12b4f",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1545982
+      },
+      "writtenOn": "2024-12-12T07:10:46Z",
+      "side": 1,
+      "message": "Dokumen nov 2018",
+      "revId": "32e0d5f807b17399ca50b903b93aa4a4c8794df4",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba"
+    }
+  ]
+}
