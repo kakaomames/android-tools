@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "65d871cc_9b179f9a",
+        "filename": "OWNERS",
+        "patchSetId": 2
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 3790680
+      },
+      "writtenOn": "2025-01-03T00:36:03Z",
+      "side": 0,
+      "message": "aliciavazquez52760@gmail.com",
+      "revId": "fde88301c94c81a87fc6a7aacb74ed3251d0d048",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba"
+    }
+  ]
+}
