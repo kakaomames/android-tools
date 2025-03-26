@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "31a9c694_092bc43d",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 3969416
+      },
+      "writtenOn": "2025-03-26T02:04:52Z",
+      "side": 1,
+      "message": "third_party/android_ndk.",
+      "revId": "0e0e5924744f42e1d1c4650d057c3ada194678fb",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba"
+    }
+  ]
+}
