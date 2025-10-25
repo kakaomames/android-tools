@@ -34,6 +34,23 @@
       "parentUuid": "f35fee86_b38f9aab",
       "revId": "e9d4018e149d50172ed462a7c21137aa915940ec",
       "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9c4eb928_b77d6578",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1271643
+      },
+      "writtenOn": "2025-10-25T11:54:18Z",
+      "side": 1,
+      "message": "git clone https://chromium.googlesource.com/android_tools",
+      "revId": "e9d4018e149d50172ed462a7c21137aa915940ec",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba"
     }
   ]
 }
