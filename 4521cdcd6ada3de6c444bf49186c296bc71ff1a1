@@ -88,6 +88,23 @@
     {
       "unresolved": false,
       "key": {
+        "uuid": "c8266709_a801b31b",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 4548597
+      },
+      "writtenOn": "2026-01-07T02:21:08Z",
+      "side": 1,
+      "message": "Comment removed by: Mike Frysinger; Reason: \u003cspam\u003e",
+      "revId": "4521cdcd6ada3de6c444bf49186c296bc71ff1a1",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba"
+    },
+    {
+      "unresolved": false,
+      "key": {
         "uuid": "2dd94918_a3d2b076",
         "filename": "sdk/platform-tools/systrace/catapult/common/node_runner/node_runner/package-lock.json",
         "patchSetId": 2
