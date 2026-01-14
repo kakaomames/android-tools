@@ -16,6 +16,23 @@
       "message": "Comment removed by: Mike Frysinger; Reason: \u003cspam\u003e",
       "revId": "ff2bf0560cbe6671ba4160423af196feafee4bf9",
       "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9c2ea0f7_ec4dc624",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 4
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 4585382
+      },
+      "writtenOn": "2026-01-14T13:27:33Z",
+      "side": 1,
+      "message": "Comment removed by: Mike Frysinger; Reason: \u003cspam\u003e",
+      "revId": "ff2bf0560cbe6671ba4160423af196feafee4bf9",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba"
     }
   ]
 }
