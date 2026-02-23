@@ -16,6 +16,23 @@
       "message": "استعادة البرنامج الأساسية الإفتراضية مجاني مدى الحياة",
       "revId": "62a86e8742b8766cc5b61e40beade30ff0fa1d70",
       "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d1845e14_dcbe3e38",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 3915679
+      },
+      "writtenOn": "2026-02-23T01:56:41Z",
+      "side": 1,
+      "message": "استعادة البرنامج الأساسية الإفتراضية تثبيت تطبيق مجاني مدى الحياة",
+      "revId": "62a86e8742b8766cc5b61e40beade30ff0fa1d70",
+      "serverId": "3ce6091f-6c88-37e8-8c75-72f92ae8dfba"
     }
   ]
 }
