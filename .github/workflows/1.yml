@@ -6,6 +6,8 @@ on:
 jobs:
   android-vnc:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # コミットを書き戻すために必要！
     steps:
       - uses: actions/checkout@v4
         with:
