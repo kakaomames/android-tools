@@ -70,11 +70,11 @@ jobs:
 
       - name: 5. noVNC(WebSocket) & Cloudflare Tunnel 起動
         run: |
-          echo "[ACTION] noVNC をポート 6080 で起動中..."
-          # VNC(5900)をブラウザ用WebSocket(6080)に変換してWebサーバー起動
-          /usr/share/novnc/utils/launch.sh --vnc localhost:5900 --listen 6080 &
+          echo "[ACTION] websockify を使って VNCポート(5900) を Webポート(6080) に変換開始！"
+          # noVNCのHTML一式（/usr/share/novnc）を指定して、6080ポートでWebサーバーを起動
+          websockify --web=/usr/share/novnc 6080 localhost:5900 &
           
-          # Webサーバーが完全に立ち上がるまで10秒待機（502対策！）
+          # Webサーバーが完全に立ち上がるまで10秒待機
           sleep 10
           echo "[ACTION] noVNC Webサーバーの起動待機が完了したぞ！"
           
@@ -91,11 +91,11 @@ jobs:
           echo "=================================================="
           grep -o 'https://[^ ]*trycloudflare.com' cloudflare.log || cat cloudflare.log
           echo "=================================================="
-          echo "💡 502が出る場合は、あと1〜2分待ってからページをリロードしてみてくれ！"
+          echo "💡 502が出なくなったら、真ん中の「Connect」を押すんだ！"
           echo "=================================================="
           
           # 6時間生存ループ
-          echo "[ACTION] 6時間のキャンバスハック作戦、維持ループ突入！"
+          echo "[ACTION] 6時間のキャンバスハック作戦、完全修正版の維持ループに突入！"
           sleep 21600
       - name: 6. git push
         run: |
