@@ -1,4 +1,4 @@
-name: Android VNC Canvas Sandbox
+name: 1
 
 on:
   workflow_dispatch:
