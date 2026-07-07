@@ -1,0 +1,12 @@
+name: Android VNC Canvas Sandbox to arm64
+
+on:
+  workflow_dispatch:
+
+jobs:
+  android-vnc:
+    runs-on: ubuntu-arm64-latest
+    steps:
+      - name: arm64でtest!
+        run: |
+          bash arm64.sh
