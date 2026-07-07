@@ -10,8 +10,9 @@ jobs:
       - name: 1. 必要なパッケージのインストール
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb x11vnc fvwm websockify novnc libpulse0 libgl1-mesa-glx
-          echo "[ACTION] 依存ライブラリと画面共有パッケージの補給が完了したぞ！"
+          # 古い libgl1-mesa-glx を排して、現代の libgl1、libglx-mesa0、libpulse0 に修正！
+          sudo apt-get install -y xvfb x11vnc fvwm websockify novnc libpulse0 libgl1 libglx-mesa0
+          echo "[ACTION] 最新の依存ライブラリと画面共有パッケージの補給が完了したぞ！"
           echo "[ACTION] 画面共有用のベースパッケージのインストールが完了したぞ！"
 
       - name: 2. Android SDK & エミュレータのセットアップ
