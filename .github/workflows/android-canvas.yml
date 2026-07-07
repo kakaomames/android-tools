@@ -1,0 +1,88 @@
+name: Android VNC Canvas Sandbox
+
+on:
+  workflow_dispatch:
+
+jobs:
+  android-vnc:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. 必要なパッケージのインストール
+        run: |
+          sudo apt-get update
+          # Xvfb(仮想画面), x11vnc(VNCサーバー), fvwm(軽量ウィンドウマネージャ)などをインストール
+          sudo apt-get install -y xvfb x11vnc fvwm websockify novnc
+          echo "[ACTION] 画面共有用のベースパッケージのインストールが完了したぞ！"
+
+      - name: 2. Android SDK & エミュレータのセットアップ
+        run: |
+          # Android CUIツールの配置とエミュレータ、システムイメージの取得
+          # ※Actionsの高速回線なら数分で終わるぞ！
+          sudo apt-get install -y openjdk-17-jdk
+          mkdir -p mkdir -p $HOME/android-sdk/cmdline-tools
+          curl -L https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip
+          unzip -q cmdline-tools.zip -d $HOME/android-sdk/cmdline-tools
+          mv $HOME/android-sdk/cmdline-tools/cmdline-tools $HOME/android-sdk/cmdline-tools/latest
+          
+          # パスを通す
+          export ANDROID_HOME=$HOME/android-sdk
+          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools
+          
+          # ライセンス承諾とイメージ(API 28/Android 9 ※軽さ重視)のダウンロード
+          yes | sdkmanager --licenses > /dev/null
+          sdkmanager "platform-tools" "emulator" "system-images;android-28;default;x86" > /dev/null
+          
+          # AVD(仮想デバイス)の作成
+          echo "no" | avdmanager create avd -n test_android -k "system-images;android-28;default;x86" --force
+          echo "[ACTION] Androidエミュレータの準備が整ったぞ！"
+
+      - name: 3. 仮想ディスプレイとVNCの起動
+        run: |
+          # 仮想ディスプレイ :1 を解像度 800x1280 (スマホ縦画面サイズ) で起動
+          Xvfb :1 -screen 0 800x1280x24 &
+          export DISPLAY=:1
+          sleep 2
+          fvwm & # ウィンドウマネージャ起動
+          
+          # x11vncをポート5900でバックグラウンド起動 (パスワードなし)
+          x11vnc -display :1 -nopw -listen localhost -forever -shared &
+          echo "[ACTION] 仮想ディスプレイとVNCサーバーが起動したぞ！"
+
+      - name: 4. エミュレータのバックグラウンド起動
+        run: |
+          export ANDROID_HOME=$HOME/android-sdk
+          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools
+          export DISPLAY=:1
+          
+          # KVM（アクセラレータ）なしでヘッドレス起動、ただし画面はXvfb(:1)に描画させる
+          # 重いので起動完了を待たずにバックグラウンドへ
+          emulator -avd test_android -no-accel -no-audio -gpu swiftshader_indirect &
+          echo "[ACTION] エミュレータをバックグラウンドで召喚したぞ！(起動にはかなり時間がかかる)"
+
+      - name: 5. noVNC(WebSocket) & Cloudflare Tunnel 起動
+        run: |
+          # VNC(5900)をブラウザ用WebSocket(6080)に変換
+          # noVNCのWeb画面（HTML canvas内蔵）を6080ポートで提供
+          /usr/share/novnc/utils/launch.sh --vnc localhost:5900 --listen 6080 &
+          sleep 3
+          
+          # cloudflaredをダウンロード
+          curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared
+          chmod +x cloudflared
+          
+          # 6080番ポート(noVNC)をCloudflare Tunnelで世界に公開！
+          ./cloudflared tunnel --url http://localhost:6080 > cloudflare.log 2>&1 &
+          sleep 5
+          
+          echo "=================================================="
+          echo "🌐 【探検隊・ブラウザ接続URL】スマホやPCのブラウザで開け！"
+          echo "=================================================="
+          # ログから公開URLを抽出
+          grep -o 'https://[^ ]*tryflare.com' cloudflare.log || cat cloudflare.log
+          echo "=================================================="
+          echo "💡 URLを開いたら「Connect」を押すと、HTML canvasに画面が映るぞ！"
+          echo "=================================================="
+          
+          # 6時間生存ループ
+          echo "[ACTION] 6時間のキャンバスハック作戦、維持ループ突入！"
+          sleep 21600
