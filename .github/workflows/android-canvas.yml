@@ -45,12 +45,12 @@ jobs:
 
       - name: 3. 仮想ディスプレイとVNCの起動
         run: |
-          Xvfb :1 -screen 0 800x1280x24 &
+          Xvfb :1 -screen 0 480x800x16 &
           export DISPLAY=:1
           sleep 3
           fvwm & 
           
-          x11vnc -display :1 -nopw -listen localhost -forever -shared &
+          x11vnc -display :1 -nopw -listen localhost -forever -shared -relax 7 &
           echo "[ACTION] 仮想ディスプレイ(:1)とVNCサーバー(5900)がバックグラウンドで起動したぞ！"
 
       - name: 4. エミュレータのバックグラウンド起動
@@ -62,7 +62,15 @@ jobs:
           
           echo "[ACTION] これからエミュレータを召喚する！ターゲット: test_android"
           # パスが通っている状態で、AVDを指定して起動
-          emulator -avd test_android -no-accel -no-audio -gpu swiftshader_indirect &
+          # emulator -avd test_android -no-accel -no-audio -gpu swiftshader_indirect &
+          # -no-skin: 枠を消して描画をカット / -memory 2048: 最新apkが落ちないようメモリを確保
+          emulator -avd test_android \
+            -no-accel \
+            -no-audio \
+            -no-skin \
+            -memory 2048 \
+            -gpu swiftshader_indirect \
+            -timezone Asia/Tokyo &
           
           # 起動直後のログを少し待って確認
           sleep 5
